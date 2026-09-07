@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CampusResolve | Issue Tracking System</title>
+    <meta name="description" content="A smart and seamless classroom issue reporting and tracking system for students and faculty.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="#" class="logo">
+                <span class="logo-icon"></span>
+                CampusResolve
+            </a>
+            <div class="nav-links">
+                <a href="#how-it-works">How It Works</a>
+                <a href="#features">Features</a>
+                <a href="dashboard.html#priority">Priority Levels</a>
+            </div>
+            <div class="nav-actions">
+                <a href="dashboard.html" class="btn btn-secondary">Student Login</a>
+                <a href="dashboard.html" class="btn btn-primary">Report Issue</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero" id="home">
+        <div class="hero-bg-glow"></div>
+        <div class="hero-content">
+            <div class="badge">Smart Issue Escalation</div>
+            <h1 class="hero-title">
+                Resolving campus issues, <br>
+                <span class="text-gradient">faster than ever.</span>
+            </h1>
+            <p class="hero-subtitle">
+                Don't know whom to contact? Just report it. Our smart system automatically routes your problem to the right authority and tracks it until it's solved.
+            </p>
+            <div class="hero-buttons">
+                <a href="dashboard.html" class="btn btn-primary btn-lg">Raise an Issue Now</a>
+                <a href="#how-it-works" class="btn btn-outline btn-lg">See How It Works</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- How It Works Section -->
+    <section class="section" id="how-it-works">
+        <div class="section-container">
+            <h2 class="section-title">Seamless Workflow</h2>
+            <p class="section-description">From reporting to resolution, experience a transparent and automated process.</p>
+            
+            <div class="workflow-grid">
+                <div class="workflow-card">
+                    <div class="step-number">01</div>
+                    <h3>Raise Issue</h3>
+                    <p>Select your category (e.g. Projector not working). Add details and a photo if needed.</p>
+                </div>
+                <div class="workflow-connector"></div>
+                <div class="workflow-card">
+                    <div class="step-number">02</div>
+                    <h3>Smart Routing</h3>
+                    <p>The system intelligently identifies whether it goes to the CR, Class Teacher, or HOD.</p>
+                </div>
+                <div class="workflow-connector"></div>
+                <div class="workflow-card">
+                    <div class="step-number">03</div>
+                    <h3>Live Tracking</h3>
+                    <p>Get notified as your issue moves from Pending to In Progress, and finally Resolved.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features / Escalation Section -->
+    <section class="section features-section" id="features">
+        <div class="section-container">
+            <div class="features-split">
+                <div class="features-text">
+                    <h2 class="section-title text-left">Automatic Escalation</h2>
+                    <p class="section-description text-left">No problem is left unresolved. If an issue is ignored, we escalate it.</p>
+                    <ul class="feature-list">
+                        <li>
+                            <div class="icon-box">✓</div>
+                            <div>
+                                <h4>CR Level</h4>
+                                <p>Basic classroom issues are addressed immediately by the Class Representative.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="icon-box">✓</div>
+                            <div>
+                                <h4>Class Teacher</h4>
+                                <p>If not solved in 2 days, it automatically forwards to the Class Teacher.</p>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="icon-box">✓</div>
+                            <div>
+                                <h4>HOD Escalation</h4>
+                                <p>Critical or delayed issues are sent directly to the Head of Department.</p>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+                <div class="features-visual">
+                    <div class="glass-panel">
+                        <div class="status-item">
+                            <div class="status-dot warning"></div>
+                            <div class="status-info">
+                                <strong>Pending Action (CR)</strong>
+                                <span>2 Days elapsed...</span>
+                            </div>
+                        </div>
+                        <div class="escalation-arrow">↓</div>
+                        <div class="status-item active">
+                            <div class="status-dot error"></div>
+                            <div class="status-info">
+                                <strong>Escalated to Class Teacher</strong>
+                                <span>Notification Sent</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="cta-section">
+        <div class="cta-container glass-panel">
+            <h2>Ready to improve your classroom experience?</h2>
+            <p>Join thousands of students getting their issues resolved efficiently.</p>
+            <a href="dashboard.html" class="btn btn-primary btn-lg">Go to Dashboard</a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-container">
+            <div class="footer-brand">
+                <a href="#" class="logo">CampusResolve</a>
+                <p>Ensuring better education environments through smart complaint management.</p>
+            </div>
+            <div class="footer-links">
+                <div>
+                    <h4>Quick Links</h4>
+                    <a href="#">Report Issue</a>
+                    <a href="#">Track Status</a>
+                    <a href="#">Contact Support</a>
+                </div>
+                <div>
+                    <h4>Legal</h4>
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 CampusResolve. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
