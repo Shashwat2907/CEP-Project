@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { X, Check, ArrowRight, CheckCircle2, User, Calendar, Tag, ThumbsUp } from 'lucide-react';
+import { X, Check, ArrowRight, CheckCircle2, Tag, ThumbsUp } from 'lucide-react';
 import { STAGES } from '../data/mockData';
 import { useIssues } from '../context/IssueContext';
 
@@ -53,7 +53,7 @@ export default function IssueDetailModal({ issue, onClose }) {
             onClick={onClose}
             aria-label="Close modal"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
@@ -67,13 +67,13 @@ export default function IssueDetailModal({ issue, onClose }) {
               {issue.status === 'InProgress' ? 'In Progress' : issue.status}
             </span>
 
-            <span className="badge-pill" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
+            <span className="badge-pill" style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
               <span className={`priority-dot ${issue.priority}`}></span>
               {issue.priority} Priority
             </span>
 
-            <span className="badge-pill" style={{ background: 'rgba(255,255,255,0.06)', color: 'var(--text-muted)' }}>
-              <Tag size={12} />
+            <span className="badge-pill" style={{ background: 'var(--surface)', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+              <Tag size={11} />
               {issue.category}
             </span>
 
@@ -82,14 +82,14 @@ export default function IssueDetailModal({ issue, onClose }) {
               className="badge-pill"
               onClick={() => toggleUpvote(issue.id)}
               style={{
-                background: 'rgba(99, 102, 241, 0.12)',
-                color: 'var(--primary-hover)',
-                border: '1px solid rgba(99, 102, 241, 0.25)',
+                background: 'var(--surface)',
+                color: 'var(--text-main)',
+                border: '1px solid var(--border)',
                 cursor: 'pointer'
               }}
             >
-              <ThumbsUp size={12} />
-              {issue.upvotes || 0} Upvotes
+              <ThumbsUp size={11} />
+              {issue.upvotes || 0} Endorsements
             </button>
           </div>
 
@@ -98,44 +98,44 @@ export default function IssueDetailModal({ issue, onClose }) {
           </p>
 
           {issue.imagePreview && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <div style={{ fontSize: '0.84rem', color: 'var(--text-dim)', marginBottom: '0.4rem' }}>
-                Attached Evidence:
+            <div style={{ marginBottom: '1.2rem' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', marginBottom: '0.35rem', textTransform: 'uppercase' }}>
+                Attached Document / Evidence:
               </div>
               <img
                 src={issue.imagePreview}
-                alt="Attachment"
+                alt="Evidence"
                 style={{
                   maxWidth: '100%',
-                  maxHeight: '220px',
-                  borderRadius: '10px',
+                  maxHeight: '200px',
+                  borderRadius: '6px',
                   border: '1px solid var(--border)'
                 }}
               />
             </div>
           )}
 
-          <h3 style={{ fontSize: '1rem', marginBottom: '1.2rem', color: 'var(--text-main)' }}>
-            Resolution Stepper & Escalation Trail
+          <h3 style={{ fontSize: '0.92rem', marginBottom: '1rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+            Administrative Escalation Trail
           </h3>
 
           <div className="timeline">
             {STAGES.map((stageName, idx) => {
               let cls = 'pending';
               let icon = idx + 1;
-              let sub = 'Pending escalation';
+              let sub = 'Not yet reached';
 
               if (isResolved && idx <= issue.stage) {
                 cls = 'done';
-                icon = <Check size={16} />;
-                sub = idx === issue.stage ? 'Successfully resolved at this level' : 'Cleared through this level';
+                icon = <Check size={14} />;
+                sub = idx === issue.stage ? 'Resolved at this tier' : 'Cleared through this tier';
               } else if (idx < issue.stage) {
                 cls = 'done';
-                icon = <Check size={16} />;
-                sub = 'Escalated to next level due to SLA timer';
+                icon = <Check size={14} />;
+                sub = 'Advanced to next level';
               } else if (idx === issue.stage) {
                 cls = 'current';
-                sub = `Currently active here · ${timeAgo(issue.daysElapsed)}`;
+                sub = `Currently assigned here · ${timeAgo(issue.daysElapsed)}`;
               }
 
               return (
@@ -153,9 +153,9 @@ export default function IssueDetailModal({ issue, onClose }) {
 
           <div className="detail-actions">
             {isResolved ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success)', fontSize: '0.92rem' }}>
-                <CheckCircle2 size={18} />
-                This complaint has been officially marked as resolved.
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--success-text)', fontSize: '0.88rem' }}>
+                <CheckCircle2 size={16} />
+                This ticket has been officially resolved and closed.
               </div>
             ) : (
               <>
@@ -165,7 +165,7 @@ export default function IssueDetailModal({ issue, onClose }) {
                   onClick={handleResolve}
                   id="markResolvedBtn"
                 >
-                  <Check size={16} />
+                  <Check size={14} />
                   Mark Resolved
                 </button>
 
@@ -177,7 +177,7 @@ export default function IssueDetailModal({ issue, onClose }) {
                     id="escalateBtn"
                   >
                     Escalate to {nextStageName}
-                    <ArrowRight size={16} />
+                    <ArrowRight size={14} />
                   </button>
                 )}
               </>

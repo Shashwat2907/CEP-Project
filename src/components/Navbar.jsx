@@ -1,30 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { ShieldAlert, ArrowRight, LayoutDashboard } from 'lucide-react';
+import React from 'react';
+import { Shield, ArrowRight, LayoutDashboard } from 'lucide-react';
 
 export default function Navbar({ onNavigateDashboard }) {
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 40);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
-    <nav className={`landing-navbar ${scrolled ? 'scrolled' : ''}`}>
+    <nav className="landing-navbar">
       <div className="nav-container">
         <a href="#home" className="logo">
           <span className="logo-icon">
-            <ShieldAlert size={18} />
+            <Shield size={16} />
           </span>
           CampusResolve
         </a>
 
         <div className="nav-links">
-          <a href="#how-it-works">How It Works</a>
-          <a href="#features">Smart Escalation</a>
+          <a href="#how-it-works">Architecture</a>
+          <a href="#features">Escalation Engine</a>
           <a href="#priority" onClick={onNavigateDashboard}>Priority Matrix</a>
         </div>
 
@@ -33,19 +23,19 @@ export default function Navbar({ onNavigateDashboard }) {
             type="button" 
             className="btn btn-secondary"
             onClick={onNavigateDashboard}
-            id="navStudentLoginBtn"
+            id="navDashboardBtn"
           >
-            <LayoutDashboard size={16} />
-            Student Login
+            <LayoutDashboard size={15} />
+            Dashboard
           </button>
           <button 
             type="button" 
             className="btn btn-primary"
             onClick={onNavigateDashboard}
-            id="navReportIssueBtn"
+            id="navGetStartedBtn"
           >
-            Report Issue
-            <ArrowRight size={16} />
+            Launch Platform
+            <ArrowRight size={15} />
           </button>
         </div>
       </div>

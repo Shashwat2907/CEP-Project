@@ -1,14 +1,14 @@
 import React from 'react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 export default function CTASection({ onNavigateDashboard }) {
   return (
     <section className="cta-section">
       <div className="cta-container">
-        <h2>Ready to improve your campus experience?</h2>
+        <h2>Experience Integrated Academic Operations</h2>
         <p>
-          Join thousands of students and faculty members resolving classroom infrastructure and
-          academic complaints with automated clarity.
+          A single platform connecting classroom realities with administrative responsiveness.
+          Designed specifically for students, professors, and department heads.
         </p>
         <button
           type="button"
@@ -16,9 +16,8 @@ export default function CTASection({ onNavigateDashboard }) {
           onClick={onNavigateDashboard}
           id="ctaGoDashboardBtn"
         >
-          <Sparkles size={18} />
-          Go to Student Dashboard
-          <ArrowRight size={18} />
+          Open Platform Console
+          <ArrowRight size={16} />
         </button>
       </div>
     </section>

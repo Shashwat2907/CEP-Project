@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Navigation, 
-  MapPin, 
   CheckCircle2, 
   XCircle, 
   Compass, 
   Crosshair, 
   Radio, 
   Clock, 
-  AlertCircle, 
-  Layers,
-  Sparkles
+  Shield
 } from 'lucide-react';
 import { 
   fetchActiveAttendanceSession, 
@@ -25,7 +22,7 @@ export default function AttendanceStudentView() {
   const [studentPresets, setStudentPresets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedCoords, setSelectedCoords] = useState(null);
-  const [locationSource, setLocationSource] = useState('preset'); // 'real' or 'preset'
+  const [locationSource, setLocationSource] = useState('preset');
   const [verificationResult, setVerificationResult] = useState(null);
   const [myHistory, setMyHistory] = useState([]);
 
@@ -37,7 +34,6 @@ export default function AttendanceStudentView() {
     fetchAttendancePresets().then(res => {
       if (res?.student_presets) {
         setStudentPresets(res.student_presets);
-        // Default to inside lab preset
         if (res.student_presets.length > 0) {
           setSelectedCoords(res.student_presets[0]);
         }
@@ -55,7 +51,7 @@ export default function AttendanceStudentView() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         setSelectedCoords({
-          label: 'Real Browser GPS Position',
+          label: 'Hardware GPS Signal',
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
           accuracy: Math.round(pos.coords.accuracy || 5)
@@ -63,7 +59,7 @@ export default function AttendanceStudentView() {
         setLoading(false);
       },
       (err) => {
-        alert(`Could not acquire GPS: ${err.message}. You can use the preset location simulator below.`);
+        alert(`Could not acquire GPS: ${err.message}. You can use the simulation presets below.`);
         setLoading(false);
       },
       { enableHighAccuracy: true, timeout: 10000 }
@@ -107,112 +103,104 @@ export default function AttendanceStudentView() {
 
   return (
     <div className="attendance-view">
-      {/* Student Banner */}
-      <div className="panel" style={{ padding: '1.6rem 2rem', marginBottom: '1.8rem', background: 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(99,102,241,0.08) 100%)' }}>
+      {/* Top Header Summary */}
+      <div className="panel" style={{ padding: '1.4rem 1.6rem', marginBottom: '1.5rem', background: 'var(--surface)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--success)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.4rem' }}>
-              <Navigation size={15} /> Student Geolocation Portal
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.76rem', color: 'var(--text-dim)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '0.3rem' }}>
+              <Navigation size={14} /> Student Geofence Telemetry
             </div>
-            <h2 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Geofence Classroom Check-in</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.92rem', marginTop: '0.2rem' }}>
-              Verify your physical coordinates to prove attendance within the instructor's perimeter boundary.
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 600 }}>Classroom Geolocation Check-in</h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '0.15rem' }}>
+              Confirm your physical presence in class via server-validated coordinate triangulation.
             </p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--surface)', padding: '0.6rem 1rem', borderRadius: '10px', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-subtle)', padding: '0.5rem 0.9rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
             <span className="priority-dot Low"></span>
-            <span style={{ fontSize: '0.86rem', color: 'var(--text-main)', fontWeight: 500 }}>
-              Logged in as: <strong>{user.name}</strong> ({user.department})
+            <span style={{ fontSize: '0.82rem', color: 'var(--text-main)', fontWeight: 500 }}>
+              Student: <strong>{user.name}</strong> ({user.department})
             </span>
           </div>
         </div>
       </div>
 
-      <div className="content-split" style={{ gridTemplateColumns: '1fr 380px' }}>
-        {/* Left Column: Active Session & Telemetry Scanner */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Active Session Status */}
-          <div className="panel" style={{ padding: '1.6rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.8rem', marginBottom: '1rem' }}>
+      <div className="content-split" style={{ gridTemplateColumns: '1fr 340px' }}>
+        {/* Left Column: Active Session & Coordinate Submission */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+          {/* Active Class Target Info */}
+          <div className="panel" style={{ padding: '1.4rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.6rem', marginBottom: '0.9rem' }}>
               <div>
-                <span className="badge-pill" style={{ background: 'var(--status-progress-bg)', color: '#818cf8', marginBottom: '0.5rem' }}>
-                  <Radio size={12} /> Active Class Geofence
+                <span className="badge-pill" style={{ background: 'var(--bg-subtle)', color: 'var(--text-muted)', border: '1px solid var(--border)', marginBottom: '0.4rem' }}>
+                  <Radio size={11} /> Target Classroom Geofence
                 </span>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                  {activeSession ? activeSession.course_name : 'No active class session broadcast at this moment'}
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 600 }}>
+                  {activeSession ? activeSession.course_name : 'No active session broadcast currently'}
                 </h3>
               </div>
 
               {activeSession && (
-                <span className="badge-pill status-Resolved" style={{ fontSize: '0.8rem' }}>
-                  Broadcasting Live
+                <span className="badge-pill status-Resolved" style={{ fontSize: '0.75rem' }}>
+                  Active Broadcast
                 </span>
               )}
             </div>
 
             {activeSession ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.8rem', background: 'rgba(0,0,0,0.25)', padding: '1.1rem', borderRadius: '12px', border: '1px solid var(--border)', fontSize: '0.86rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.75rem', background: 'var(--bg-subtle)', padding: '0.9rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.82rem' }}>
                 <div>
-                  <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.78rem' }}>Instructor</span>
+                  <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.74rem' }}>Instructor</span>
                   <strong style={{ color: 'var(--text-main)' }}>{activeSession.teacher_name}</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.78rem' }}>Room / Venue</span>
+                  <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.74rem' }}>Classroom Venue</span>
                   <strong style={{ color: 'var(--text-main)' }}>{activeSession.room}</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.78rem' }}>Required Perimeter</span>
-                  <strong style={{ color: 'var(--accent)' }}>Within {activeSession.radius_meters}m</strong>
+                  <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.74rem' }}>Perimeter Radius</span>
+                  <strong style={{ color: 'var(--text-main)', fontFamily: 'ui-monospace, monospace' }}>≤ {activeSession.radius_meters}m</strong>
                 </div>
                 <div>
-                  <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.78rem' }}>Target GPS Center</span>
-                  <code style={{ color: 'var(--primary-hover)', fontSize: '0.82rem' }}>{activeSession.latitude.toFixed(4)}°, {activeSession.longitude.toFixed(4)}°</code>
+                  <span style={{ color: 'var(--text-dim)', display: 'block', fontSize: '0.74rem' }}>Center Reference</span>
+                  <span style={{ color: 'var(--text-dim)', fontFamily: 'ui-monospace, monospace' }}>
+                    {activeSession.latitude.toFixed(4)}°, {activeSession.longitude.toFixed(4)}°
+                  </span>
                 </div>
               </div>
             ) : (
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                Your instructor has not opened a geofence attendance window yet. Once opened, it will appear here automatically.
+              <p style={{ color: 'var(--text-dim)', fontSize: '0.86rem' }}>
+                No active geofence window is currently broadcasting. Check back when lecture begins.
               </p>
             )}
           </div>
 
-          {/* Verification Box & Radar Scanner */}
-          <div className="panel" style={{ padding: '1.8rem' }}>
-            <h3 style={{ fontSize: '1.15rem', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Crosshair size={18} color="var(--primary-hover)" />
-              GPS Coordinate Acquisition & Telemetry
+          {/* Coordinate Signal Acquisition */}
+          <div className="panel" style={{ padding: '1.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <Crosshair size={16} />
+              Location Signal & Verification
             </h3>
 
-            {/* Simulated vs Real selector */}
-            <div style={{ marginBottom: '1.4rem' }}>
-              <label style={{ display: 'block', fontSize: '0.86rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
-                Location Signal Source:
-              </label>
-
-              <div style={{ display: 'flex', gap: '0.8rem', flexWrap: 'wrap' }}>
+            {/* Signal Source Selection */}
+            <div style={{ marginBottom: '1.2rem' }}>
+              <div style={{ display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'center' }}>
                 <button
                   type="button"
                   className={`btn ${locationSource === 'real' ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={handleAcquireRealGps}
                   disabled={loading}
                 >
-                  <Compass size={16} />
-                  Acquire Live Browser GPS
+                  <Compass size={15} />
+                  Acquire Device GPS
                 </button>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-dim)', fontSize: '0.82rem' }}>
-                  or select an instant simulation preset below:
-                </div>
+                <span style={{ color: 'var(--text-dim)', fontSize: '0.8rem' }}>or test with location presets:</span>
               </div>
             </div>
 
-            {/* Presets buttons */}
-            <div style={{ marginBottom: '1.6rem' }}>
-              <label style={{ display: 'block', fontSize: '0.84rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                Simulation Presets (for testing inside & outside geofences without leaving room):
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.6rem' }}>
+            {/* Presets List */}
+            <div style={{ marginBottom: '1.4rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.5rem' }}>
                 {studentPresets.map((preset) => {
                   const isSelected = locationSource === 'preset' && selectedCoords?.id === preset.id;
                   const isInside = preset.id.startsWith('inside');
@@ -222,22 +210,21 @@ export default function AttendanceStudentView() {
                       type="button"
                       onClick={() => handleSelectPreset(preset)}
                       style={{
-                        padding: '0.75rem 0.9rem',
-                        borderRadius: '9px',
+                        padding: '0.65rem 0.8rem',
+                        borderRadius: '6px',
                         textAlign: 'left',
-                        background: isSelected ? 'var(--surface-active)' : 'var(--surface)',
-                        border: `1px solid ${isSelected ? 'var(--primary)' : 'var(--border)'}`,
+                        background: isSelected ? 'var(--surface-active)' : 'var(--bg-subtle)',
+                        border: `1px solid ${isSelected ? 'var(--text-main)' : 'var(--border)'}`,
                         color: 'var(--text-main)',
                         cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        boxShadow: isSelected ? '0 0 12px var(--primary-glow)' : 'none'
+                        transition: 'border-color 0.15s ease'
                       }}
                     >
-                      <div style={{ fontSize: '0.85rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <span className={`priority-dot ${isInside ? 'Low' : 'Critical'}`}></span>
                         {preset.label}
                       </div>
-                      <span style={{ fontSize: '0.74rem', color: isInside ? 'var(--success)' : 'var(--error)', marginTop: '2px', display: 'block' }}>
+                      <span style={{ fontSize: '0.72rem', color: isInside ? 'var(--success-text)' : 'var(--error-text)', marginTop: '2px', display: 'block', fontFamily: 'ui-monospace, monospace' }}>
                         {preset.hint}
                       </span>
                     </button>
@@ -246,26 +233,26 @@ export default function AttendanceStudentView() {
               </div>
             </div>
 
-            {/* Currently Selected Location Readout */}
+            {/* Target Location Readout & Action */}
             {selectedCoords && (
-              <div style={{ background: 'rgba(0,0,0,0.3)', padding: '1rem', borderRadius: '10px', border: '1px solid var(--border)', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.8rem' }}>
+              <div style={{ background: 'var(--bg-subtle)', padding: '0.9rem', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '1.2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.8rem' }}>
                 <div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)' }}>Ready Location Signal:</div>
-                  <strong style={{ fontSize: '0.92rem', color: 'var(--text-main)' }}>{selectedCoords.label}</strong>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--primary-hover)', marginTop: '2px' }}>
-                    Latitude: {selectedCoords.latitude.toFixed(5)}° · Longitude: {selectedCoords.longitude.toFixed(5)}°
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'uppercase' }}>Selected Signal:</div>
+                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>{selectedCoords.label}</strong>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', fontFamily: 'ui-monospace, monospace', marginTop: '2px' }}>
+                    {selectedCoords.latitude.toFixed(5)}° N, {selectedCoords.longitude.toFixed(5)}° E
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  className="btn btn-primary btn-lg"
+                  className="btn btn-primary"
                   onClick={handleMarkAttendance}
                   disabled={loading || !activeSession}
                   id="submitAttendanceBtn"
                 >
-                  <Navigation size={18} />
-                  {loading ? 'Verifying with Geofence...' : 'Mark Attendance'}
+                  <Navigation size={15} />
+                  {loading ? 'Verifying Coordinates...' : 'Verify & Record Attendance'}
                 </button>
               </div>
             )}
@@ -274,49 +261,42 @@ export default function AttendanceStudentView() {
             {verificationResult && (
               <div
                 style={{
-                  padding: '1.4rem 1.6rem',
-                  borderRadius: '12px',
-                  background: verificationResult.status === 'PRESENT'
-                    ? 'rgba(16, 185, 129, 0.12)'
-                    : 'rgba(239, 68, 68, 0.12)',
-                  border: `1.5px solid ${
-                    verificationResult.status === 'PRESENT'
-                      ? 'rgba(16, 185, 129, 0.4)'
-                      : 'rgba(239, 68, 68, 0.4)'
-                  }`,
-                  animation: 'fadeIn 0.3s ease-out'
+                  padding: '1.1rem 1.3rem',
+                  borderRadius: '8px',
+                  background: verificationResult.status === 'PRESENT' ? 'var(--success-bg)' : 'var(--error-bg)',
+                  border: `1px solid ${verificationResult.status === 'PRESENT' ? 'var(--success-border)' : 'var(--error-border)'}`
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '0.6rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '0.4rem' }}>
                   {verificationResult.status === 'PRESENT' ? (
-                    <CheckCircle2 size={24} color="var(--success)" />
+                    <CheckCircle2 size={18} color="var(--success-text)" />
                   ) : (
-                    <XCircle size={24} color="var(--error)" />
+                    <XCircle size={18} color="var(--error-text)" />
                   )}
                   <h4 style={{ 
-                    fontSize: '1.15rem', 
-                    color: verificationResult.status === 'PRESENT' ? 'var(--success)' : 'var(--error)' 
+                    fontSize: '0.98rem', 
+                    color: verificationResult.status === 'PRESENT' ? 'var(--success-text)' : 'var(--error-text)' 
                   }}>
                     {verificationResult.status === 'PRESENT'
-                      ? '✓ Attendance Successfully Verified!'
-                      : '⚠ Attendance Rejected: Outside Boundary'}
+                      ? 'Attendance Confirmed (Within Perimeter)'
+                      : 'Attendance Denied (Outside Perimeter)'}
                   </h4>
                 </div>
 
-                <p style={{ fontSize: '0.92rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.86rem', color: 'var(--text-main)', lineHeight: 1.5 }}>
                   {verificationResult.status === 'PRESENT' ? (
                     <>
-                      You are physically located <strong>{verificationResult.distance_meters} meters</strong> from the classroom center. This is within the allowed <strong>{verificationResult.radius_meters}m</strong> geofence. Your attendance has been securely stamped.
+                      Server verified your distance as <strong style={{ fontFamily: 'ui-monospace, monospace' }}>{verificationResult.distance_meters} meters</strong> from center, within the allowed <strong style={{ fontFamily: 'ui-monospace, monospace' }}>{verificationResult.radius_meters}m</strong> threshold. Check-in recorded.
                     </>
                   ) : (
                     <>
-                      You are <strong>{verificationResult.distance_meters} meters</strong> away from the classroom center, exceeding the allowed <strong>{verificationResult.radius_meters}m</strong> threshold. Please move inside the classroom perimeter to check in.
+                      Server calculated your distance as <strong style={{ fontFamily: 'ui-monospace, monospace' }}>{verificationResult.distance_meters} meters</strong>, which exceeds the allowed <strong style={{ fontFamily: 'ui-monospace, monospace' }}>{verificationResult.radius_meters}m</strong> perimeter. Check-in was rejected.
                     </>
                   )}
                 </p>
 
-                <div style={{ display: 'flex', gap: '1.2rem', marginTop: '0.8rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                  <span>Verified Time: {verificationResult.timestamp}</span>
+                <div style={{ display: 'flex', gap: '1rem', marginTop: '0.6rem', fontSize: '0.74rem', color: 'var(--text-dim)', fontFamily: 'ui-monospace, monospace' }}>
+                  <span>Timestamp: {verificationResult.timestamp}</span>
                   <span>Accuracy: ±{verificationResult.accuracy_meters}m</span>
                   <span>Status: <strong>{verificationResult.status}</strong></span>
                 </div>
@@ -325,16 +305,15 @@ export default function AttendanceStudentView() {
           </div>
         </div>
 
-        {/* Right Column: Visual Radar Scanner & Scan History */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Radar Scanner Graphic Panel */}
-          <div className="panel" style={{ padding: '1.6rem', textAlign: 'center' }}>
-            <h3 style={{ fontSize: '1.05rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              <Radio size={16} color="var(--accent)" />
-              Perimeter Radar Scope
+        {/* Right Column: Precision Reticle & History */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2rem' }}>
+          {/* Geospatial Scope Reticle */}
+          <div className="panel" style={{ padding: '1.3rem', textAlign: 'center' }}>
+            <h3 style={{ fontSize: '0.88rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '0.8rem' }}>
+              Geospatial Reticle Scope
             </h3>
 
-            <div className="radar-container" style={{ position: 'relative', width: '220px', height: '220px', margin: '0 auto 1.2rem' }}>
+            <div className="radar-container">
               <div className="radar-circle circle-1"></div>
               <div className="radar-circle circle-2"></div>
               <div className="radar-circle circle-3"></div>
@@ -344,55 +323,56 @@ export default function AttendanceStudentView() {
               <div className={`radar-blip ${verificationResult?.status === 'OUTSIDE_GEOFENCE' ? 'blip-outside' : 'blip-inside'}`}></div>
             </div>
 
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Active Haversine validation protocol active on FastAPI backend. GPS spoofing prevention enabled.
+            <div style={{ fontSize: '0.76rem', color: 'var(--text-dim)', fontFamily: 'ui-monospace, monospace' }}>
+              Target Radius: {activeSession ? `${activeSession.radius_meters}m` : '100m'} · Spherical Haversine Verification
             </div>
           </div>
 
-          {/* Student's Local Scan History */}
-          <div className="panel" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.05rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Clock size={16} color="var(--primary-hover)" />
-              Recent Scans
+          {/* Session Logs */}
+          <div className="panel" style={{ padding: '1.2rem' }}>
+            <h3 style={{ fontSize: '0.88rem', textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)', marginBottom: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={14} />
+              Session Telemetry History
             </h3>
 
             {myHistory.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 {myHistory.map((h, i) => (
                   <div 
                     key={i}
                     style={{
-                      background: 'rgba(255,255,255,0.02)',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
+                      background: 'var(--bg-subtle)',
+                      padding: '0.65rem',
+                      borderRadius: '6px',
                       border: '1px solid var(--border)',
-                      fontSize: '0.82rem',
+                      fontSize: '0.78rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between'
                     }}
                   >
                     <div>
-                      <span style={{ fontWeight: 600, display: 'block', color: 'var(--text-main)' }}>
+                      <span style={{ fontWeight: 600, display: 'block', color: 'var(--text-main)', fontFamily: 'ui-monospace, monospace' }}>
                         {h.distance_meters}m from center
                       </span>
-                      <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)' }}>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', fontFamily: 'ui-monospace, monospace' }}>
                         {h.timestamp}
                       </span>
                     </div>
 
                     <span className={`badge-pill ${h.status === 'PRESENT' ? 'status-Resolved' : ''}`} style={{
-                      background: h.status === 'PRESENT' ? 'var(--status-resolved-bg)' : 'rgba(239,68,68,0.15)',
-                      color: h.status === 'PRESENT' ? 'var(--success)' : '#fca5a5'
+                      background: h.status === 'PRESENT' ? 'var(--success-bg)' : 'var(--error-bg)',
+                      color: h.status === 'PRESENT' ? 'var(--success-text)' : 'var(--error-text)',
+                      border: `1px solid ${h.status === 'PRESENT' ? 'var(--success-border)' : 'var(--error-border)'}`
                     }}>
-                      {h.status === 'PRESENT' ? 'Present' : 'Rejected'}
+                      {h.status === 'PRESENT' ? 'Present' : 'Outside'}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div style={{ color: 'var(--text-dim)', fontSize: '0.84rem', textAlign: 'center', padding: '1rem 0' }}>
-                No scan history recorded in this session yet.
+              <div style={{ color: 'var(--text-dim)', fontSize: '0.78rem', textAlign: 'center', padding: '0.8rem 0' }}>
+                No telemetry recorded in this browser session.
               </div>
             )}
           </div>

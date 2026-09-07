@@ -1,5 +1,5 @@
 import React from 'react';
-import { Inbox, RotateCcw } from 'lucide-react';
+import { Inbox, RotateCcw, Plus } from 'lucide-react';
 import IssueRow from './IssueRow';
 import { useIssues } from '../context/IssueContext';
 
@@ -20,8 +20,8 @@ export default function IssueList({ onSelectIssue, onOpenRaiseModal }) {
     <div className="panel">
       <div className="panel-header">
         <h2>
-          Classroom Issues
-          <span className="count-chip">{filteredIssues.length} found</span>
+          Active Campus Tickets
+          <span className="count-chip font-mono">{filteredIssues.length} found</span>
         </h2>
 
         <div className="filter-row">
@@ -62,7 +62,7 @@ export default function IssueList({ onSelectIssue, onOpenRaiseModal }) {
             <option value="recent">Newest first</option>
             <option value="oldest">Oldest first</option>
             <option value="priority">By priority</option>
-            <option value="upvotes">Most upvoted</option>
+            <option value="upvotes">Most endorsed</option>
           </select>
         </div>
       </div>
@@ -79,21 +79,21 @@ export default function IssueList({ onSelectIssue, onOpenRaiseModal }) {
         ) : (
           <div className="empty-state">
             <div className="empty-icon">
-              <Inbox size={42} />
+              <Inbox size={36} />
             </div>
-            <h3>No issues matched your criteria</h3>
+            <h3>No tickets match criteria</h3>
             <p>
               {search
-                ? `No complaints matched "${search}". Try checking your spelling or clearing filters.`
-                : 'There are no complaints under the selected status or priority filter.'}
+                ? `No results matched "${search}". Try clearing search or filters.`
+                : 'There are no active tickets matching the applied filters.'}
             </p>
-            <div style={{ display: 'flex', gap: '0.8rem', justifyContent: 'center' }}>
+            <div style={{ display: 'flex', gap: '0.6rem', justifyContent: 'center' }}>
               <button 
                 type="button" 
                 className="btn btn-secondary" 
                 onClick={resetFilters}
               >
-                <RotateCcw size={15} />
+                <RotateCcw size={13} />
                 Clear Filters
               </button>
               <button 
@@ -101,7 +101,8 @@ export default function IssueList({ onSelectIssue, onOpenRaiseModal }) {
                 className="btn btn-primary" 
                 onClick={onOpenRaiseModal}
               >
-                Raise an Issue
+                <Plus size={13} />
+                New Ticket
               </button>
             </div>
           </div>

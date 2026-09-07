@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layers } from 'lucide-react';
+import { GitCommit } from 'lucide-react';
 import { STAGES } from '../data/mockData';
 import { useIssues } from '../context/IssueContext';
 
@@ -9,8 +9,8 @@ export default function LadderSummary() {
   return (
     <div className="panel escalation-summary">
       <h3>
-        <Layers size={18} color="var(--primary-hover)" />
-        Escalation Ladder
+        <GitCommit size={16} />
+        Escalation Roster
       </h3>
 
       <div className="ladder" id="ladderSummary">
@@ -28,7 +28,7 @@ export default function LadderSummary() {
               <div className="ladder-info">
                 <strong>{stageName}</strong>
                 <span>
-                  {count} active issue{count === 1 ? '' : 's'}
+                  {count} active ticket{count === 1 ? '' : 's'}
                 </span>
               </div>
               <div className="ladder-count">{count}</div>

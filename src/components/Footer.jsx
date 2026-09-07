@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 export default function Footer({ onNavigateDashboard }) {
   return (
@@ -8,42 +8,41 @@ export default function Footer({ onNavigateDashboard }) {
         <div className="footer-brand">
           <a href="#home" className="logo">
             <span className="logo-icon">
-              <ShieldAlert size={18} />
+              <Shield size={16} />
             </span>
             CampusResolve
           </a>
           <p>
-            Smart, accountable complaint management system for colleges, labs, and modern academic institutions.
+            Unified campus helper and academic administrative management system.
           </p>
         </div>
 
         <div className="footer-links">
           <div className="footer-column">
-            <h4>Platform</h4>
-            <a href="#" onClick={(e) => { e.preventDefault(); onNavigateDashboard(); }}>Dashboard</a>
-            <a href="#how-it-works">How It Works</a>
-            <a href="#features">Escalation Tiers</a>
-            <a href="#priority" onClick={onNavigateDashboard}>Priority Matrix</a>
+            <h4>System</h4>
+            <a href="#" onClick={(e) => { e.preventDefault(); onNavigateDashboard(); }}>Dashboard Console</a>
+            <a href="#how-it-works">Architecture</a>
+            <a href="#features">Escalation Protocol</a>
           </div>
 
           <div className="footer-column">
-            <h4>Support</h4>
-            <a href="#" onClick={(e) => e.preventDefault()}>Help Desk</a>
-            <a href="#" onClick={(e) => e.preventDefault()}>Guidelines</a>
-            <a href="#" onClick={(e) => e.preventDefault()}>Campus IT Policy</a>
+            <h4>Modules</h4>
+            <a href="#" onClick={(e) => { e.preventDefault(); onNavigateDashboard(); }}>Issue Helper</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onNavigateDashboard(); }}>Geofenced Attendance</a>
+            <a href="#" onClick={(e) => { e.preventDefault(); onNavigateDashboard(); }}>Faculty Roster</a>
           </div>
 
           <div className="footer-column">
-            <h4>Institutional</h4>
-            <a href="#" onClick={(e) => e.preventDefault()}>Privacy Policy</a>
-            <a href="#" onClick={(e) => e.preventDefault()}>Terms of Service</a>
-            <a href="#" onClick={(e) => e.preventDefault()}>College Portal</a>
+            <h4>Governance</h4>
+            <a href="#" onClick={(e) => e.preventDefault()}>Institutional Policy</a>
+            <a href="#" onClick={(e) => e.preventDefault()}>Data Integrity</a>
+            <a href="#" onClick={(e) => e.preventDefault()}>SLA Matrix</a>
           </div>
         </div>
       </div>
 
       <div className="footer-bottom">
-        <p>&copy; {new Date().getFullYear()} CampusResolve. Designed for modern university infrastructure.</p>
+        <p>&copy; {new Date().getFullYear()} CampusResolve. Academic operations and student management system.</p>
       </div>
     </footer>
   );

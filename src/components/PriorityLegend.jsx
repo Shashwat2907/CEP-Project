@@ -1,11 +1,11 @@
 import React from 'react';
-import { ShieldAlert } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 export default function PriorityLegend() {
   return (
     <div className="panel priority-legend" id="priority">
       <h3>
-        <ShieldAlert size={18} color="var(--primary-hover)" />
+        <Shield size={16} />
         Priority Matrix
       </h3>
 
@@ -13,7 +13,7 @@ export default function PriorityLegend() {
         <span className="priority-dot Critical"></span>
         <div>
           <strong>Critical</strong>
-          <p>Direct safety risk or fully halts academic activities. Routed immediately straight to the HOD.</p>
+          <p>Safety risk or halts academic delivery. Routed immediately to Department Head (HOD).</p>
         </div>
       </div>
 
@@ -21,7 +21,7 @@ export default function PriorityLegend() {
         <span className="priority-dot High"></span>
         <div>
           <strong>High</strong>
-          <p>Disrupts lecture/lab delivery for the entire room. Auto-escalates after 1 day of inaction.</p>
+          <p>Disrupts room lecture/lab session. Auto-escalates to Class Teacher within 24 hours.</p>
         </div>
       </div>
 
@@ -29,7 +29,7 @@ export default function PriorityLegend() {
         <span className="priority-dot Medium"></span>
         <div>
           <strong>Medium</strong>
-          <p>Inconvenient but workable without stopping class. Auto-escalates after 2 days.</p>
+          <p>Functional inconvenience. Auto-escalates after 48 hours of inaction.</p>
         </div>
       </div>
 
@@ -37,7 +37,7 @@ export default function PriorityLegend() {
         <span className="priority-dot Low"></span>
         <div>
           <strong>Low</strong>
-          <p>Minor cosmetic fix or routine wear. Handled and closed at the Class Representative level.</p>
+          <p>Minor wear or maintenance item. Handled at the Class Representative level.</p>
         </div>
       </div>
     </div>

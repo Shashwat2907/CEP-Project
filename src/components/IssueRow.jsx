@@ -44,7 +44,7 @@ export default function IssueRow({ issue, onSelectIssue }) {
       <div className="issue-main">
         <div className="issue-title">{issue.title}</div>
         <div className="issue-meta">
-          <span>#{issue.id}</span>
+          <span className="font-mono">#{issue.id}</span>
           <span className="sep">·</span>
           <span>{issue.category}</span>
           <span className="sep">·</span>
@@ -56,23 +56,23 @@ export default function IssueRow({ issue, onSelectIssue }) {
         {statusLabel(issue.status)}
       </span>
 
-      <span className="assignee-chip" title={`Current Assigned Level: ${currentStageName}`}>
-        <span className="assignee-icon">{stageAbbr(currentStageName)}</span>
+      <span className="assignee-chip" title={`Assigned: ${currentStageName}`}>
+        <span className="assignee-icon font-mono">{stageAbbr(currentStageName)}</span>
         {currentStageName}
       </span>
 
       <span className="issue-days">
-        <strong>{issue.daysElapsed}d</strong>
-        in stage
+        <strong className="font-mono">{issue.daysElapsed}d</strong>
+        in tier
       </span>
 
       <button
         type="button"
         className="upvote-btn"
         onClick={handleUpvote}
-        title="Upvote / endorse this issue"
+        title="Endorse priority"
       >
-        <ThumbsUp size={12} />
+        <ThumbsUp size={11} />
         <span>{issue.upvotes || 0}</span>
       </button>
     </div>

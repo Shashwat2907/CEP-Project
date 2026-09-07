@@ -1,25 +1,25 @@
 import React from 'react';
-import { PenSquare, GitFork, Activity } from 'lucide-react';
+import { PenTool, Radio, ShieldCheck } from 'lucide-react';
 
 export default function WorkflowSection() {
   const steps = [
     {
       num: '01',
-      icon: <PenSquare size={24} />,
-      title: 'Raise Issue',
-      desc: 'Select category (e.g. Projector down, Fan sparking). Add title, details, and an optional image attachment.'
+      icon: <PenTool size={20} />,
+      title: 'Student Issue Helper',
+      desc: 'Students report classroom breakdowns, lab faults, or safety risks. The system assigns SLA timers and routes directly to the right authority.'
     },
     {
       num: '02',
-      icon: <GitFork size={24} />,
-      title: 'Smart Routing',
-      desc: 'Intelligent triage routes standard issues to the Class Representative, or critical safety hazards immediately to the HOD.'
+      icon: <Radio size={20} />,
+      title: 'Geofenced Attendance',
+      desc: 'Instructors establish active perimeter perimeters. Students confirm physical presence through instant server-side geospatial validation.'
     },
     {
       num: '03',
-      icon: <Activity size={24} />,
-      title: 'Live Tracking',
-      desc: 'Watch real-time status as your issue progresses through the 3-tier timeline with automated SLA escalation.'
+      icon: <ShieldCheck size={20} />,
+      title: 'Faculty Management',
+      desc: 'A unified operations console for teachers and HODs: monitor live classroom rosters, manage student requests, and resolve escalated tickets.'
     }
   ];
 
@@ -27,23 +27,20 @@ export default function WorkflowSection() {
     <section className="section" id="how-it-works">
       <div className="section-container">
         <div className="section-header">
-          <h2 className="section-title">Seamless Workflow</h2>
+          <h2 className="section-title">Functional Architecture</h2>
           <p className="section-description">
-            From reporting to resolution, experience a transparent, accountable, and automated process.
+            A cohesive operational stack supporting student welfare and administrative oversight.
           </p>
         </div>
 
         <div className="workflow-grid">
-          {steps.map((step, idx) => (
-            <React.Fragment key={step.num}>
-              <div className="workflow-card">
-                <div className="step-number">{step.num}</div>
-                <div className="workflow-icon">{step.icon}</div>
-                <h3>{step.title}</h3>
-                <p>{step.desc}</p>
-              </div>
-              {idx < steps.length - 1 && <div className="workflow-connector"></div>}
-            </React.Fragment>
+          {steps.map((step) => (
+            <div className="workflow-card" key={step.num}>
+              <div className="step-number">{step.num}</div>
+              <div className="workflow-icon">{step.icon}</div>
+              <h3>{step.title}</h3>
+              <p>{step.desc}</p>
+            </div>
           ))}
         </div>
       </div>

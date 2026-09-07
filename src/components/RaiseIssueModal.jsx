@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, UploadCloud, Image as ImageIcon, Trash2, Zap } from 'lucide-react';
+import { X, UploadCloud, Trash2, Send } from 'lucide-react';
 import { CATEGORIES, PRIORITIES } from '../data/mockData';
 import { useIssues } from '../context/IssueContext';
 
@@ -66,7 +66,6 @@ export default function RaiseIssueModal({ isOpen, onClose }) {
       imagePreview
     });
 
-    // Reset form
     setCategory('');
     setPriority('Medium');
     setTitle('');
@@ -85,14 +84,14 @@ export default function RaiseIssueModal({ isOpen, onClose }) {
     >
       <div className="modal-box">
         <div className="modal-header">
-          <h2>Raise a Campus Issue</h2>
+          <h2>File an Infrastructure Ticket</h2>
           <button 
             type="button" 
             className="modal-close" 
             onClick={onClose}
             aria-label="Close modal"
           >
-            <X size={18} />
+            <X size={16} />
           </button>
         </div>
 
@@ -116,7 +115,7 @@ export default function RaiseIssueModal({ isOpen, onClose }) {
             </div>
 
             <div className="form-group">
-              <label htmlFor="issuePriority">Priority Level *</label>
+              <label htmlFor="issuePriority">Priority Classification *</label>
               <select
                 id="issuePriority"
                 value={priority}
@@ -133,7 +132,7 @@ export default function RaiseIssueModal({ isOpen, onClose }) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="issueTitle">Issue Title *</label>
+            <label htmlFor="issueTitle">Subject / Title *</label>
             <input
               type="text"
               id="issueTitle"
@@ -145,10 +144,10 @@ export default function RaiseIssueModal({ isOpen, onClose }) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="issueDescription">Detailed Description *</label>
+            <label htmlFor="issueDescription">Specific Details & Location *</label>
             <textarea
               id="issueDescription"
-              placeholder="Describe what happened, classroom number, how many students are affected, etc..."
+              placeholder="Specify room number, fixture details, impact on class, etc..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
@@ -156,7 +155,7 @@ export default function RaiseIssueModal({ isOpen, onClose }) {
           </div>
 
           <div className="form-group">
-            <label>Attach Evidence / Photo (Optional)</label>
+            <label>Image Attachment (Optional)</label>
             <input
               type="file"
               ref={fileInputRef}
@@ -167,34 +166,34 @@ export default function RaiseIssueModal({ isOpen, onClose }) {
 
             {!imagePreview ? (
               <div
-                className={`file-drop ${dragOver ? 'drag-over' : ''}`}
+                className="file-drop"
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
                 onDragLeave={() => setDragOver(false)}
                 onDrop={handleDrop}
               >
-                <UploadCloud size={28} color="var(--primary-hover)" />
+                <UploadCloud size={24} color="var(--text-muted)" />
                 <span>
-                  <strong>Click to attach</strong> a photo or screenshot, or drag it here
+                  <strong>Click to browse</strong> or drop photo evidence
                 </span>
-                <span style={{ fontSize: '0.76rem', color: 'var(--text-dim)' }}>
-                  PNG, JPG or WebP up to 10MB
+                <span style={{ fontSize: '0.74rem', color: 'var(--text-dim)' }}>
+                  PNG, JPG up to 10MB
                 </span>
               </div>
             ) : (
               <div style={{ position: 'relative', display: 'inline-block' }}>
                 <img 
                   src={imagePreview} 
-                  alt="Issue preview" 
+                  alt="Attachment preview" 
                   className="preview-thumb" 
                 />
                 <button
                   type="button"
                   className="btn btn-danger btn-sm"
-                  style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  style={{ marginTop: '0.4rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                   onClick={() => setImagePreview(null)}
                 >
-                  <Trash2 size={13} /> Remove Photo
+                  <Trash2 size={12} /> Remove Attachment
                 </button>
               </div>
             )}
@@ -203,10 +202,10 @@ export default function RaiseIssueModal({ isOpen, onClose }) {
               <span className={`priority-dot ${priority}`}></span>
               <span>
                 {priority === 'Critical'
-                  ? '⚡ Critical priority detected: Will bypass CR and route directly to the Head of Department (HOD).'
+                  ? 'Critical protocol: Direct routing to Head of Department (HOD).'
                   : priority === 'High'
-                  ? '⚠️ High priority: Assigned to Class Representative with rapid 24h escalation timer.'
-                  : '✓ Standard triage: Assigned to Class Representative for initial assessment.'}
+                  ? 'High priority: Handled by CR with rapid 24-hour escalation timer.'
+                  : 'Standard triage: Initial evaluation by Class Representative.'}
               </span>
             </div>
           </div>
@@ -223,8 +222,8 @@ export default function RaiseIssueModal({ isOpen, onClose }) {
               type="submit" 
               className="btn btn-primary"
             >
-              <Zap size={16} />
-              Submit Issue
+              <Send size={14} />
+              Submit Ticket
             </button>
           </div>
         </form>
