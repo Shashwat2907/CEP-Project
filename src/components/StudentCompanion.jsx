@@ -23,6 +23,7 @@ import {
   markAttendanceApi, 
   fetchAttendancePresets 
 } from '../services/api';
+import { calculateHaversineDistance, formatDistance, HIGH_ACCURACY_GPS_OPTIONS } from '../utils/geo';
 import { useIssues } from '../context/IssueContext';
 import { useAuth } from '../context/AuthContext';
 import { STAGES } from '../data/mockData';
@@ -34,7 +35,11 @@ export default function StudentCompanion({ onSelectIssue }) {
   // Attendance State
   const [activeSession, setActiveSession] = useState(null);
   const [studentPresets, setStudentPresets] = useState([]);
-  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [locationSource, setLocationSource] = useState('gps'); // 'gps' or 'preset'
+  const [realGps, setRealGps] = useState(null);
+  const [gpsError, setGpsError] = useState(null);
+  const [acquiringGps, setAcquiringGps] = useState(false);
+  const [selectedPreset, setSelectedPreset] = useState(null);
   const [checkingIn, setCheckingIn] = useState(false);
   const [checkInResult, setCheckInResult] = useState(null);
 
@@ -43,6 +48,33 @@ export default function StudentCompanion({ onSelectIssue }) {
   const [quickTitle, setQuickTitle] = useState('');
   const [quickRoom, setQuickRoom] = useState('Room 204');
   const [submittingIssue, setSubmittingIssue] = useState(false);
+
+  const acquireDeviceGps = () => {
+    if (!navigator.geolocation) {
+      setGpsError('Geolocation not supported by this device.');
+      setLocationSource('preset');
+      return;
+    }
+    setAcquiringGps(true);
+    setGpsError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setRealGps({
+          label: 'Hardware Device GPS',
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          accuracy: Math.round(pos.coords.accuracy || 5)
+        });
+        setLocationSource('gps');
+        setAcquiringGps(false);
+      },
+      (err) => {
+        setGpsError(err.message);
+        setAcquiringGps(false);
+      },
+      HIGH_ACCURACY_GPS_OPTIONS
+    );
+  };
 
   useEffect(() => {
     fetchActiveAttendanceSession().then(sess => {
@@ -53,22 +85,49 @@ export default function StudentCompanion({ onSelectIssue }) {
       if (res?.student_presets) {
         setStudentPresets(res.student_presets);
         if (res.student_presets.length > 0) {
-          setSelectedLocation(res.student_presets[0]);
+          setSelectedPreset(res.student_presets[0]);
         }
       }
     }).catch(() => {});
+
+    // Prompt for live device GPS automatically
+    acquireDeviceGps();
   }, []);
 
+  // Active coordinates: hardware GPS or selected simulation preset
+  const currentCoords = (locationSource === 'gps' && realGps)
+    ? realGps
+    : selectedPreset;
+
+  const currentDistance = (activeSession && currentCoords)
+    ? calculateHaversineDistance(
+        currentCoords.latitude,
+        currentCoords.longitude,
+        activeSession.latitude,
+        activeSession.longitude
+      )
+    : (checkInResult ? checkInResult.distance_meters : null);
+
+  const radiusLimit = activeSession?.radius_meters || 100;
+  const isInsidePerimeter = currentDistance != null ? currentDistance <= radiusLimit : false;
+  // Gauge Percentage calculation (0m to 2x radius limit)
+  const gaugePercent = currentDistance != null
+    ? Math.min(Math.max((currentDistance / (radiusLimit * 2.2)) * 100, 3), 97)
+    : 50;
+
   const handleCheckIn = async () => {
-    if (!activeSession || !selectedLocation) return;
+    if (!activeSession || !currentCoords) return;
     try {
       setCheckingIn(true);
       const res = await markAttendanceApi({
         session_id: activeSession.id,
-        latitude: selectedLocation.latitude,
-        longitude: selectedLocation.longitude,
-        accuracy_meters: selectedLocation.accuracy || 4.5,
-        preset_name: selectedLocation.label
+        latitude: currentCoords.latitude,
+        longitude: currentCoords.longitude,
+        accuracy_meters: currentCoords.accuracy || 5.0,
+        preset_name: locationSource === 'gps' ? 'Device Live GPS' : currentCoords.label,
+        student_id: user.id,
+        student_name: user.name,
+        student_dept: `${user.department} ${user.semester_or_title || ''}`.trim()
       });
       setCheckInResult(res);
     } catch (err) {
@@ -98,13 +157,6 @@ export default function StudentCompanion({ onSelectIssue }) {
   };
 
   const studentIssues = issues.filter(i => i.reportedBy === user.name || i.status !== 'Resolved');
-
-  // Gauge Percentage calculation (0m to 250m scale)
-  const currentDistance = checkInResult 
-    ? checkInResult.distance_meters 
-    : selectedLocation?.id === 'inside_lab' ? 22.5 : selectedLocation?.id === 'outside_city' ? 850 : 65;
-  const gaugePercent = Math.min(Math.max((currentDistance / 220) * 100, 4), 96);
-  const isInsidePerimeter = currentDistance <= (activeSession?.radius_meters || 100);
 
   return (
     <div className="student-companion">
@@ -144,64 +196,132 @@ export default function StudentCompanion({ onSelectIssue }) {
         {/* Visual Linear Distance Gauge */}
         {activeSession && (
           <div className="distance-gauge-wrapper">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.76rem', flexWrap: 'wrap', gap: '0.5rem' }}>
               <span style={{ color: 'var(--text-dim)' }}>
-                GPS Distance from Room: <strong className="font-mono" style={{ color: isInsidePerimeter ? 'var(--success-text)' : 'var(--error-text)' }}>{currentDistance} meters</strong>
+                Calculated Distance: <strong className="font-mono" style={{ color: currentDistance != null ? (isInsidePerimeter ? 'var(--success-text)' : 'var(--error-text)') : 'var(--text-main)' }}>
+                  {currentDistance != null ? `${currentDistance} meters` : 'Acquiring GPS...'}
+                </strong>
+                {locationSource === 'gps' && realGps?.accuracy && (
+                  <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', marginLeft: '6px' }}>
+                    (GPS Accuracy: ±{realGps.accuracy}m)
+                  </span>
+                )}
               </span>
               <span className="badge-pill" style={{ 
-                background: isInsidePerimeter ? 'var(--success-bg)' : 'var(--error-bg)',
-                color: isInsidePerimeter ? 'var(--success-text)' : 'var(--error-text)',
-                border: `1px solid ${isInsidePerimeter ? 'var(--success-border)' : 'var(--error-border)'}`,
+                background: currentDistance != null ? (isInsidePerimeter ? 'var(--success-bg)' : 'var(--error-bg)') : 'var(--bg-subtle)',
+                color: currentDistance != null ? (isInsidePerimeter ? 'var(--success-text)' : 'var(--error-text)') : 'var(--text-dim)',
+                border: `1px solid ${currentDistance != null ? (isInsidePerimeter ? 'var(--success-border)' : 'var(--error-border)') : 'var(--border)'}`,
                 fontSize: '0.7rem'
               }}>
-                {isInsidePerimeter ? '✓ Inside 100m Perimeter' : '⚠ Outside Allowed Perimeter'}
+                {currentDistance != null 
+                  ? (isInsidePerimeter ? `✓ Inside ${radiusLimit}m Perimeter` : `⚠ Outside ${radiusLimit}m Perimeter`)
+                  : 'Awaiting Location'}
               </span>
             </div>
 
             <div className="gauge-track">
               <div className="gauge-perimeter-zone"></div>
               <div className="gauge-marker-center">0m (Center)</div>
-              <div className="gauge-marker-limit">100m Limit</div>
-              <div 
-                className={`gauge-pin ${isInsidePerimeter ? 'inside' : 'outside'}`}
-                style={{ left: `${gaugePercent}%` }}
-              >
-                <div className="gauge-pin-tooltip">
-                  You: {currentDistance}m
+              <div className="gauge-marker-limit">{radiusLimit}m Limit</div>
+              {currentDistance != null && (
+                <div 
+                  className={`gauge-pin ${isInsidePerimeter ? 'inside' : 'outside'}`}
+                  style={{ left: `${gaugePercent}%` }}
+                >
+                  <div className="gauge-pin-tooltip">
+                    {locationSource === 'gps' ? 'Live GPS' : 'Simulated'}: {currentDistance}m
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Quick Location Signal Selector */}
+            {/* Signal Source Selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '1.2rem' }}>
               <span style={{ fontSize: '0.72rem', color: 'var(--text-dim)', textTransform: 'uppercase', fontWeight: 600 }}>
-                Signal Source:
+                Signal:
               </span>
+
+              {/* Live Device GPS Option */}
+              <button
+                type="button"
+                onClick={acquireDeviceGps}
+                disabled={acquiringGps}
+                style={{
+                  padding: '0.28rem 0.65rem',
+                  borderRadius: '4px',
+                  fontSize: '0.74rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                  background: locationSource === 'gps' ? 'var(--surface-active)' : 'var(--surface)',
+                  border: `1px solid ${locationSource === 'gps' ? 'var(--success-border)' : 'var(--border)'}`,
+                  color: locationSource === 'gps' ? 'var(--success-text)' : 'var(--text-dim)',
+                  cursor: 'pointer'
+                }}
+              >
+                <span className={`priority-dot ${locationSource === 'gps' ? 'Low' : ''}`}></span>
+                {acquiringGps ? 'Locking GPS...' : '📍 Real Device GPS'}
+              </button>
+
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-dim)', margin: '0 4px' }}>|</span>
+
+              {/* Simulation Presets for Testing */}
               {studentPresets.map(preset => {
-                const isSelected = selectedLocation?.id === preset.id;
+                const isSelected = locationSource === 'preset' && selectedPreset?.id === preset.id;
                 return (
                   <button
                     key={preset.id}
                     type="button"
                     onClick={() => {
-                      setSelectedLocation(preset);
+                      setLocationSource('preset');
+                      setSelectedPreset(preset);
                       setCheckInResult(null);
                     }}
                     style={{
-                      padding: '0.25rem 0.6rem',
+                      padding: '0.25rem 0.55rem',
                       borderRadius: '4px',
-                      fontSize: '0.74rem',
+                      fontSize: '0.72rem',
                       background: isSelected ? 'var(--surface-active)' : 'var(--surface)',
                       border: `1px solid ${isSelected ? 'var(--text-main)' : 'var(--border)'}`,
                       color: isSelected ? 'var(--text-main)' : 'var(--text-dim)',
                       cursor: 'pointer'
                     }}
                   >
-                    {preset.label.split('(')[0]}
+                    {preset.label.split('(')[0].trim()}
                   </button>
                 );
               })}
             </div>
+
+            {gpsError && locationSource === 'gps' && (
+              <div style={{ marginTop: '0.6rem', fontSize: '0.74rem', color: 'var(--error-text)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <AlertTriangle size={12} />
+                <span>GPS Error: {gpsError}. You can retry or click a preset above.</span>
+              </div>
+            )}
+
+            {checkInResult && (
+              <div style={{
+                marginTop: '0.9rem',
+                padding: '0.6rem 0.8rem',
+                borderRadius: '6px',
+                fontSize: '0.78rem',
+                background: checkInResult.status === 'PRESENT' ? 'var(--success-bg)' : 'var(--error-bg)',
+                border: `1px solid ${checkInResult.status === 'PRESENT' ? 'var(--success-border)' : 'var(--error-border)'}`,
+                color: checkInResult.status === 'PRESENT' ? 'var(--success-text)' : 'var(--error-text)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                {checkInResult.status === 'PRESENT' ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+                <span>
+                  {checkInResult.status === 'PRESENT'
+                    ? `Check-in recorded! Distance: ${checkInResult.distance_meters}m (within ${checkInResult.radius_meters}m geofence).`
+                    : `Check-in rejected. Distance: ${checkInResult.distance_meters}m exceeds ${checkInResult.radius_meters}m geofence.`}
+                </span>
+              </div>
+            )}
           </div>
         )}
       </div>

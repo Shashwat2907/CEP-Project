@@ -67,6 +67,9 @@ class AttendanceMarkRequest(BaseModel):
     longitude: float
     accuracy_meters: Optional[float] = 5.0
     preset_name: Optional[str] = None
+    student_id: Optional[str] = None
+    student_name: Optional[str] = None
+    student_dept: Optional[str] = None
 
 class AttendanceRecord(BaseModel):
     id: int

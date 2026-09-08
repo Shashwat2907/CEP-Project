@@ -9,7 +9,9 @@ import {
   Sliders, 
   ShieldCheck, 
   Users,
-  Power
+  Power,
+  Compass,
+  Navigation
 } from 'lucide-react';
 import { 
   fetchActiveAttendanceSession, 
@@ -33,6 +35,8 @@ export default function AttendanceTeacherView() {
   const [longitude, setLongitude] = useState(77.1926);
   const [radiusMeters, setRadiusMeters] = useState(100);
   const [durationMinutes, setDurationMinutes] = useState(90);
+  const [geoLocating, setGeoLocating] = useState(false);
+  const [geoSuccessMsg, setGeoSuccessMsg] = useState('');
 
   const loadSessionData = async () => {
     try {
@@ -68,7 +72,36 @@ export default function AttendanceTeacherView() {
       setLatitude(selected.latitude);
       setLongitude(selected.longitude);
       setRoom(selected.name);
+      setGeoSuccessMsg('');
     }
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+    setGeoLocating(true);
+    setGeoSuccessMsg('');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = Number(pos.coords.latitude.toFixed(6));
+        const lon = Number(pos.coords.longitude.toFixed(6));
+        const acc = Math.round(pos.coords.accuracy || 0);
+        setLatitude(lat);
+        setLongitude(lon);
+        setGeoLocating(false);
+        setGeoSuccessMsg(`Snapped to hardware GPS: ±${acc}m accuracy`);
+        if (!room.includes('Current Location')) {
+          setRoom(prev => prev ? `${prev} (Current Location)` : 'Live Classroom Location');
+        }
+      },
+      (err) => {
+        setGeoLocating(false);
+        alert(`Could not acquire device location: ${err.message}. Please check browser permissions.`);
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
   };
 
   const handleStartSession = async (e) => {
@@ -245,6 +278,24 @@ export default function AttendanceTeacherView() {
                   placeholder="e.g. Block A, Room 204"
                   required
                 />
+              </div>
+
+              <div style={{ marginBottom: '1rem' }}>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  onClick={handleUseCurrentLocation}
+                  disabled={geoLocating}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px', padding: '0.6rem 0.8rem' }}
+                >
+                  <Navigation size={14} className={geoLocating ? 'spin-icon' : ''} color="var(--primary)" />
+                  {geoLocating ? 'Acquiring Device GPS...' : '📍 Snap Geofence to My Current GPS'}
+                </button>
+                {geoSuccessMsg && (
+                  <div style={{ fontSize: '0.74rem', color: 'var(--success-text)', marginTop: '0.35rem', textAlign: 'center', fontFamily: 'ui-monospace, monospace' }}>
+                    ✓ {geoSuccessMsg}
+                  </div>
+                )}
               </div>
 
               <div className="form-row">

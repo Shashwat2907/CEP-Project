@@ -34,14 +34,20 @@ def get_active_session():
     session_data = dict(row)
     session_id = session_data["id"]
     
-    # Calculate statistics
-    cursor.execute("SELECT COUNT(*) FROM attendance_records WHERE session_id = ?", (session_id,))
+    # Calculate statistics based on distinct students
+    cursor.execute("SELECT COUNT(DISTINCT student_id) FROM attendance_records WHERE session_id = ?", (session_id,))
     total = cursor.fetchone()[0]
     
-    cursor.execute("SELECT COUNT(*) FROM attendance_records WHERE session_id = ? AND status = 'PRESENT'", (session_id,))
+    cursor.execute("SELECT COUNT(DISTINCT student_id) FROM attendance_records WHERE session_id = ? AND status = 'PRESENT'", (session_id,))
     present = cursor.fetchone()[0]
     
-    cursor.execute("SELECT COUNT(*) FROM attendance_records WHERE session_id = ? AND status = 'OUTSIDE_GEOFENCE'", (session_id,))
+    cursor.execute("""
+    SELECT COUNT(DISTINCT student_id) FROM attendance_records 
+    WHERE session_id = ? AND status = 'OUTSIDE_GEOFENCE'
+    AND student_id NOT IN (
+        SELECT student_id FROM attendance_records WHERE session_id = ? AND status = 'PRESENT'
+    )
+    """, (session_id, session_id))
     outside = cursor.fetchone()[0]
     
     conn.close()
@@ -132,9 +138,9 @@ def mark_attendance(payload: AttendanceMarkRequest):
     status = "PRESENT" if distance <= radius else "OUTSIDE_GEOFENCE"
     
     timestamp = datetime.now().strftime("%H:%M:%S")
-    student_id = "stu_aditi"
-    student_name = "Aditi Sharma"
-    student_dept = "CSE Sem 5"
+    student_id = payload.student_id or "stu_aditi"
+    student_name = payload.student_name or "Aditi Sharma"
+    student_dept = payload.student_dept or "CSE Sem 5"
     
     cursor.execute("""
     INSERT INTO attendance_records (
