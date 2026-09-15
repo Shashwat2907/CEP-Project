@@ -170,9 +170,9 @@ export default function AttendanceStudentView() {
         longitude: currentCoords.longitude,
         accuracy_meters: currentCoords.accuracy || 5.0,
         preset_name: activeSignalType === 'gps' ? 'Live Hardware GPS' : currentCoords.label,
-        student_id: user.id,
-        student_name: user.name,
-        student_dept: `${user.department} ${user.semester_or_title || ''}`.trim()
+        student_id: user?.id || 'stu_rahul',
+        student_name: user?.name || 'Rahul Verma',
+        student_dept: `${user?.department || 'Computer Science'} ${user?.semester_or_title || ''}`.trim()
       });
 
       setVerificationResult(result);
@@ -228,7 +228,7 @@ export default function AttendanceStudentView() {
             {/* Student Identity Badge */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-subtle)', padding: '0.45rem 0.85rem', borderRadius: '6px', border: '1px solid var(--border)' }}>
               <span style={{ fontSize: '0.82rem', color: 'var(--text-main)', fontWeight: 500 }}>
-                {user.name} <span style={{ color: 'var(--text-dim)' }}>({user.department})</span>
+                {user?.name || 'Rahul Verma'} <span style={{ color: 'var(--text-dim)' }}>({user?.department || 'Computer Science'})</span>
               </span>
             </div>
           </div>

@@ -125,9 +125,9 @@ export default function StudentCompanion({ onSelectIssue }) {
         longitude: currentCoords.longitude,
         accuracy_meters: currentCoords.accuracy || 5.0,
         preset_name: locationSource === 'gps' ? 'Device Live GPS' : currentCoords.label,
-        student_id: user.id,
-        student_name: user.name,
-        student_dept: `${user.department} ${user.semester_or_title || ''}`.trim()
+        student_id: user?.id || 'stu_rahul',
+        student_name: user?.name || 'Rahul Verma',
+        student_dept: `${user?.department || 'Computer Science'} ${user?.semester_or_title || ''}`.trim()
       });
       setCheckInResult(res);
     } catch (err) {
@@ -156,7 +156,7 @@ export default function StudentCompanion({ onSelectIssue }) {
     setSubmittingIssue(false);
   };
 
-  const studentIssues = issues.filter(i => i.reportedBy === user.name || i.status !== 'Resolved');
+  const studentIssues = issues.filter(i => i.reportedBy === (user?.name || 'Rahul Verma') || i.status !== 'Resolved');
 
   return (
     <div className="student-companion">
@@ -494,11 +494,11 @@ export default function StudentCompanion({ onSelectIssue }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.82rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-dim)' }}>Student Name:</span>
-                <strong>{user.name}</strong>
+                <strong>{user?.name || 'Rahul Verma'}</strong>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-dim)' }}>Program:</span>
-                <span>{user.department} ({user.semester_or_title})</span>
+                <span>{user?.department || 'Computer Science'} ({user?.semester_or_title || 'Semester 6'})</span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ color: 'var(--text-dim)' }}>Attendance Status:</span>

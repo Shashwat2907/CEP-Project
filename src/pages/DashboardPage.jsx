@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 import Topbar from '../components/Topbar';
 import StudentCompanion from '../components/StudentCompanion';
@@ -8,6 +8,7 @@ import AttendanceStudentView from '../components/AttendanceStudentView';
 import IssueList from '../components/IssueList';
 import PriorityLegend from '../components/PriorityLegend';
 import LadderSummary from '../components/LadderSummary';
+import LostFoundView from '../components/LostFoundView';
 import { useAuth } from '../context/AuthContext';
 import { Shield, Users, Phone, Mail, MapPin } from 'lucide-react';
 import '../styles/dashboard.css';
@@ -15,11 +16,32 @@ import '../styles/dashboard.css';
 export default function DashboardPage({ 
   onNavigateHome, 
   onOpenRaiseModal, 
-  onSelectIssue 
+  onSelectIssue,
+  onLogout 
 }) {
-  const [activeNav, setActiveNav] = useState('desk');
+  const [activeNav, setActiveNav] = useState(() => {
+    const hash = window.location.hash;
+    if (hash.includes('lost-found')) return 'lost-found';
+    if (hash.includes('tickets')) return 'tickets';
+    if (hash.includes('attendance')) return 'attendance';
+    if (hash.includes('directory')) return 'directory';
+    return 'desk';
+  });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const { isTeacher } = useAuth();
+
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      if (hash.includes('lost-found')) setActiveNav('lost-found');
+      else if (hash.includes('tickets')) setActiveNav('tickets');
+      else if (hash.includes('attendance')) setActiveNav('attendance');
+      else if (hash.includes('directory')) setActiveNav('directory');
+      else if (hash.includes('dashboard') || hash.includes('student') || hash.includes('faculty')) setActiveNav('desk');
+    };
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   return (
     <div className="dashboard-layout">
@@ -29,12 +51,14 @@ export default function DashboardPage({
         setActiveNav={setActiveNav}
         mobileOpen={mobileSidebarOpen}
         setMobileOpen={setMobileSidebarOpen}
+        onLogout={onLogout}
       />
 
       <div className="dashboard-main">
         <Topbar
           onOpenRaiseModal={onOpenRaiseModal}
           onToggleMobileSidebar={() => setMobileSidebarOpen(prev => !prev)}
+          onLogout={onLogout}
         />
 
         <section className="dashboard-content">
@@ -62,7 +86,10 @@ export default function DashboardPage({
                 <LadderSummary />
               </div>
             </div>
+          ) : activeNav === 'lost-found' ? (
+            <LostFoundView />
           ) : activeNav === 'directory' ? (
+
             <div className="directory-view">
               <div className="panel" style={{ padding: '1.4rem 1.6rem', marginBottom: '1.5rem' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 600 }}>Campus Authority Directory & Governance</h2>
@@ -81,7 +108,7 @@ export default function DashboardPage({
                     Responsible for classroom benches, whiteboards, markers, student ergonomics, and peer coordination.
                   </p>
                   <div style={{ background: 'var(--bg-subtle)', padding: '0.75rem', borderRadius: '6px', fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
-                    <div><strong>CSE Sem 5 CR:</strong> Rohan Mehta & Aditi Sharma</div>
+                    <div><strong>CSE Sem 5 CR:</strong> Rohan Mehta & Rahul Verma</div>
                     <div style={{ color: 'var(--text-dim)' }}>Response SLA: Within 48 Hours</div>
                   </div>
                 </div>

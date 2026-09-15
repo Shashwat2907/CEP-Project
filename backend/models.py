@@ -10,6 +10,26 @@ class User(BaseModel):
     department: str
     semester_or_title: str
     initials: str
+    token: Optional[str] = None
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+    role: Optional[str] = None  # "student" or "teacher"
+
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+    role: str  # "student" or "teacher"
+    department: Optional[str] = "CSE"
+    semester_or_title: Optional[str] = "Sem 5"
+    faculty_access_code: Optional[str] = None
+
+class AuthResponse(BaseModel):
+    token: str
+    user: User
+    message: str
 
 class SwitchRoleRequest(BaseModel):
     role: str
@@ -84,3 +104,39 @@ class AttendanceRecord(BaseModel):
     status: str  # "PRESENT" or "OUTSIDE_GEOFENCE"
     timestamp: str
     accuracy_meters: Optional[float] = 5.0
+
+# Lost & Found
+class LostFoundItemCreate(BaseModel):
+    type: str = Field(..., example="LOST")  # "LOST" or "FOUND"
+    title: str = Field(..., example="AirPods Pro (2nd Gen)")
+    description: str = Field(..., example="White case with scratch on lid")
+    category: str = Field(..., example="Electronics")
+    location: str = Field(..., example="Central Library")
+    date: Optional[str] = None
+    contact: Optional[str] = None
+    imageUrl: Optional[str] = None
+
+class LostFoundItem(BaseModel):
+    id: int
+    type: str  # "LOST" or "FOUND"
+    title: str
+    description: str
+    category: str
+    location: str
+    date: str
+    contact: Optional[str] = None
+    imageUrl: Optional[str] = None
+    status: str  # "Active", "Claimed", "Returned"
+    reportedBy: str
+    reportedById: str
+    createdAt: str
+    claimedBy: Optional[str] = None
+    claimNotes: Optional[str] = None
+
+class ClaimItemRequest(BaseModel):
+    claimNotes: Optional[str] = None
+    contactInfo: Optional[str] = None
+
+class StatusUpdateRequest(BaseModel):
+    status: str  # "Active", "Claimed", "Returned"
+

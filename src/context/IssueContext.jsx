@@ -92,7 +92,7 @@ export function IssueProvider({ children }) {
         stage: isCritical ? 2 : 0,
         daysElapsed: 0,
         date: new Date().toISOString().slice(0, 10),
-        reportedBy: 'Aditi Sharma',
+        reportedBy: 'Rahul Verma',
         upvotes: 1
       };
       setIssues(prev => [newIssue, ...prev]);

@@ -22,13 +22,42 @@ export async function fetchHealth() {
 }
 
 // Auth & Users
+export async function loginApi({ email, password, role }) {
+  const res = await fetch(`${API_BASE}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password, role })
+  });
+  return handleResponse(res);
+}
+
+export async function registerApi(userData) {
+  const res = await fetch(`${API_BASE}/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData)
+  });
+  return handleResponse(res);
+}
+
+export async function logoutApi(token) {
+  const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
+  const res = await fetch(`${API_BASE}/auth/logout`, {
+    method: 'POST',
+    headers
+  });
+  return handleResponse(res);
+}
+
 export async function fetchUsers() {
   const res = await fetch(`${API_BASE}/auth/users`);
   return handleResponse(res);
 }
 
-export async function fetchCurrentUser(roleHeader) {
-  const headers = roleHeader ? { 'X-User-Role': roleHeader } : {};
+export async function fetchCurrentUser(token, roleHeader) {
+  const headers = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  if (roleHeader) headers['X-User-Role'] = roleHeader;
   const res = await fetch(`${API_BASE}/auth/me`, { headers });
   return handleResponse(res);
 }
@@ -121,3 +150,52 @@ export async function fetchAttendanceRecords(sessionId) {
   const res = await fetch(url);
   return handleResponse(res);
 }
+
+// Lost & Found
+export async function fetchLostFoundItems() {
+  const res = await fetch(`${API_BASE}/lost-found`);
+  return handleResponse(res);
+}
+
+export async function createLostFoundItemApi(itemData, userHeaders = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...userHeaders
+  };
+  const res = await fetch(`${API_BASE}/lost-found`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(itemData)
+  });
+  return handleResponse(res);
+}
+
+export async function claimLostFoundItemApi(id, claimData, userHeaders = {}) {
+  const headers = {
+    'Content-Type': 'application/json',
+    ...userHeaders
+  };
+  const res = await fetch(`${API_BASE}/lost-found/${id}/claim`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(claimData)
+  });
+  return handleResponse(res);
+}
+
+export async function updateLostFoundStatusApi(id, status) {
+  const res = await fetch(`${API_BASE}/lost-found/${id}/status`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status })
+  });
+  return handleResponse(res);
+}
+
+export async function deleteLostFoundItemApi(id) {
+  const res = await fetch(`${API_BASE}/lost-found/${id}`, {
+    method: 'DELETE'
+  });
+  return handleResponse(res);
+}
+

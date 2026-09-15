@@ -1,5 +1,5 @@
-from fastapi import APIRouter, HTTPException
-from typing import List
+from fastapi import APIRouter, HTTPException, Header
+from typing import List, Optional
 from datetime import datetime
 from database import get_db
 from models import Issue, IssueCreate
@@ -18,18 +18,22 @@ def get_issues():
     return [dict(row) for row in rows]
 
 @router.post("", response_model=Issue)
-def create_issue(payload: IssueCreate):
+def create_issue(
+    payload: IssueCreate,
+    x_user_name: Optional[str] = Header(None)
+):
     conn = get_db()
     cursor = conn.cursor()
     
     is_critical = payload.priority == "Critical"
     stage = 2 if is_critical else 0
     today_str = datetime.now().strftime("%Y-%m-%d")
+    reporter = x_user_name or "Rahul Verma"
     
     cursor.execute("""
     INSERT INTO issues (category, priority, title, description, imagePreview, status, stage, daysElapsed, date, reportedBy, upvotes)
-    VALUES (?, ?, ?, ?, ?, 'Pending', ?, 0, ?, 'Aditi Sharma', 1)
-    """, (payload.category, payload.priority, payload.title, payload.description, payload.imagePreview, stage, today_str))
+    VALUES (?, ?, ?, ?, ?, 'Pending', ?, 0, ?, ?, 1)
+    """, (payload.category, payload.priority, payload.title, payload.description, payload.imagePreview, stage, today_str, reporter))
     
     new_id = cursor.lastrowid
     conn.commit()
@@ -41,7 +45,16 @@ def create_issue(payload: IssueCreate):
     return dict(created)
 
 @router.post("/{issue_id}/resolve")
-def resolve_issue(issue_id: int):
+def resolve_issue(
+    issue_id: int,
+    x_user_role: Optional[str] = Header("teacher"),
+    authorization: Optional[str] = Header(None)
+):
+    # Enforce role authorization
+    role = (x_user_role or "").lower()
+    if role not in ["teacher", "faculty"]:
+        raise HTTPException(status_code=403, detail="Forbidden: Only Faculty members are authorized to resolve grievances.")
+
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("UPDATE issues SET status = 'Resolved' WHERE id = ?", (issue_id,))
@@ -53,7 +66,10 @@ def resolve_issue(issue_id: int):
     return {"message": f"Issue #{issue_id} marked as Resolved"}
 
 @router.post("/{issue_id}/escalate")
-def escalate_issue(issue_id: int):
+def escalate_issue(
+    issue_id: int,
+    x_user_role: Optional[str] = Header("teacher")
+):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT stage, status FROM issues WHERE id = ?", (issue_id,))

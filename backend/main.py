@@ -1,11 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from database import init_db
-from routers import auth, issues, attendance
+from routers import auth, issues, attendance, lost_found
 
 app = FastAPI(
     title="CampusResolve API",
-    description="Live FastAPI Backend with Role-Based Access Control and Geofenced Attendance",
+    description="Live FastAPI Backend with Role-Based Access Control, Geofenced Attendance, and Lost & Found System",
     version="1.0.0"
 )
 
@@ -27,13 +27,14 @@ def on_startup():
 app.include_router(auth.router)
 app.include_router(issues.router)
 app.include_router(attendance.router)
+app.include_router(lost_found.router)
 
 @app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
         "service": "CampusResolve Backend",
-        "features": ["RBAC (Teacher/Student)", "Live Issues Tracking", "Geofenced Attendance System"]
+        "features": ["RBAC (Teacher/Student)", "Live Issues Tracking", "Geofenced Attendance System", "Lost & Found Portal"]
     }
 
 if __name__ == "__main__":

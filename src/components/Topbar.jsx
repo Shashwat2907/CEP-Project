@@ -1,25 +1,18 @@
 import React from 'react';
-import { Search, Bell, Plus, X, Menu, GraduationCap, UserCheck, Radio } from 'lucide-react';
+import { Search, Bell, Plus, X, Menu, GraduationCap, UserCheck, LogOut, Shield } from 'lucide-react';
 import { useIssues } from '../context/IssueContext';
 import { useAuth } from '../context/AuthContext';
 
-export default function Topbar({ onOpenRaiseModal, onToggleMobileSidebar }) {
-  const { stats, search, setSearch, showToast } = useIssues();
-  const { user, role, switchRole, isTeacher, isStudent } = useAuth();
+export default function Topbar({ onOpenRaiseModal, onToggleMobileSidebar, onLogout }) {
+  const { stats, search, setSearch } = useIssues();
+  const { user, isTeacher, isStudent, logout } = useAuth();
 
-  const openCount = stats.pending + stats.progress;
-
-  const handleSetRole = (newRole) => {
-    if (newRole !== role) {
-      switchRole(newRole);
-      showToast(
-        'Workspace Switched',
-        newRole === 'teacher'
-          ? 'Switched to Faculty Console (Prof. Rajesh Verma)'
-          : 'Switched to Student Companion (Aditi Sharma)'
-      );
-    }
+  const handleLogoutClick = () => {
+    logout();
+    if (onLogout) onLogout();
   };
+
+  const currentUser = user || { name: 'Rahul Verma', role: 'student' };
 
   return (
     <header className="dashboard-topbar">
@@ -34,31 +27,27 @@ export default function Topbar({ onOpenRaiseModal, onToggleMobileSidebar }) {
           <Menu size={16} />
         </button>
 
-        {/* Prominent Role Switcher Segmented Control */}
-        <div className="role-segmented-toggle">
-          <button
-            type="button"
-            className={`role-toggle-btn ${isStudent ? 'active' : ''}`}
-            onClick={() => handleSetRole('student')}
-            id="roleBtnStudent"
-          >
-            <UserCheck size={13} />
-            <span>Student Companion</span>
-          </button>
-          <button
-            type="button"
-            className={`role-toggle-btn ${isTeacher ? 'active' : ''}`}
-            onClick={() => handleSetRole('teacher')}
-            id="roleBtnTeacher"
-          >
-            <GraduationCap size={13} />
-            <span>Faculty Console</span>
-          </button>
-        </div>
+        {/* Authenticated Role Indicator Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+          <div style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.4rem',
+            padding: '0.35rem 0.75rem',
+            borderRadius: '8px',
+            background: isTeacher ? 'rgba(234, 179, 8, 0.12)' : 'rgba(59, 130, 246, 0.12)',
+            border: isTeacher ? '1px solid rgba(234, 179, 8, 0.3)' : '1px solid rgba(59, 130, 246, 0.3)',
+            color: isTeacher ? '#facc15' : '#60a5fa',
+            fontSize: '0.8rem',
+            fontWeight: 600
+          }}>
+            {isTeacher ? <GraduationCap size={14} /> : <UserCheck size={14} />}
+            <span>{isTeacher ? 'Faculty Console' : 'Student Companion'}</span>
+          </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.74rem', color: 'var(--text-dim)' }}>
-          <span className="priority-dot Low"></span>
-          <span>Campus Grid: <strong>Term Fall 2026</strong></span>
+          <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+            Logged in as <strong>{currentUser.name}</strong>
+          </span>
         </div>
       </div>
 
@@ -105,6 +94,17 @@ export default function Topbar({ onOpenRaiseModal, onToggleMobileSidebar }) {
             Report Issue
           </button>
         )}
+
+        <button
+          type="button"
+          className="btn btn-secondary btn-sm"
+          onClick={handleLogoutClick}
+          title="Sign Out"
+          style={{ gap: '0.35rem' }}
+        >
+          <LogOut size={13} />
+          Logout
+        </button>
       </div>
     </header>
   );

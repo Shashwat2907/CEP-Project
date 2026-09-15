@@ -23,7 +23,7 @@ export const INITIAL_ISSUES = [
     stage: 1,
     daysElapsed: 1,
     date: '2026-07-24',
-    reportedBy: 'Aditi Sharma',
+    reportedBy: 'Rahul Verma',
     upvotes: 8
   },
   {
@@ -49,7 +49,7 @@ export const INITIAL_ISSUES = [
     stage: 0,
     daysElapsed: 1,
     date: '2026-07-23',
-    reportedBy: 'Aditi Sharma',
+    reportedBy: 'Rahul Verma',
     upvotes: 2
   },
   {
@@ -75,7 +75,7 @@ export const INITIAL_ISSUES = [
     stage: 0,
     daysElapsed: 3,
     date: '2026-07-20',
-    reportedBy: 'Aditi Sharma',
+    reportedBy: 'Rahul Verma',
     upvotes: 5
   },
   {
@@ -101,7 +101,7 @@ export const INITIAL_ISSUES = [
     stage: 0,
     daysElapsed: 0,
     date: '2026-07-24',
-    reportedBy: 'Aditi Sharma',
+    reportedBy: 'Rahul Verma',
     upvotes: 7
   },
   {
@@ -120,9 +120,9 @@ export const INITIAL_ISSUES = [
 ];
 
 export const CURRENT_USER = {
-  name: 'Aditi Sharma',
-  initials: 'AS',
+  name: 'Rahul Verma',
+  initials: 'RV',
   dept: 'CSE',
   semester: 'Sem 5',
-  email: 'aditi.sharma@campus.edu'
+  email: 'rahul.verma@campus.edu'
 };
