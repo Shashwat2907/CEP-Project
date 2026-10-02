@@ -74,18 +74,18 @@ git checkout -b develop && git push -u origin main develop
 - [x] Helpers: `notify(userId, type, payload)`, `addCalendarEntry(...)`, `writeAudit(...)`
 - [x] Bell dropdown reading notifications with Realtime, unread count, mark as read
 - [x] Tests for helpers
-- [ ] Merge to `develop` and announce in team chat that shared helpers are ready
+- [x] Merge to `develop` and announce in team chat that shared helpers are ready
 
 ### Kushal and Kedar, while waiting (no code on `develop` yet): branch `docs/<area>-spec`
 Kushal: `docs/complaints-and-meet-spec`
-- [ ] `features/complaints/README.md`: domains list, escalation levels, SLA values, states, anonymity rules, sensitive domains
-- [ ] `features/meet/README.md`: availability model, request states, offline and online flows, cancellation rules
+- [x] `features/complaints/README.md`: domains list, escalation levels, SLA values, states, anonymity rules, sensitive domains
+- [x] `features/meet/README.md`: availability model, request states, offline and online flows, cancellation rules
 - [ ] Contact administration to confirm real complaint authorities and response times
 
 Kedar: `docs/acad-and-community-spec`
-- [ ] `features/acad/README.md`: resource fields, filters, approval flow, storage rules
-- [ ] `features/community/README.md`: community kinds (official and unofficial), channels, tag thresholds, moderation rules
-- [ ] `features/clubs/README.md`: club page contents, join flow, free and paid paths
+- [x] `features/acad/README.md`: resource fields, filters, approval flow, storage rules
+- [x] `features/community/README.md`: community kinds (official and unofficial), channels, tag thresholds, moderation rules
+- [x] `features/clubs/README.md`: club page contents, join flow, free and paid paths
 - [ ] Ask the college office for roster data and subject lists per branch and year
 
 ---
