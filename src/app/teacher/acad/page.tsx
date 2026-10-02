@@ -48,7 +48,13 @@ export default async function TeacherAcadPage() {
         {approved.length === 0 ? (
           <div
             role="status"
-            style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted-foreground)', border: '1px dashed var(--border)', borderRadius: '0.5rem' }}
+            style={{
+              padding: '2rem',
+              textAlign: 'center',
+              color: 'var(--muted-foreground)',
+              border: '1px dashed var(--border)',
+              borderRadius: '0.5rem',
+            }}
           >
             <p>No approved resources yet.</p>
           </div>
