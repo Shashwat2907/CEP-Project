@@ -17,3 +17,6 @@ All notification `type` strings must follow the naming convention `<feature>.<pa
 | `club.approved` | Clubs | Sent to student when club membership is approved | `{ clubId, clubName }` | `/clubs/[id]` |
 | `event.reminder` | Events | Sent before scheduled college or club event starts | `{ eventId, title, startsAt, location }` | `/events/[id]` |
 | `security.new_login` | Identity | Sent on successful sign-in from a new device/IP | `{ ip, timestamp, userAgent }` | `/profile/security` |
+| `acad.resource_approved` | Acad | Sent to student when their uploaded academic resource is approved | `{ resourceId, title }` | `/acad` |
+| `acad.resource_rejected` | Acad | Sent to student when their uploaded academic resource is rejected | `{ resourceId, title, reason }` | `/acad` |
+

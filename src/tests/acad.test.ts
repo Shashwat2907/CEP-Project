@@ -5,6 +5,8 @@ import {
   RejectResourceSchema,
   ResourceFilterSchema,
 } from '@/features/acad/schema'
+import { NotifyInputSchema } from '@/shared/notifications/notify'
+
 
 /**
  * Unit tests for the Academic Resources feature.
@@ -149,3 +151,39 @@ describe('ResourceFilterSchema', () => {
     expect(result.success).toBe(false)
   })
 })
+
+describe('Acad Notification Schemas (README.md §10)', () => {
+  it('validates acad.resource_approved notification payload', () => {
+    const payload = {
+      userId: '00000000-0000-0000-0001-000000000001',
+      type: 'acad.resource_approved',
+      title: 'Resource Approved',
+      body: 'Your resource "Data Structures Notes" has been approved and is now live.',
+      link: '/acad',
+      payload: {
+        resourceId: '00000000-0000-0000-0002-000000000001',
+        title: 'Data Structures Notes',
+      },
+    }
+    const result = NotifyInputSchema.safeParse(payload)
+    expect(result.success).toBe(true)
+  })
+
+  it('validates acad.resource_rejected notification payload', () => {
+    const payload = {
+      userId: '00000000-0000-0000-0001-000000000001',
+      type: 'acad.resource_rejected',
+      title: 'Resource Rejected',
+      body: 'Your resource "Data Structures Notes" was not approved: Incomplete notes',
+      link: '/acad',
+      payload: {
+        resourceId: '00000000-0000-0000-0002-000000000001',
+        title: 'Data Structures Notes',
+        reason: 'Incomplete notes',
+      },
+    }
+    const result = NotifyInputSchema.safeParse(payload)
+    expect(result.success).toBe(true)
+  })
+})
+

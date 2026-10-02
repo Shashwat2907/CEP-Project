@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth, requireRole } from '@/shared/auth/guards'
+import { notify } from '@/shared/notifications/notify'
 import { revalidatePath } from 'next/cache'
 import {
   UploadResourceSchema,
@@ -17,9 +18,7 @@ import { getMaxFileSizeMb } from './queries'
  * and returns { ok, data } | { ok: false, error: { code, message } }
  * per CONTRACT.md §5.5.
  *
- * NOTE: notify() calls are intentionally absent here.
- * They will be wired in once feat/notifications-and-calendar-core is merged.
- * TODO: wire notify() for acad.resource_approved / acad.resource_rejected
+ * Dispatches notifications via shared notify() helper on approval / rejection.
  */
 
 // ---------------------------------------------------------------------------
@@ -145,7 +144,7 @@ export async function approveResource(
   }
 
   const supabase = await createClient()
-  const { error } = await supabase
+  const { data: updatedResource, error } = await supabase
     .from('resources')
     .update({
       status:            'approved',
@@ -155,17 +154,30 @@ export async function approveResource(
     })
     .eq('id', parsed.data.resource_id)
     .eq('status', 'pending') // only pending resources can be approved
+    .select('id, title, uploader_id')
+    .single()
 
-  if (error) {
-    console.error('[acad/actions] approveResource error:', error.message)
+  if (error || !updatedResource) {
+    console.error('[acad/actions] approveResource error:', error?.message)
     return {
       ok: false,
       error: { code: 'DB_ERROR', message: 'Could not approve resource. Please try again.' },
     }
   }
 
-  // TODO: notify(uploaderId, 'acad.resource_approved', { resourceId })
-  // Wire after feat/notifications-and-calendar-core merges
+  // Dispatch notification to student uploader
+  await notify(
+    {
+      userId: updatedResource.uploader_id,
+      type: 'acad.resource_approved',
+      title: 'Resource Approved',
+      body: `Your resource "${updatedResource.title}" has been approved and is now live.`,
+      link: '/acad',
+      payload: { resourceId: updatedResource.id, title: updatedResource.title },
+    },
+    supabase as any
+  )
+
 
   revalidatePath('/acad')
   revalidatePath('/teacher/acad')
@@ -197,10 +209,10 @@ export async function rejectResource(
 
   const supabase = await createClient()
 
-  // Fetch the resource to get the storage_path for cleanup
+  // Fetch the resource to get storage_path, uploader_id, title, and status
   const { data: resource, error: fetchError } = await supabase
     .from('resources')
-    .select('storage_path, uploader_id, status')
+    .select('id, title, storage_path, uploader_id, status')
     .eq('id', parsed.data.resource_id)
     .single()
 
@@ -238,8 +250,23 @@ export async function rejectResource(
   // Delete the file from storage (per README §5: "On rejection, the storage file is also deleted")
   await supabase.storage.from('resources').remove([resource.storage_path])
 
-  // TODO: notify(resource.uploader_id, 'acad.resource_rejected', { resourceId, reason })
-  // Wire after feat/notifications-and-calendar-core merges
+  // Dispatch notification to student uploader
+  await notify(
+    {
+      userId: resource.uploader_id,
+      type: 'acad.resource_rejected',
+      title: 'Resource Rejected',
+      body: `Your resource "${resource.title}" was not approved: ${parsed.data.rejection_reason}`,
+      link: '/acad',
+      payload: {
+        resourceId: resource.id,
+        title: resource.title,
+        reason: parsed.data.rejection_reason,
+      },
+    },
+    supabase as any
+  )
+
 
   revalidatePath('/acad')
   revalidatePath('/teacher/acad')
