@@ -2,6 +2,39 @@
 
 @import 'tailwindcss';
 
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-highlight: var(--highlight);
+  --color-on-ink: var(--on-ink);
+  --color-in-campus: var(--in-campus);
+  --color-out-campus: var(--out-campus);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-success: var(--success);
+
+  --color-meet: var(--color-meet);
+  --color-events: var(--color-events);
+  --color-clubs: var(--color-clubs);
+  --color-class: var(--color-class);
+  --color-personal: var(--color-personal);
+  --color-complaints: var(--color-complaints);
+  --color-lostfound: var(--color-lostfound);
+
+  --font-display: var(--font-display), sans-serif;
+  --font-body: var(--font-body), sans-serif;
+  --font-mono: var(--font-mono), monospace;
+
+  --radius-sm: var(--r-sm);
+  --radius-md: var(--r-md);
+  --radius-lg: var(--r-lg);
+  --radius-full: var(--r-full);
+}
+
 /* ─── Base resets ─────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
