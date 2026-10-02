@@ -35,8 +35,11 @@ export const motionFeedback = {
  * <motion.div animate={{ opacity: 1 }} transition={reduceMotion(motionPanel)} />
  */
 export function reduceMotion<T extends object>(token: T): T | { duration: 0.01 } {
-  if (typeof window !== 'undefined' &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  if (
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  ) {
     return { duration: 0.01 }
   }
   return token
