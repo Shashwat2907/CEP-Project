@@ -1,0 +1,155 @@
+/**
+ * Design tokens — Campus Super-App
+ * Source of truth: documents/DESIGN.MD
+ *
+ * Never hardcode a hex value, font size or duration in a component.
+ * Use these CSS custom properties instead.
+ *
+ * Dark mode: class strategy. Add class="dark" to <html> via next-themes.
+ * Light is default.
+ */
+
+/* ─── 1. COLOR ────────────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg:              #F3F5F9;  /* App background — Mist */
+  --surface:         #FFFFFF;  /* Cards, panels, sidebar — Paper */
+  --surface-sunken:  #E9EDF4;  /* Inputs, wells, chat background */
+
+  /* Borders */
+  --border:          #D8DEE9;  /* Dividers, card outlines */
+
+  /* Text */
+  --ink:             #16213E;  /* Primary text, primary button fill — Navy Ink */
+  --ink-muted:       #5B667D;  /* Secondary text, timestamps, OUT state */
+
+  /* Accent */
+  --highlight:       #F5B700;  /* Pencil Yellow — selected nav, upvote active, today marker */
+  --on-ink:          #FFFFFF;  /* Text on primary (ink-filled) buttons */
+
+  /* Campus presence */
+  --in-campus:       #1F9D6B;  /* IN state */
+  --out-campus:      #5B667D;  /* OUT state — neutral, same as ink-muted */
+
+  /* Semantic status */
+  --danger:          #D64545;  /* Errors, overdue, escalated */
+  --warning:         #D98A00;  /* Nearing escalation, pending */
+  --success:         #1F9D6B;  /* Resolved, confirmed — same as in-campus */
+
+  /* Calendar source colors (categorical, distinct from status) */
+  --color-meet:        #3B82F6;  /* Blue */
+  --color-events:      #8B5CF6;  /* Violet */
+  --color-clubs:       #EC4899;  /* Pink */
+  --color-class:       #0EA5E9;  /* Sky */
+  --color-personal:    #6B7280;  /* Grey */
+  --color-complaints:  #D64545;  /* Same as danger */
+  --color-lostfound:   #D98A00;  /* Same as warning */
+
+  /* Floating layer shadow */
+  --shadow-float: 0 8px 24px rgba(22, 33, 62, 0.12);
+}
+
+.dark {
+  --bg:              #0F1420;
+  --surface:         #171D2B;
+  --surface-sunken:  #0B101A;
+  --border:          #2A3347;
+  --ink:             #EEF1F8;
+  --ink-muted:       #98A3BA;
+  --highlight:       #FFC933;
+  --on-ink:          #0F1420;
+  --in-campus:       #3DC58C;
+  --out-campus:      #98A3BA;
+  --danger:          #F06A6A;
+  --warning:         #F2A93B;
+  --success:         #3DC58C;
+  --shadow-float: 0 8px 24px rgba(0, 0, 0, 0.40);
+}
+
+/* ─── 2. SPACING ──────────────────────────────────────────────── */
+:root {
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  --page-padding-desktop: 24px;
+  --page-padding-mobile:  16px;
+  --card-padding:         16px;
+  --card-padding-dense:   12px;
+}
+
+/* ─── 3. RADIUS ───────────────────────────────────────────────── */
+:root {
+  --r-sm:   6px;   /* Chips, tags, inputs */
+  --r-md:  10px;   /* Cards, dialogs */
+  --r-lg:  16px;   /* ID card, hero panels */
+  --r-full: 9999px; /* IN/OUT pill, avatars */
+}
+
+/* ─── 4. TYPOGRAPHY ───────────────────────────────────────────── */
+/* Font families are set by next/font in src/app/layout.tsx via CSS variables:
+   --font-display  → Bricolage Grotesque (headings)
+   --font-body     → Instrument Sans (UI)
+   --font-mono     → JetBrains Mono (IDs, codes, references)
+*/
+:root {
+  /* Scale: size / line-height */
+  --text-display: 700 32px/40px var(--font-display, sans-serif);
+  --text-h1:      600 24px/32px var(--font-display, sans-serif);
+  --text-h2:      600 20px/28px var(--font-display, sans-serif);
+  --text-h3:      600 16px/24px var(--font-body, sans-serif);
+  --text-body:    400 15px/24px var(--font-body, sans-serif);
+  --text-body-strong: 600 15px/24px var(--font-body, sans-serif);
+  --text-small:   400 13px/20px var(--font-body, sans-serif);
+  --text-meta:    500 12px/16px var(--font-body, sans-serif);
+  --text-mono:    500 14px/20px var(--font-mono, monospace);
+}
+
+/* ─── 5. MOTION ───────────────────────────────────────────────── */
+/* Duration/easing tokens used in CSS transitions.
+   Framer Motion tokens live in src/lib/motion.ts.
+*/
+:root {
+  --motion-micro:     150ms ease-out;   /* Button press, pill dot, upvote */
+  --motion-panel:     240ms ease-in-out; /* Sheets, dialogs, popovers */
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── 6. LAYOUT ───────────────────────────────────────────────── */
+:root {
+  --sidebar-width:     248px;
+  --topbar-height:      56px;
+  --content-max-width: 1200px;
+}
+
+/* ─── 7. UTILITY CLASSES (opt-in, not mandatory) ──────────────── */
+
+/* Status left-border for overdue complaint rows */
+.border-danger-left {
+  border-left: 3px solid var(--danger);
+}
+
+/* Active sidebar nav item marker */
+.nav-item-active {
+  border-left: 3px solid var(--highlight);
+  color: var(--ink);
+}
+
+/* Focus ring — 2px ink, offset 2px */
+.focus-ring:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}

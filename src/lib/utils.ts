@@ -1,0 +1,35 @@
+export type ClassValue =
+  | string
+  | number
+  | boolean
+  | undefined
+  | null
+  | { [key: string]: boolean | number | string | undefined | null }
+  | ClassValue[]
+
+/**
+ * Pure, zero-dependency classnames combiner.
+ * Handles strings, conditionals, arrays, and objects.
+ */
+export function cn(...inputs: ClassValue[]): string {
+  const classes: string[] = []
+
+  for (const input of inputs) {
+    if (!input) continue
+
+    if (typeof input === 'string' || typeof input === 'number') {
+      classes.push(String(input))
+    } else if (Array.isArray(input)) {
+      const inner = cn(...input)
+      if (inner) classes.push(inner)
+    } else if (typeof input === 'object') {
+      for (const key of Object.keys(input)) {
+        if (input[key]) {
+          classes.push(key)
+        }
+      }
+    }
+  }
+
+  return classes.join(' ')
+}
