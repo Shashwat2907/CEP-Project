@@ -77,13 +77,18 @@ export function DialogTrigger({
 export function DialogContent({
   children,
   className,
+  showClose = true,
 }: {
   children: React.ReactNode
   className?: string
+  showClose?: boolean
 }) {
   const { open, onOpenChange } = useDialog()
 
   if (!open) return null
+
+  const hasPadding = className ? /\bp(-[0-9]|-[a-z]|0|\b)/.test(className) : false
+  const hasRadius = className ? /\brounded(-[a-z0-9]+)?\b/.test(className) : false
 
   return (
     <div
@@ -96,20 +101,24 @@ export function DialogContent({
         aria-modal="true"
         onClick={(e) => e.stopPropagation()}
         className={cn(
-          'relative w-full max-w-lg bg-surface border border-border rounded-md p-6 text-ink',
+          'relative w-full max-w-lg bg-surface border border-border text-ink',
+          !hasRadius && 'rounded-lg',
+          !hasPadding && 'p-6',
           'shadow-[0_8px_24px_rgba(22,33,62,0.12)] dark:shadow-[0_8px_24px_rgba(0,0,0,0.4)]',
           'animate-in fade-in-0 zoom-in-95 duration-200 ease-out',
           className
         )}
       >
-        <button
-          type="button"
-          onClick={() => onOpenChange(false)}
-          className="absolute right-4 top-4 rounded-sm p-1 text-ink-muted hover:text-ink focus-visible:outline-2 focus-visible:outline-ink"
-          aria-label="Close"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        {showClose && (
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            className="absolute right-3.5 top-3.5 z-20 rounded-sm p-1.5 text-ink-muted hover:text-ink hover:bg-surface-sunken transition-colors focus-visible:outline-2 focus-visible:outline-ink"
+            aria-label="Close"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
         {children}
       </div>
     </div>
@@ -120,9 +129,13 @@ export function DialogHeader({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
+  const hasCustomLayout = className ? /\b(flex-row|grid|p-|border-)\b/.test(className) : false
   return (
     <div
-      className={cn('flex flex-col space-y-1.5 pb-4 text-left', className)}
+      className={cn(
+        !hasCustomLayout && 'flex flex-col space-y-1.5 pb-4 text-left',
+        className
+      )}
       {...props}
     />
   )
@@ -132,9 +145,14 @@ export function DialogTitle({
   className,
   ...props
 }: React.HTMLAttributes<HTMLHeadingElement>) {
+  const hasCustomSize = className ? /\btext-(h[1-6]|base|small|meta|mono|body)\b/.test(className) : false
   return (
     <h2
-      className={cn('font-display text-h2 font-semibold text-ink', className)}
+      className={cn(
+        'font-display font-semibold text-ink',
+        !hasCustomSize && 'text-h2',
+        className
+      )}
       {...props}
     />
   )

@@ -1,15 +1,14 @@
-# Outbox Events Registry
+# Registry: Outbox Events
 
-All allowed `type` values in `events_outbox`.
-These are the domain events emitted by features; Edge Functions consume them.
+Source of Truth: `documents/CONTRACT.md` §5.4
 
-Format: `<feature>.<past-tense-verb>` — lowercase, dot-separated.
+The `events_outbox` table enables decoupled, guaranteed follow-up processing across features without circular dependencies.
 
-| Type | Payload | Consumer | Notes |
-|---|---|---|---|
-| `session.accepted` | `{ sessionId, studentId, teacherId, startsAt, endsAt, mode }` | notify + calendar | Creates calendar entries and notifications for both |
-| `session.cancelled` | `{ sessionId, cancelledBy, reason }` | notify + calendar | Removes calendar entries, sends notification |
-| `complaint.escalated` | `{ complaintId, fromLevel, toLevel, newAssigneeId }` | notify | Notifies new assignee and student |
-| `complaint.resolved` | `{ complaintId, resolvedById, note }` | notify | Notifies student |
-| `lostfound.matched` | `{ itemId, lostReporterId, foundReporterId }` | notify | Notifies both parties |
-| `event.published` | `{ eventId, title, startsAt, targetAudience }` | notify | Notifies relevant users |
+| Event Type | Producer | Consumer | Payload Schema | Follow-up Action |
+|---|---|---|---|---|
+| `complaint.escalated` | Complaints | Notifications / Edge worker | `{ complaintId, level, dueAt }` | Notify assigned authority and write audit log |
+| `session.accepted` | Meet | Calendar / Notifications | `{ requestId, studentId, teacherId, startsAt, endsAt, location }` | Auto-create calendar entries for student & teacher, notify student |
+| `session.cancelled` | Meet | Calendar / Notifications | `{ requestId, reason, cancelledBy }` | Auto-remove calendar entries, notify counterpart |
+| `roster.synced` | Admin / Roster | Community / Identity | `{ totalRows, invitedCount, deactivatedCount }` | Auto-create community channels for new batches, revoke sessions for inactive users |
+| `lostfound.pickup_confirmed` | Lost & Found | Digital ID / Audit | `{ claimId, itemId, claimantId, verifiedAt }` | Record handover in audit log and close item state |
+| `club.payment_received` | Clubs / Webhook | Club Members | `{ clubId, userId, paymentRef, amount }` | Activate club membership and issue welcome notification |

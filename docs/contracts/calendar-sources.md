@@ -1,17 +1,15 @@
-# Calendar Sources Registry
+# Registry: Calendar Sources
 
-All allowed `sourceType` values for `addCalendarEntry()`.
-Format: lowercase snake_case.
+Source of Truth: `documents/CONTRACT.md` §5.4 & `documents/DESIGN.MD` §8
 
-Adding a value: include it in your feature's pull request and add a row here.
-Changing or removing a value: contract change — all three must approve (CONTRACT.md §5.6).
+Source colors come from a fixed 5-color categorical set in design tokens, distinct from status colors.
 
-| sourceType | Color token | Link pattern | Created by |
-|---|---|---|---|
-| `meet` | `--color-meet` | `/meet/[sourceId]` | meet feature on session accept |
-| `event` | `--color-events` | `/events/[sourceId]` | events feature on RSVP |
-| `club_event` | `--color-clubs` | `/events/[sourceId]` | clubs feature |
-| `class` | `--color-class` | `/calendar` | timetable (future) |
-| `personal` | `--color-personal` | `/calendar` | user creates manually |
-| `complaint_followup` | `--color-complaints` | `/complaints/[sourceId]` | complaints on due date |
-| `lostfound` | `--color-lostfound` | `/lost-found/[sourceId]` | lostfound on ready-for-pickup |
+| Source Type | Category | Description | Token / Color | Link Pattern |
+|---|---|---|---|---|
+| `meet` | Teacher Sessions | Confirmed office-hour or doubt sessions with faculty | `--color-meet` (`#3B82F6`) | `/meet/sessions/[id]` |
+| `event` | College Events | University-wide hackathons, guest lectures, and cultural fests | `--color-events` (`#8B5CF6`) | `/events/[id]` |
+| `club_event` | Club Activities | Workshops, meetups, and club gatherings | `--color-clubs` (`#EC4899`) | `/clubs/[clubId]/events/[id]` |
+| `class` | Timetable | Scheduled lectures and lab sessions | `--color-class` (`#0EA5E9`) | `/acad/schedule` |
+| `personal` | Personal Reminder | Self-created study sessions, assignment deadlines, or reminders | `--color-personal` (`#6B7280`) | `/calendar` |
+| `complaints` | Grievance Hearing | Hearing or meeting scheduled regarding an open complaint | `--color-complaints` (`#D64545`) | `/complaints/[id]` |
+| `lostfound` | Desk Handover | Scheduled handover time at drop-off desk for verified item | `--color-lostfound` (`#D98A00`) | `/lost-found/claims/[id]` |
