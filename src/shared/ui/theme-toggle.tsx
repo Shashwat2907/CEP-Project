@@ -115,7 +115,7 @@ export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeTogg
       })
   }
 
-  // Sidebar variant: sliding switch above the profile card
+  // Sidebar variant: full-width bar with smooth sliding switch above profile
   if (variant === 'sidebar') {
     return (
       <button
@@ -124,11 +124,11 @@ export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeTogg
         aria-checked={theme === 'dark'}
         onClick={toggleTheme}
         className={cn(
-          'w-full flex items-center justify-between px-2.5 py-1.5 rounded-sm border border-border bg-surface hover:bg-surface-sunken text-small text-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink group',
+          'w-full flex items-center justify-between px-2.5 py-2 rounded-sm border border-border bg-surface hover:bg-surface-sunken text-small text-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink group',
           className
         )}
         aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-        title="Toggle dark / light appearance with circular ripple"
+        title="Toggle dark / light appearance with sliding animation"
         {...props}
       >
         <span className="flex items-center gap-2 font-medium">
@@ -137,23 +137,46 @@ export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeTogg
           ) : (
             <Sun size={16} strokeWidth={1.75} className="text-ink" />
           )}
-          <span className="text-small text-ink">
+          <span className="text-small text-ink font-semibold">
             {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
           </span>
         </span>
 
-        {/* Sliding Switch Track */}
-        <div className="relative w-10 h-5.5 rounded-full bg-surface-sunken border border-border flex items-center p-0.5 transition-colors">
+        {/* Sliding Switch Track (56px width, 28px height) */}
+        <div className="relative w-14 h-7 rounded-full bg-surface-sunken border border-border p-0.5 flex items-center transition-colors shrink-0">
+          {/* Static track background glyphs */}
+          <div className="absolute inset-0 flex items-center justify-between px-1.5 pointer-events-none text-ink-muted">
+            <Sun
+              size={12}
+              strokeWidth={2}
+              className={cn(
+                'transition-opacity duration-200',
+                theme === 'light' ? 'opacity-0' : 'opacity-60'
+              )}
+            />
+            <Moon
+              size={12}
+              strokeWidth={2}
+              className={cn(
+                'transition-opacity duration-200',
+                theme === 'dark' ? 'opacity-0' : 'opacity-60'
+              )}
+            />
+          </div>
+
+          {/* Sliding Thumb (24px, glides 28px horizontally in both directions) */}
           <div
             className={cn(
-              'w-4 h-4 rounded-full bg-surface border border-border shadow-xs flex items-center justify-center transition-transform duration-200 ease-out',
-              theme === 'dark' ? 'translate-x-4.5 bg-ink text-on-ink border-ink' : 'translate-x-0'
+              'relative z-10 w-6 h-6 rounded-full shadow-xs flex items-center justify-center transition-transform duration-250 ease-out',
+              theme === 'dark'
+                ? 'translate-x-[28px] bg-ink text-highlight border border-ink'
+                : 'translate-x-0 bg-surface text-ink border border-border'
             )}
           >
             {theme === 'dark' ? (
-              <span className="w-1.5 h-1.5 rounded-full bg-highlight" />
+              <Moon size={13} strokeWidth={2.2} className="text-highlight" />
             ) : (
-              <span className="w-1.5 h-1.5 rounded-full bg-ink" />
+              <Sun size={13} strokeWidth={2.2} className="text-ink" />
             )}
           </div>
         </div>
@@ -161,7 +184,7 @@ export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeTogg
     )
   }
 
-  // Icon / compact variant: sliding toggle switch
+  // Icon / compact variant: dedicated sliding toggle switch
   return (
     <button
       type="button"
@@ -169,23 +192,43 @@ export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeTogg
       aria-checked={theme === 'dark'}
       onClick={toggleTheme}
       className={cn(
-        'relative inline-flex items-center w-12 h-7 rounded-full bg-surface-sunken border border-border p-0.5 transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink',
+        'relative inline-flex items-center w-14 h-7 rounded-full bg-surface-sunken border border-border p-0.5 transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink',
         className
       )}
       aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
       title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
       {...props}
     >
+      <div className="absolute inset-0 flex items-center justify-between px-1.5 pointer-events-none text-ink-muted">
+        <Sun
+          size={12}
+          strokeWidth={2}
+          className={cn(
+            'transition-opacity duration-200',
+            theme === 'light' ? 'opacity-0' : 'opacity-60'
+          )}
+        />
+        <Moon
+          size={12}
+          strokeWidth={2}
+          className={cn(
+            'transition-opacity duration-200',
+            theme === 'dark' ? 'opacity-0' : 'opacity-60'
+          )}
+        />
+      </div>
       <div
         className={cn(
-          'w-5.5 h-5.5 rounded-full bg-surface border border-border shadow-xs flex items-center justify-center transition-transform duration-200 ease-out',
-          theme === 'dark' ? 'translate-x-5 bg-ink text-on-ink border-ink' : 'translate-x-0'
+          'relative z-10 w-6 h-6 rounded-full shadow-xs flex items-center justify-center transition-transform duration-250 ease-out',
+          theme === 'dark'
+            ? 'translate-x-[28px] bg-ink text-highlight border border-ink'
+            : 'translate-x-0 bg-surface text-ink border border-border'
         )}
       >
         {theme === 'dark' ? (
-          <Moon size={12} strokeWidth={2} className="text-highlight" />
+          <Moon size={13} strokeWidth={2.2} className="text-highlight" />
         ) : (
-          <Sun size={12} strokeWidth={2} className="text-ink" />
+          <Sun size={13} strokeWidth={2.2} className="text-ink" />
         )}
       </div>
     </button>

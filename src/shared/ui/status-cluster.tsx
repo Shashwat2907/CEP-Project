@@ -112,7 +112,7 @@ export function StatusCluster({
           {/* Sliding active pill background thumb */}
           <div
             className={cn(
-              'absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-full bg-surface border border-border shadow-xs transition-transform duration-200 ease-out pointer-events-none',
+              'absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-full bg-surface border border-border shadow-xs transition-transform duration-250 ease-out pointer-events-none',
               presence === 'in' ? 'left-0.5 translate-x-0' : 'left-0.5 translate-x-full'
             )}
           />
