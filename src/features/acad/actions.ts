@@ -175,7 +175,7 @@ export async function approveResource(
       link: '/acad',
       payload: { resourceId: updatedResource.id, title: updatedResource.title },
     },
-    supabase as any
+    supabase as unknown as Parameters<typeof notify>[1]
   )
 
 
@@ -264,7 +264,7 @@ export async function rejectResource(
         reason: parsed.data.rejection_reason,
       },
     },
-    supabase as any
+    supabase as unknown as Parameters<typeof notify>[1]
   )
 
 
