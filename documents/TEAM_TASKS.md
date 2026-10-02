@@ -65,9 +65,9 @@ git checkout -b develop && git push -u origin main develop
 - [x] Tests: allowed and denied access for each role; wrong or expired or reused code fails; email not on roster gets no account; rate limit works; inactive person cannot sign in
 
 ### You: branch `feat/app-shell`
-- [ ] Sidebar, top bar (ID chip and IN/OUT pill placeholders, bell), profile at sidebar bottom
-- [ ] Role-based navigation (student and teacher nav differ)
-- [ ] Mobile bottom tab bar, dark mode toggle, loading and error layouts
+- [x] Sidebar, top bar (ID chip and IN/OUT pill placeholders, bell), profile at sidebar bottom
+- [x] Role-based navigation (student and teacher nav differ)
+- [x] Mobile bottom tab bar, dark mode toggle, loading and error layouts
 
 ### You: branch `feat/notifications-and-calendar-core`
 - [ ] Migrations: `notifications`, `calendar_entries`, `audit_log`, `events_outbox` with RLS

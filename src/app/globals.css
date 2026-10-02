@@ -70,3 +70,16 @@ h3 { font: var(--text-h3); }
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
+
+/* ─── Circular Theme View Transition ─────────────────────────── */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 9999;
+}
