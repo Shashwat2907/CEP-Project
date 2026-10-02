@@ -22,6 +22,11 @@ export async function getCurrentUser() {
   return user
 }
 
+/**
+ * CONTRACT.md §5.2 specification alias for server-side user resolution
+ */
+export const getSessionUser = getCurrentUser
+
 export async function getCurrentProfile(): Promise<UserProfile | null> {
   const user = await getCurrentUser()
   if (!user) return null

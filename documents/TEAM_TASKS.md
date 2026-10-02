@@ -70,10 +70,10 @@ git checkout -b develop && git push -u origin main develop
 - [x] Mobile bottom tab bar, dark mode toggle, loading and error layouts
 
 ### You: branch `feat/notifications-and-calendar-core`
-- [ ] Migrations: `notifications`, `calendar_entries`, `audit_log`, `events_outbox` with RLS
-- [ ] Helpers: `notify(userId, type, payload)`, `addCalendarEntry(...)`, `writeAudit(...)`
-- [ ] Bell dropdown reading notifications with Realtime, unread count, mark as read
-- [ ] Tests for helpers
+- [x] Migrations: `notifications`, `calendar_entries`, `audit_log`, `events_outbox` with RLS
+- [x] Helpers: `notify(userId, type, payload)`, `addCalendarEntry(...)`, `writeAudit(...)`
+- [x] Bell dropdown reading notifications with Realtime, unread count, mark as read
+- [x] Tests for helpers
 - [ ] Merge to `develop` and announce in team chat that shared helpers are ready
 
 ### Kushal and Kedar, while waiting (no code on `develop` yet): branch `docs/<area>-spec`

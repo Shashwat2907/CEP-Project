@@ -2,7 +2,6 @@
 
 import * as React from 'react'
 import {
-  Bell,
   CheckCircle,
   CreditCard,
   ShieldCheck,
@@ -12,6 +11,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog'
 import { Button } from './button'
+import { NotificationPopover } from './notification-popover'
 
 export type PresenceState = 'in' | 'out' | 'checking' | 'denied'
 
@@ -150,25 +150,8 @@ export function StatusCluster({
           </span>
         </button>
 
-        {/* 3. Notification Bell (DESIGN.MD §6) */}
-        <button
-          type="button"
-          onClick={onBellClick}
-          className="relative w-9 h-9 rounded-sm border border-border bg-surface text-ink-muted hover:text-ink hover:bg-surface-sunken flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-ink"
-          aria-label={
-            unreadNotifications > 0
-              ? `${unreadNotifications} unread notifications`
-              : 'Notifications'
-          }
-          title="Notifications"
-        >
-          <Bell size={20} strokeWidth={1.75} />
-          {unreadNotifications > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-highlight text-ink text-[11px] font-bold font-mono rounded-full border border-surface flex items-center justify-center">
-              {unreadNotifications > 99 ? '99+' : unreadNotifications}
-            </span>
-          )}
-        </button>
+        {/* 3. Interactive Notification Bell (DESIGN.MD §6) */}
+        <NotificationPopover unreadCount={unreadNotifications} onBellClick={onBellClick} />
       </div>
 
       {/* Pop-out Official Verifiable College ID Card (DESIGN.MD §8) */}
