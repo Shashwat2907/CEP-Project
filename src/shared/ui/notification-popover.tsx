@@ -133,20 +133,20 @@ export function NotificationPopover({
       {/* Notifications Modal / Sheet Panel */}
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
         <DialogContent showClose={false} className="max-w-[420px] p-0 overflow-hidden border border-border bg-surface rounded-lg shadow-xl">
-          <DialogHeader className="p-4 border-b border-border bg-surface-sunken/40 flex flex-row items-center justify-between space-y-0">
-            <div>
-              <DialogTitle className="font-display text-h3 flex items-center gap-2">
-                <Bell size={18} strokeWidth={1.75} />
+          <DialogHeader className="p-4 border-b border-border bg-surface-sunken/40 flex flex-row items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell size={18} strokeWidth={1.75} className="text-ink shrink-0" />
+              <DialogTitle className="font-display text-h3 font-semibold text-ink leading-none m-0">
                 Notifications
-                {unreadCount > 0 && (
-                  <span className="font-mono text-meta font-bold px-1.5 py-0.5 rounded-sm bg-highlight text-ink">
-                    {unreadCount} new
-                  </span>
-                )}
               </DialogTitle>
               <DialogDescription className="sr-only">
                 List of real-time notifications and campus alerts
               </DialogDescription>
+              {unreadCount > 0 && (
+                <span className="inline-flex items-center justify-center font-mono text-meta font-semibold leading-none px-2 py-0.5 rounded-sm bg-highlight text-ink shrink-0 self-center">
+                  {unreadCount} new
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2">

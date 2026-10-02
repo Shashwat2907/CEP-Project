@@ -129,9 +129,13 @@ export function DialogHeader({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
+  const hasCustomLayout = className ? /\b(flex-row|grid|p-|border-)\b/.test(className) : false
   return (
     <div
-      className={cn('flex flex-col space-y-1.5 pb-4 text-left', className)}
+      className={cn(
+        !hasCustomLayout && 'flex flex-col space-y-1.5 pb-4 text-left',
+        className
+      )}
       {...props}
     />
   )
@@ -141,9 +145,14 @@ export function DialogTitle({
   className,
   ...props
 }: React.HTMLAttributes<HTMLHeadingElement>) {
+  const hasCustomSize = className ? /\btext-(h[1-6]|base|small|meta|mono|body)\b/.test(className) : false
   return (
     <h2
-      className={cn('font-display text-h2 font-semibold text-ink', className)}
+      className={cn(
+        'font-display font-semibold text-ink',
+        !hasCustomSize && 'text-h2',
+        className
+      )}
       {...props}
     />
   )
