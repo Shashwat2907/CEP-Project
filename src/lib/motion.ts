@@ -1,17 +1,43 @@
 /**
- * Motion tokens — three spring presets used across the app.
- * Reference these in Framer Motion or CSS custom properties; never hardcode durations.
+ * Motion tokens — Campus Super-App
+ * Source of truth: documents/DESIGN.MD §10
  *
- * Source of truth: DESIGN.md section (motion tokens).
+ * Use these in Framer Motion `transition` props.
+ * CSS equivalents live in src/styles/tokens.css as --motion-micro and --motion-panel.
+ *
+ * All components MUST swap to opacity-only when prefers-reduced-motion is set.
  */
 
-export const motion = {
-  /** Fast micro-interactions: button presses, chip toggles */
-  snappy: { type: 'spring', stiffness: 500, damping: 30 },
-  /** Standard transitions: modals, drawers, dropdowns */
-  standard: { type: 'spring', stiffness: 350, damping: 28 },
-  /** Slow reveals: page transitions, hero animations */
-  gentle: { type: 'spring', stiffness: 200, damping: 24 },
+/** 150ms ease-out — button press, pill dot slide, upvote fill */
+export const motionMicro = {
+  duration: 0.15,
+  ease: 'easeOut',
 } as const
 
-export type MotionToken = keyof typeof motion
+/** 240ms ease-in-out — sheets, dialogs, popovers, sidebar collapse */
+export const motionPanel = {
+  duration: 0.24,
+  ease: 'easeInOut',
+} as const
+
+/** spring(stiffness 400, damping 30) — checkbox, toggle, ID card refresh ring */
+export const motionFeedback = {
+  type: 'spring',
+  stiffness: 400,
+  damping: 30,
+} as const
+
+/**
+ * Returns the correct transition based on the user's motion preference.
+ * Pass as `transition` to a Framer Motion component.
+ *
+ * @example
+ * <motion.div animate={{ opacity: 1 }} transition={reduceMotion(motionPanel)} />
+ */
+export function reduceMotion<T extends object>(token: T): T | { duration: 0.01 } {
+  if (typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return { duration: 0.01 }
+  }
+  return token
+}
