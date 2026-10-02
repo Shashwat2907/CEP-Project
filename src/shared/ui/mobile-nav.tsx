@@ -23,6 +23,7 @@ import {
 import { cn } from '@/lib/utils'
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from './sheet'
 import { Avatar } from './avatar'
+import { ThemeToggle } from './theme-toggle'
 import { type UserRole } from './sidebar'
 
 export interface MobileNavProps {
@@ -152,6 +153,11 @@ export function MobileNav({
               Additional campus modules and user settings.
             </SheetDescription>
           </SheetHeader>
+
+          {/* Theme Toggle above profile */}
+          <div className="py-2 border-b border-border">
+            <ThemeToggle variant="sidebar" />
+          </div>
 
           {/* Profile overview in sheet */}
           <div className="py-4 border-b border-border flex items-center justify-between">

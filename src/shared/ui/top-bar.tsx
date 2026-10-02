@@ -4,7 +4,6 @@ import * as React from 'react'
 import { Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { StatusCluster, type PresenceState } from './status-cluster'
-import { ThemeToggle } from './theme-toggle'
 
 export interface TopBarProps {
   identifier?: string
@@ -55,7 +54,7 @@ export function TopBar({
         </span>
       </div>
 
-      {/* Right side: Signature status cluster & Theme toggle (DESIGN.MD §6 & §7) */}
+      {/* Right side: Signature status cluster (DESIGN.MD §6 & §7) */}
       <div className="flex items-center gap-2">
         <StatusCluster
           identifier={identifier}
@@ -67,7 +66,6 @@ export function TopBar({
           unreadNotifications={unreadNotifications}
           onBellClick={onBellClick}
         />
-        <ThemeToggle />
       </div>
     </header>
   )

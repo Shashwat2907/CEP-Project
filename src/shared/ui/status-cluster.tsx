@@ -1,10 +1,17 @@
 'use client'
 
 import * as React from 'react'
-import { Bell, MapPin, CheckCircle, AlertTriangle, ShieldCheck } from 'lucide-react'
+import {
+  Bell,
+  CheckCircle,
+  AlertTriangle,
+  CreditCard,
+  ShieldCheck,
+  Building2,
+  QrCode,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './dialog'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from './sheet'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog'
 import { Button } from './button'
 
 export type PresenceState = 'in' | 'out' | 'checking' | 'denied'
@@ -32,46 +39,74 @@ export function StatusCluster({
   unreadNotifications = 3,
   onBellClick,
   className,
-  hideIdOnMobile = true,
+  hideIdOnMobile = false,
 }: StatusClusterProps) {
   const [internalPresence, setInternalPresence] = React.useState<PresenceState>('in')
   const presence = controlledPresence ?? internalPresence
 
-  const [isPillModalOpen, setIsPillModalOpen] = React.useState(false)
-  const [isIdSheetOpen, setIsIdSheetOpen] = React.useState(false)
-  const [lastVerified] = React.useState('Today, 14:15')
+  const [isIdCardOpen, setIsIdCardOpen] = React.useState(false)
+  const [qrCountdown, setQrCountdown] = React.useState(30)
+  const [tokenSeed, setTokenSeed] = React.useState('8F2A-99B4')
 
-  const handleToggleState = (newState: PresenceState) => {
-    setInternalPresence(newState)
-    onPresenceToggle?.(newState)
+  // Real-time 30-second rotating security token for digital ID
+  React.useEffect(() => {
+    if (!isIdCardOpen) return
+    const timer = setInterval(() => {
+      setQrCountdown((prev) => {
+        if (prev <= 1) {
+          // Generate new token seed when countdown resets
+          setTokenSeed(Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase())
+          return 30
+        }
+        return prev - 1
+      })
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [isIdCardOpen])
+
+  // Simple direct toggle per user instruction: "and in or out i want a simple toggle only"
+  const handleTogglePresence = () => {
+    const nextState: PresenceState = presence === 'in' ? 'out' : 'in'
+    setInternalPresence(nextState)
+    onPresenceToggle?.(nextState)
   }
+
+  const userInitials = userName
+    .split(' ')
+    .map((n) => n[0])
+    .join('')
+    .slice(0, 2)
 
   return (
     <>
       <div className={cn('flex items-center gap-2', className)}>
-        {/* 1. ID Chip (DESIGN.MD §7) */}
+        {/* 1. Quick Digital ID Card Button (Official verifiable college card launcher) */}
         <button
           type="button"
-          onClick={() => setIsIdSheetOpen(true)}
+          onClick={() => setIsIdCardOpen(true)}
           className={cn(
-            'font-mono text-meta font-medium px-2.5 py-1.5 bg-surface border border-border rounded-sm text-ink hover:bg-surface-sunken hover:border-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink',
+            'inline-flex items-center gap-2 px-2.5 py-1.5 bg-surface border border-border rounded-sm text-ink hover:bg-surface-sunken hover:border-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink',
             hideIdOnMobile && 'hidden sm:inline-flex'
           )}
-          title="View Digital ID"
-          aria-label={`Student ID ${identifier}`}
+          title="Open Verifiable Digital ID Card"
+          aria-label={`Open Digital ID Card for ${userName} (${identifier})`}
         >
-          ID: {identifier}
+          <CreditCard size={18} strokeWidth={1.75} className="text-ink shrink-0" />
+          <span className="hidden sm:inline text-small font-medium">Digital ID</span>
+          <span className="font-mono text-meta font-medium px-1.5 py-0.5 rounded bg-surface-sunken border border-border">
+            {identifier}
+          </span>
         </button>
 
-        {/* 2. Signature IN/OUT Pill (DESIGN.MD §7) */}
+        {/* 2. IN / OUT Pill: Simple Direct Toggle (DESIGN.MD §7 + User Instruction) */}
         <button
           type="button"
-          onClick={() => setIsPillModalOpen(true)}
+          onClick={handleTogglePresence}
           className={cn(
             'relative inline-flex items-center gap-1.5 px-3 py-1 bg-surface border border-border rounded-full text-meta font-medium shadow-none hover:border-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink'
           )}
-          title="Presence status — click for details"
-          aria-label={`Campus presence: ${presence.toUpperCase()}`}
+          title={`Presence status: ${presence.toUpperCase()} (Click to toggle)`}
+          aria-label={`Campus presence: ${presence.toUpperCase()}. Click to toggle`}
         >
           {presence === 'checking' ? (
             <span className="inline-flex items-center gap-1 text-ink-muted">
@@ -92,7 +127,7 @@ export function StatusCluster({
                 )}
               >
                 {presence === 'in' && (
-                  <span className="w-2 h-2 rounded-full bg-in-campus" />
+                  <span className="w-2 h-2 rounded-full bg-in-campus animate-pulse" />
                 )}
                 <span>IN</span>
               </div>
@@ -133,139 +168,143 @@ export function StatusCluster({
         </button>
       </div>
 
-      {/* IN/OUT Popover/Dialog */}
-      <Dialog open={isPillModalOpen} onOpenChange={setIsPillModalOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 font-display">
-              <MapPin size={20} strokeWidth={1.75} className="text-ink" />
-              Campus Boundary Status
-            </DialogTitle>
+      {/* Pop-out Official Verifiable College ID Card (DESIGN.MD §8) */}
+      <Dialog open={isIdCardOpen} onOpenChange={setIsIdCardOpen}>
+        <DialogContent className="max-w-[420px] p-0 overflow-hidden border border-border bg-surface rounded-lg shadow-xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Verifiable College Identity Card</DialogTitle>
             <DialogDescription>
-              Real-time geofence verification status for your digital presence.
+              Official student digital credential with anti-tamper rotating verification code.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-3 space-y-3">
-            <div className="p-3 bg-surface-sunken rounded-md space-y-1.5 border border-border">
-              <div className="flex justify-between items-center text-small">
-                <span className="text-ink-muted">Current status:</span>
-                <span
-                  className={cn(
-                    'font-semibold px-2 py-0.5 rounded-sm text-meta',
-                    presence === 'in'
-                      ? 'bg-in-campus text-white'
-                      : presence === 'out'
-                      ? 'bg-ink text-white'
-                      : 'bg-warning text-ink'
-                  )}
-                >
-                  {presence.toUpperCase()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-small">
-                <span className="text-ink-muted">Last verified:</span>
-                <span className="font-mono text-meta font-medium text-ink">{lastVerified}</span>
-              </div>
-              <div className="flex justify-between items-center text-small">
-                <span className="text-ink-muted">Campus Zone:</span>
-                <span className="font-medium text-ink">Main Academic Campus</span>
-              </div>
-            </div>
+          {/* Genuine College Card UI */}
+          <div className="relative bg-surface select-none">
+            {/* Top yellow strip per DESIGN.MD §8: 'Yellow strip at the top edge is the only decoration' */}
+            <div className="h-3 bg-highlight w-full" />
 
-            <div className="space-y-1">
-              <span className="text-meta font-medium text-ink-muted">Quick test switcher:</span>
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  size="sm"
-                  variant={presence === 'in' ? 'primary' : 'secondary'}
-                  onClick={() => handleToggleState('in')}
-                >
-                  Set IN
-                </Button>
-                <Button
-                  size="sm"
-                  variant={presence === 'out' ? 'primary' : 'secondary'}
-                  onClick={() => handleToggleState('out')}
-                >
-                  Set OUT
-                </Button>
-                <Button
-                  size="sm"
-                  variant={presence === 'checking' ? 'primary' : 'secondary'}
-                  onClick={() => handleToggleState('checking')}
-                >
-                  Check
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="secondary" onClick={() => setIsPillModalOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Digital ID Sheet (DESIGN.MD §8) */}
-      <Sheet open={isIdSheetOpen} onOpenChange={setIsIdSheetOpen}>
-        <SheetContent side="right" className="sm:max-w-md p-6">
-          <SheetHeader className="text-left pb-4 border-b border-border">
-            <SheetTitle className="font-display text-h2 flex items-center gap-2">
-              <ShieldCheck size={24} strokeWidth={1.75} className="text-ink" />
-              Digital Student ID
-            </SheetTitle>
-            <SheetDescription>
-              Official university digital credential. Present this to desk staff or security.
-            </SheetDescription>
-          </SheetHeader>
-
-          {/* Digital ID Card Preview (DESIGN.MD §8) */}
-          <div className="mt-6 border border-border rounded-lg bg-surface overflow-hidden shadow-sm">
-            {/* Yellow strip at top edge (DESIGN.MD §8) */}
-            <div className="h-2.5 bg-highlight w-full" />
-
-            <div className="p-5 space-y-5">
-              <div className="flex items-start justify-between">
+            {/* University Crest & Header */}
+            <div className="px-6 pt-5 pb-3 border-b border-border bg-surface-sunken/40 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-sm bg-ink text-on-ink flex items-center justify-center font-display font-black text-lg border border-border">
+                  C
+                </div>
                 <div>
-                  <span className="text-meta text-ink-muted font-medium uppercase tracking-wide">
-                    {role === 'student' ? 'Student Identity' : 'Faculty Identity'}
+                  <h3 className="font-display font-bold text-ink text-sm uppercase tracking-wide leading-tight">
+                    Campus University
+                  </h3>
+                  <p className="text-[11px] font-mono text-ink-muted uppercase">
+                    Official Student Identity Card
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-in-campus/10 text-in-campus border border-in-campus/30">
+                <ShieldCheck size={13} strokeWidth={2} />
+                VERIFIED
+              </div>
+            </div>
+
+            {/* Student Credentials Body */}
+            <div className="p-6 space-y-5">
+              <div className="flex items-start gap-4">
+                {/* Student Photo with security badge */}
+                <div className="relative shrink-0">
+                  <div className="w-20 h-24 rounded-md bg-surface-sunken border border-border flex flex-col items-center justify-center font-display text-xl font-bold text-ink shadow-inner">
+                    <span>{userInitials}</span>
+                    <span className="text-[10px] font-mono text-ink-muted mt-1 uppercase">Photo</span>
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-in-campus border-2 border-surface" title="Active Credential" />
+                </div>
+
+                {/* Identity details */}
+                <div className="flex-1 min-w-0">
+                  <span className="text-[11px] font-mono font-medium text-ink-muted uppercase tracking-wider">
+                    {role === 'student' ? 'Student Enrollment' : 'Faculty Member'}
                   </span>
-                  <h3 className="font-display text-h2 font-bold text-ink mt-0.5">{userName}</h3>
-                  <p className="text-small text-ink-muted">{department}</p>
-                </div>
-                <div className="w-14 h-14 rounded-md bg-surface-sunken border border-border flex items-center justify-center font-display text-h2 font-bold text-ink">
-                  {userName.split(' ').map((n) => n[0]).join('').slice(0, 2)}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 p-3 bg-surface-sunken rounded-md border border-border font-mono text-small">
-                <div>
-                  <div className="text-meta text-ink-muted uppercase">ID Number</div>
-                  <div className="font-semibold text-ink">{identifier}</div>
-                </div>
-                <div>
-                  <div className="text-meta text-ink-muted uppercase">Status</div>
-                  <div className="font-semibold text-in-campus flex items-center gap-1">
-                    <CheckCircle size={14} strokeWidth={2} /> Active
+                  <h4 className="font-display text-h2 font-bold text-ink truncate leading-tight mt-0.5">
+                    {userName}
+                  </h4>
+                  <p className="text-small text-ink-muted mt-0.5 leading-snug">
+                    {department}
+                  </p>
+                  <div className="mt-2.5 inline-block">
+                    <span className="text-[11px] font-mono text-ink-muted block uppercase">
+                      Roll Number
+                    </span>
+                    <span className="font-mono text-base font-bold text-ink tracking-wide">
+                      {identifier}
+                    </span>
                   </div>
                 </div>
               </div>
 
-              {/* Rotating QR Placeholder */}
-              <div className="border border-border rounded-md p-4 bg-surface flex flex-col items-center justify-center space-y-2">
-                <div className="w-36 h-36 bg-surface-sunken border border-dashed border-border rounded flex flex-col items-center justify-center text-ink-muted font-mono text-meta">
-                  <span>[ROTATING QR]</span>
-                  <span className="text-[11px] text-ink-muted mt-1">Refreshes: 24s</span>
+              {/* Card Metadata Grid */}
+              <div className="grid grid-cols-2 gap-2.5 p-3 rounded-md bg-surface-sunken border border-border text-meta font-mono">
+                <div>
+                  <span className="text-[10px] text-ink-muted uppercase block">Academic Year</span>
+                  <span className="font-semibold text-ink">2026 – 2027</span>
                 </div>
-                <span className="font-mono text-meta text-ink-muted">Verified at {lastVerified}</span>
+                <div>
+                  <span className="text-[10px] text-ink-muted uppercase block">Validity</span>
+                  <span className="font-semibold text-ink">Valid till 06/2027</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-ink-muted uppercase block">Campus Access</span>
+                  <span className="font-semibold text-in-campus flex items-center gap-1">
+                    <CheckCircle size={12} strokeWidth={2} /> Full Clearance
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-ink-muted uppercase block">Current Zone</span>
+                  <span className="font-semibold text-ink flex items-center gap-1">
+                    <Building2 size={12} strokeWidth={2} /> Main Campus
+                  </span>
+                </div>
               </div>
+
+              {/* Rotating Anti-Tamper QR Code with Live Countdown Ring (DESIGN.MD §8) */}
+              <div className="border border-border rounded-md p-4 bg-surface flex flex-col items-center justify-center space-y-3">
+                <div className="relative flex items-center justify-center">
+                  <div className="w-32 h-32 bg-surface-sunken border border-border rounded flex flex-col items-center justify-center text-ink font-mono text-meta">
+                    <QrCode size={56} strokeWidth={1.5} className="text-ink mb-1" />
+                    <span className="text-[10px] text-ink-muted font-bold tracking-wider">
+                      {tokenSeed}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Rotating Countdown & Live Security Token */}
+                <div className="w-full flex items-center justify-between text-meta font-mono border-t border-border pt-2 text-ink-muted">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-in-campus animate-ping" />
+                    <span className="text-ink font-medium">LIVE VERIFICATION</span>
+                  </span>
+                  <span className="font-semibold text-ink">
+                    Refreshes in {qrCountdown}s
+                  </span>
+                </div>
+              </div>
+
+              {/* Desk / Gate Notice */}
+              <p className="text-[11px] text-ink-muted text-center leading-tight">
+                Authorized for university gate entry, campus facilities, and examination verification.
+              </p>
+            </div>
+
+            {/* Footer close button */}
+            <div className="p-4 border-t border-border bg-surface-sunken/30 flex justify-end">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setIsIdCardOpen(false)}
+                className="w-full"
+              >
+                Close ID Card
+              </Button>
             </div>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

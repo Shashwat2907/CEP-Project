@@ -57,7 +57,7 @@ describe('App Shell — Sidebar & Role Navigation', () => {
     expect(complaintsLink).toHaveClass('border-highlight')
   })
 
-  it('renders pinned user profile card with initials and identifier', () => {
+  it('renders theme toggle above the pinned user profile card', () => {
     render(
       <Sidebar
         role="student"
@@ -66,47 +66,55 @@ describe('App Shell — Sidebar & Role Navigation', () => {
       />
     )
 
+    // Theme toggle in sidebar mode exists
+    expect(screen.getByRole('button', { name: /Switch to dark mode/i })).toBeInTheDocument()
     expect(screen.getByText('Aarav Sharma')).toBeInTheDocument()
     expect(screen.getByText('23BCE1001')).toBeInTheDocument()
     expect(screen.getByText('AS')).toBeInTheDocument() // Initials
   })
 })
 
-describe('App Shell — Signature Status Cluster (DESIGN.MD §7)', () => {
-  it('renders ID chip with JetBrains Mono identifier', () => {
-    render(<StatusCluster identifier="23BCE1042" />)
+describe('App Shell — Signature Status Cluster & Pop-out ID Card (DESIGN.MD §7)', () => {
+  it('renders quick Digital ID button with identifier badge', () => {
+    render(<StatusCluster identifier="23BCE1042" userName="Shashwat Choudhary" />)
 
-    const idChip = screen.getByRole('button', { name: /Student ID 23BCE1042/i })
-    expect(idChip).toBeInTheDocument()
-    expect(idChip).toHaveTextContent('ID: 23BCE1042')
-    expect(idChip).toHaveClass('font-mono')
+    const idBtn = screen.getByRole('button', { name: /Open Digital ID Card for Shashwat Choudhary/i })
+    expect(idBtn).toBeInTheDocument()
+    expect(idBtn).toHaveTextContent('Digital ID')
+    expect(idBtn).toHaveTextContent('23BCE1042')
   })
 
-  it('renders two-segment IN/OUT pill with active state indicator', () => {
-    render(<StatusCluster presenceState="in" />)
+  it('directly toggles presence on click (simple toggle only without interrupting modal)', () => {
+    const handleToggle = vi.fn()
+    render(<StatusCluster presenceState="in" onPresenceToggle={handleToggle} />)
 
-    const pill = screen.getByRole('button', { name: /Campus presence: IN/i })
+    const pill = screen.getByRole('button', { name: /Campus presence: IN\. Click to toggle/i })
     expect(pill).toBeInTheDocument()
-    expect(pill).toHaveTextContent('IN')
-    expect(pill).toHaveTextContent('OUT')
+
+    // Click directly flips presence to OUT
+    fireEvent.click(pill)
+    expect(handleToggle).toHaveBeenCalledWith('out')
   })
 
-  it('opens digital ID sheet when clicking ID chip', () => {
+  it('opens verifiable official college ID card dialog when clicking quick ID button', () => {
     render(
       <StatusCluster
         identifier="23BCE1042"
         userName="Shashwat Choudhary"
-        department="Computer Science"
+        department="Computer Science & Engineering"
         role="student"
       />
     )
 
-    const idChip = screen.getByRole('button', { name: /Student ID 23BCE1042/i })
-    fireEvent.click(idChip)
+    const idBtn = screen.getByRole('button', { name: /Open Digital ID Card/i })
+    fireEvent.click(idBtn)
 
-    // Digital ID sheet opens with title and details
-    expect(screen.getByText('Digital Student ID')).toBeInTheDocument()
-    expect(screen.getByText('[ROTATING QR]')).toBeInTheDocument()
+    // Verifiable College Card popout opens
+    expect(screen.getByText('Campus University')).toBeInTheDocument()
+    expect(screen.getByText('Official Student Identity Card')).toBeInTheDocument()
+    expect(screen.getByText('VERIFIED')).toBeInTheDocument()
+    expect(screen.getByText('LIVE VERIFICATION')).toBeInTheDocument()
+    expect(screen.getByText(/Refreshes in/i)).toBeInTheDocument()
   })
 
   it('renders notification bell with unread count badge', () => {
@@ -124,7 +132,7 @@ describe('App Shell — TopBar', () => {
 
     expect(screen.getByRole('banner')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /Open menu/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /Student ID 23BCE1042/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Open Digital ID Card/i })).toBeInTheDocument()
   })
 })
 

@@ -24,6 +24,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Avatar } from './avatar'
+import { ThemeToggle } from './theme-toggle'
 
 export type UserRole = 'student' | 'teacher' | 'admin'
 
@@ -166,6 +167,11 @@ export function Sidebar({
           )
         })}
       </nav>
+
+      {/* Theme Toggle (above profile card with circular transformation animation) */}
+      <div className="px-3 py-2 border-t border-border bg-surface">
+        <ThemeToggle variant="sidebar" />
+      </div>
 
       {/* 3. Bottom: Pinned Profile Card (DESIGN.MD §6) */}
       <div className="p-3 border-t border-border bg-surface space-y-2">
