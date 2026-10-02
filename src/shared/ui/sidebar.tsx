@@ -159,7 +159,7 @@ export function Sidebar({
                 <span className="truncate">{item.label}</span>
               </div>
               {item.badge && (
-                <span className="font-mono text-meta px-1.5 py-0.5 rounded bg-surface border border-border text-ink-muted">
+                <span className="font-mono text-meta px-1.5 py-0.5 rounded-sm bg-surface border border-border text-ink-muted">
                   {item.badge}
                 </span>
               )}

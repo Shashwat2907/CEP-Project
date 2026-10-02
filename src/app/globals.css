@@ -29,6 +29,7 @@
   --font-body: var(--font-body), sans-serif;
   --font-mono: var(--font-mono), monospace;
 
+  --radius: var(--r-sm);
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);

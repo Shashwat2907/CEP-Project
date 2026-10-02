@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Bell, CheckCheck, ExternalLink, Inbox } from 'lucide-react'
+import { Bell, CheckCheck, ExternalLink, Inbox, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog'
 
@@ -132,14 +132,14 @@ export function NotificationPopover({
 
       {/* Notifications Modal / Sheet Panel */}
       <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="max-w-[420px] p-0 overflow-hidden border border-border bg-surface rounded-lg shadow-xl">
+        <DialogContent showClose={false} className="max-w-[420px] p-0 overflow-hidden border border-border bg-surface rounded-lg shadow-xl">
           <DialogHeader className="p-4 border-b border-border bg-surface-sunken/40 flex flex-row items-center justify-between space-y-0">
             <div>
               <DialogTitle className="font-display text-h3 flex items-center gap-2">
                 <Bell size={18} strokeWidth={1.75} />
                 Notifications
                 {unreadCount > 0 && (
-                  <span className="font-mono text-meta font-bold px-1.5 py-0.5 rounded bg-highlight text-ink">
+                  <span className="font-mono text-meta font-bold px-1.5 py-0.5 rounded-sm bg-highlight text-ink">
                     {unreadCount} new
                   </span>
                 )}
@@ -149,17 +149,27 @@ export function NotificationPopover({
               </DialogDescription>
             </div>
 
-            {unreadCount > 0 && (
+            <div className="flex items-center gap-2">
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={handleMarkAllRead}
+                  className="inline-flex items-center gap-1 text-meta text-ink-muted hover:text-ink font-medium px-2 py-1 rounded-sm hover:bg-surface-sunken transition-colors"
+                  title="Mark all notifications as read"
+                >
+                  <CheckCheck size={14} strokeWidth={1.75} />
+                  Mark all read
+                </button>
+              )}
               <button
                 type="button"
-                onClick={handleMarkAllRead}
-                className="inline-flex items-center gap-1 text-meta text-ink-muted hover:text-ink font-medium transition-colors"
-                title="Mark all notifications as read"
+                onClick={() => handleOpenChange(false)}
+                className="rounded-sm p-1.5 text-ink-muted hover:text-ink hover:bg-surface-sunken transition-colors focus-visible:outline-2 focus-visible:outline-ink"
+                aria-label="Close notifications"
               >
-                <CheckCheck size={14} strokeWidth={1.75} />
-                Mark all read
+                <X size={16} strokeWidth={1.75} />
               </button>
-            )}
+            </div>
           </DialogHeader>
 
           {/* List of items */}

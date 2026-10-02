@@ -92,7 +92,7 @@ export function StatusCluster({
         >
           <CreditCard size={18} strokeWidth={1.75} className="text-ink shrink-0" />
           <span className="hidden sm:inline text-small font-medium">Digital ID</span>
-          <span className="font-mono text-meta font-medium px-1.5 py-0.5 rounded bg-surface-sunken border border-border">
+          <span className="font-mono text-meta font-medium px-1.5 py-0.5 rounded-sm bg-surface-sunken border border-border">
             {identifier}
           </span>
         </button>
@@ -156,7 +156,7 @@ export function StatusCluster({
 
       {/* Pop-out Official Verifiable College ID Card (DESIGN.MD §8) */}
       <Dialog open={isIdCardOpen} onOpenChange={setIsIdCardOpen}>
-        <DialogContent className="max-w-[420px] p-0 overflow-hidden border border-border bg-surface rounded-lg shadow-xl">
+        <DialogContent showClose={false} className="max-w-[420px] p-0 overflow-hidden border border-border bg-surface rounded-lg shadow-xl">
           <DialogHeader className="sr-only">
             <DialogTitle>Verifiable College Identity Card</DialogTitle>
             <DialogDescription>
@@ -184,7 +184,7 @@ export function StatusCluster({
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded bg-in-campus/10 text-in-campus border border-in-campus/30">
+              <div className="flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-sm bg-in-campus/10 text-in-campus border border-in-campus/30">
                 <ShieldCheck size={13} strokeWidth={2} />
                 VERIFIED
               </div>
@@ -251,7 +251,7 @@ export function StatusCluster({
               {/* Rotating Anti-Tamper QR Code with Live Countdown Ring (DESIGN.MD §8) */}
               <div className="border border-border rounded-md p-4 bg-surface flex flex-col items-center justify-center space-y-3">
                 <div className="relative flex items-center justify-center">
-                  <div className="w-32 h-32 bg-surface-sunken border border-border rounded flex flex-col items-center justify-center text-ink font-mono text-meta">
+                  <div className="w-32 h-32 bg-surface-sunken border border-border rounded-md flex flex-col items-center justify-center text-ink font-mono text-meta">
                     <QrCode size={56} strokeWidth={1.5} className="text-ink mb-1" />
                     <span className="text-[10px] text-ink-muted font-bold tracking-wider">
                       {tokenSeed}
