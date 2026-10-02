@@ -1,24 +1,41 @@
 {
-  "name": "campusresolve",
+  "name": "campus-super-app",
+  "version": "0.1.0",
   "private": true,
-  "version": "1.0.0",
-  "type": "module",
   "scripts": {
-    "dev": "vite",
-    "dev:backend": "backend/venv/bin/uvicorn main:app --host 0.0.0.0 --port 8000 --app-dir backend --reload",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "npx tsc --noEmit",
+    "format": "npx prettier --write .",
+    "test": "npx vitest run",
+    "test:e2e": "npx playwright test"
   },
   "dependencies": {
-    "leaflet": "^1.9.4",
-    "lucide-react": "^1.16.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2",
+    "lucide-react": "^0.460.0",
+    "next": "16.3.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "^3"
   },
   "devDependencies": {
-    "@types/react": "^18.3.5",
-    "@types/react-dom": "^18.3.0",
-    "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.2"
+    "@playwright/test": "^1",
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^4",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.6",
+    "jsdom": "^26.1.0",
+    "prettier": "^3",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^2"
   }
 }
