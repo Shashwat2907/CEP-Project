@@ -34,20 +34,20 @@ git checkout -b develop && git push -u origin main develop
 ## Stage 0: Foundation (You do this first; Kushal and Kedar prepare in parallel)
 
 ### You: branch `chore/project-setup`
-- [ ] Create repo, add Kushal and Kedar as collaborators, protect `main` and `develop`
-- [ ] Add `PLAN.md`, `DESIGN.md`, `AGENTS.md`, `TEAM_TASKS.md` to the repo root
-- [ ] Next.js (App Router, TypeScript strict), Tailwind, shadcn/ui, Lucide, ESLint, Prettier
-- [ ] Vitest and Playwright set up with one sample test each
-- [ ] GitHub Actions: lint, typecheck, test on every pull request
-- [ ] Vercel project: production from `main`, preview from `develop` and pull requests
-- [ ] Folder structure from `PLAN.md` section 7, `.env.example`, README with setup steps
-- [ ] Merge into `develop`. **Kushal and Kedar branch from here.**
+- [x] Create repo, add Kushal and Kedar as collaborators, protect `main` and `develop`
+- [x] Add `PLAN.md`, `DESIGN.md`, `AGENTS.md`, `TEAM_TASKS.md` to the repo root
+- [x] Next.js (App Router, TypeScript strict), Tailwind, shadcn/ui, Lucide, ESLint, Prettier
+- [x] Vitest and Playwright set up with one sample test each
+- [x] GitHub Actions: lint, typecheck, test on every pull request
+- [x] Vercel project: production from `main`, preview from `develop` and pull requests
+- [x] Folder structure from `PLAN.md` section 7, `.env.example`, README with setup steps
+- [x] Merge into `develop`. **Kushal and Kedar branch from here.**
 
 ### You: branch `feat/design-tokens`
-- [ ] `src/styles/tokens.css` with all colors for light and dark from `DESIGN.md`
-- [ ] Tailwind config mapped to tokens; fonts through `next/font`
-- [ ] `src/lib/motion.ts` with the three motion tokens
-- [ ] Shared UI kit restyled from shadcn: button, input, card, chip, dialog, sheet, toast, tabs, avatar, empty state
+- [x] `src/styles/tokens.css` with all colors for light and dark from `DESIGN.md`
+- [x] Tailwind config mapped to tokens; fonts through `next/font`
+- [x] `src/lib/motion.ts` with the three motion tokens
+- [x] Shared UI kit restyled from shadcn: button, input, card, chip, dialog, sheet, toast, tabs, avatar, empty state
 
 ### You: branch `feat/auth-and-roles`
 - [ ] Supabase project connected; environment variables set in Vercel and locally
