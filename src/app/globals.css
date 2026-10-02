@@ -29,10 +29,28 @@
   --font-body: var(--font-body), sans-serif;
   --font-mono: var(--font-mono), monospace;
 
+  --radius: var(--r-sm);
   --radius-sm: var(--r-sm);
   --radius-md: var(--r-md);
   --radius-lg: var(--r-lg);
   --radius-full: var(--r-full);
+
+  --text-display: 32px;
+  --text-display--line-height: 40px;
+  --text-h1: 24px;
+  --text-h1--line-height: 32px;
+  --text-h2: 20px;
+  --text-h2--line-height: 28px;
+  --text-h3: 16px;
+  --text-h3--line-height: 24px;
+  --text-body: 15px;
+  --text-body--line-height: 24px;
+  --text-small: 13px;
+  --text-small--line-height: 20px;
+  --text-meta: 12px;
+  --text-meta--line-height: 16px;
+  --text-mono: 14px;
+  --text-mono--line-height: 20px;
 }
 
 /* ─── Base resets ─────────────────────────────────────────────── */
