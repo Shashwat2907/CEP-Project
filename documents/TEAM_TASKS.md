@@ -174,13 +174,13 @@ Kedar: `docs/acad-and-community-spec`
 ## Kushal: branches (start after Stage 0 is merged)
 
 ### `feat/complaints-core`
-- [ ] Migrations: `complaint_domains`, `domain_assignees`, `complaints`, `complaint_events`, `complaint_attachments` with RLS
-- [ ] Seed domains and an example chain per domain (clearly labelled seed values)
-- [ ] Raise complaint form: domain picker (nested), problem description, attachments, anonymous option
-- [ ] "My complaints" list with status chips
-- [ ] Handler view for complaints assigned to the logged-in authority
-- [ ] Resolve flow with note; student confirm or reopen; auto-close after the confirmation window
-- [ ] Notifications on every state change using `notify()`
+- [x] Migrations: `complaint_domains`, `domain_assignees`, `complaints`, `complaint_events`, `complaint_attachments` with RLS
+- [x] Seed domains and an example chain per domain (clearly labelled seed values)
+- [x] Raise complaint form: domain picker (nested), problem description, attachments, anonymous option
+- [x] "My complaints" list with status chips
+- [x] Handler view for complaints assigned to the logged-in authority
+- [x] Resolve flow with note; student confirm or reopen; auto-close after the confirmation window
+- [x] Notifications on every state change using `notify()`
 
 ### `feat/complaints-escalation`
 - [ ] Edge Function plus scheduled job that escalates overdue complaints to the next level (idempotent: running twice never escalates twice)
