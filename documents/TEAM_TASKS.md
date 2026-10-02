@@ -50,42 +50,42 @@ git checkout -b develop && git push -u origin main develop
 - [x] Shared UI kit restyled from shadcn: button, input, card, chip, dialog, sheet, toast, tabs, avatar, empty state
 
 ### You: branch `feat/auth-and-roles`
-- [ ] Supabase project connected; environment variables set in Vercel and locally
-- [ ] Migrations: `profiles`, `user_roles`, `roster_import`, `login_attempts` with RLS
-- [ ] Custom email sender configured in Supabase (transactional service or college SMTP) with the sender domain set up so codes do not land in spam
-- [ ] Sign-in page: enter college email, then 6-digit code; same response whether or not the email is registered
-- [ ] Only roster emails (not `inactive`) can receive a code; account and profile are created from the roster row on first successful code
-- [ ] Code rules: single-use, short expiry, limited wrong attempts; rate limits per IP and per email; attempts logged
-- [ ] Block sign-in and end sessions when the roster marks a person `inactive`
-- [ ] Admin account protection: invite-only, authenticator app code (2FA) on top of the email code
-- [ ] "Sign out of all devices"
-- [ ] No passwords, no Google or social sign-in anywhere
-- [ ] Role resolution (student, teacher, admin, authority roles) and route guards
-- [ ] Seed data: one admin, two teachers, five students (fake emails and IDs; a development setting that prints codes to the console instead of sending email)
-- [ ] Tests: allowed and denied access for each role; wrong or expired or reused code fails; email not on roster gets no account; rate limit works; inactive person cannot sign in
+- [x] Supabase project connected; environment variables set in Vercel and locally
+- [x] Migrations: `profiles`, `user_roles`, `roster_import`, `login_attempts` with RLS
+- [x] Custom email sender configured in Supabase (transactional service or college SMTP) with the sender domain set up so codes do not land in spam
+- [x] Sign-in page: enter college email, then 6-digit code; same response whether or not the email is registered
+- [x] Only roster emails (not `inactive`) can receive a code; account and profile are created from the roster row on first successful code
+- [x] Code rules: single-use, short expiry, limited wrong attempts; rate limits per IP and per email; attempts logged
+- [x] Block sign-in and end sessions when the roster marks a person `inactive`
+- [x] Admin account protection: invite-only, authenticator app code (2FA) on top of the email code
+- [x] "Sign out of all devices"
+- [x] No passwords, no Google or social sign-in anywhere
+- [x] Role resolution (student, teacher, admin, authority roles) and route guards
+- [x] Seed data: one admin, two teachers, five students (fake emails and IDs; a development setting that prints codes to the console instead of sending email)
+- [x] Tests: allowed and denied access for each role; wrong or expired or reused code fails; email not on roster gets no account; rate limit works; inactive person cannot sign in
 
 ### You: branch `feat/app-shell`
-- [ ] Sidebar, top bar (ID chip and IN/OUT pill placeholders, bell), profile at sidebar bottom
-- [ ] Role-based navigation (student and teacher nav differ)
-- [ ] Mobile bottom tab bar, dark mode toggle, loading and error layouts
+- [x] Sidebar, top bar (ID chip and IN/OUT pill placeholders, bell), profile at sidebar bottom
+- [x] Role-based navigation (student and teacher nav differ)
+- [x] Mobile bottom tab bar, dark mode toggle, loading and error layouts
 
 ### You: branch `feat/notifications-and-calendar-core`
-- [ ] Migrations: `notifications`, `calendar_entries`, `audit_log`, `events_outbox` with RLS
-- [ ] Helpers: `notify(userId, type, payload)`, `addCalendarEntry(...)`, `writeAudit(...)`
-- [ ] Bell dropdown reading notifications with Realtime, unread count, mark as read
-- [ ] Tests for helpers
-- [ ] Merge to `develop` and announce in team chat that shared helpers are ready
+- [x] Migrations: `notifications`, `calendar_entries`, `audit_log`, `events_outbox` with RLS
+- [x] Helpers: `notify(userId, type, payload)`, `addCalendarEntry(...)`, `writeAudit(...)`
+- [x] Bell dropdown reading notifications with Realtime, unread count, mark as read
+- [x] Tests for helpers
+- [x] Merge to `develop` and announce in team chat that shared helpers are ready
 
 ### Kushal and Kedar, while waiting (no code on `develop` yet): branch `docs/<area>-spec`
 Kushal: `docs/complaints-and-meet-spec`
-- [ ] `features/complaints/README.md`: domains list, escalation levels, SLA values, states, anonymity rules, sensitive domains
-- [ ] `features/meet/README.md`: availability model, request states, offline and online flows, cancellation rules
+- [x] `features/complaints/README.md`: domains list, escalation levels, SLA values, states, anonymity rules, sensitive domains
+- [x] `features/meet/README.md`: availability model, request states, offline and online flows, cancellation rules
 - [ ] Contact administration to confirm real complaint authorities and response times
 
 Kedar: `docs/acad-and-community-spec`
-- [ ] `features/acad/README.md`: resource fields, filters, approval flow, storage rules
-- [ ] `features/community/README.md`: community kinds (official and unofficial), channels, tag thresholds, moderation rules
-- [ ] `features/clubs/README.md`: club page contents, join flow, free and paid paths
+- [x] `features/acad/README.md`: resource fields, filters, approval flow, storage rules
+- [x] `features/community/README.md`: community kinds (official and unofficial), channels, tag thresholds, moderation rules
+- [x] `features/clubs/README.md`: club page contents, join flow, free and paid paths
 - [ ] Ask the college office for roster data and subject lists per branch and year
 
 ---
@@ -174,13 +174,13 @@ Kedar: `docs/acad-and-community-spec`
 ## Kushal: branches (start after Stage 0 is merged)
 
 ### `feat/complaints-core`
-- [ ] Migrations: `complaint_domains`, `domain_assignees`, `complaints`, `complaint_events`, `complaint_attachments` with RLS
-- [ ] Seed domains and an example chain per domain (clearly labelled seed values)
-- [ ] Raise complaint form: domain picker (nested), problem description, attachments, anonymous option
-- [ ] "My complaints" list with status chips
-- [ ] Handler view for complaints assigned to the logged-in authority
-- [ ] Resolve flow with note; student confirm or reopen; auto-close after the confirmation window
-- [ ] Notifications on every state change using `notify()`
+- [x] Migrations: `complaint_domains`, `domain_assignees`, `complaints`, `complaint_events`, `complaint_attachments` with RLS
+- [x] Seed domains and an example chain per domain (clearly labelled seed values)
+- [x] Raise complaint form: domain picker (nested), problem description, attachments, anonymous option
+- [x] "My complaints" list with status chips
+- [x] Handler view for complaints assigned to the logged-in authority
+- [x] Resolve flow with note; student confirm or reopen; auto-close after the confirmation window
+- [x] Notifications on every state change using `notify()`
 
 ### `feat/complaints-escalation`
 - [ ] Edge Function plus scheduled job that escalates overdue complaints to the next level (idempotent: running twice never escalates twice)
