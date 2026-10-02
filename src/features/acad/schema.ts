@@ -52,8 +52,10 @@ export const ResourceSchema = z.object({
   // Joined fields (present when fetched with select)
   subject:           SubjectSchema.optional(),
   uploader:          z.object({ full_name: z.string(), role_primary: z.string() }).optional(),
+  is_saved:          z.boolean().optional(),
 })
 export type Resource = z.infer<typeof ResourceSchema>
+
 
 // ---------------------------------------------------------------------------
 // Upload input (validated server-side in actions.ts)
@@ -99,8 +101,26 @@ export const ResourceFilterSchema = z.object({
   subject_id: z.string().uuid().optional(),
   type:       ResourceTypeSchema.optional(),
   query:      z.string().max(100).optional(),
+  saved:      z.coerce.boolean().optional(),
 })
 export type ResourceFilterInput = z.infer<typeof ResourceFilterSchema>
+
+// ---------------------------------------------------------------------------
+// Save / bookmark resource input
+// ---------------------------------------------------------------------------
+
+export const ToggleSaveResourceSchema = z.object({
+  resource_id: z.string().uuid(),
+})
+export type ToggleSaveResourceInput = z.infer<typeof ToggleSaveResourceSchema>
+
+export const SavedResourceSchema = z.object({
+  user_id:     z.string().uuid(),
+  resource_id: z.string().uuid(),
+  created_at:  z.string().optional(),
+})
+export type SavedResource = z.infer<typeof SavedResourceSchema>
+
 
 // ---------------------------------------------------------------------------
 // Server action response shape (CONTRACT.md §5.5)

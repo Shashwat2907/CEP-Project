@@ -4,8 +4,10 @@ import {
   ApproveResourceSchema,
   RejectResourceSchema,
   ResourceFilterSchema,
+  ToggleSaveResourceSchema,
 } from '@/features/acad/schema'
 import { NotifyInputSchema } from '@/shared/notifications/notify'
+
 
 
 /**
@@ -150,7 +152,35 @@ describe('ResourceFilterSchema', () => {
     const result = ResourceFilterSchema.safeParse({ query: 'a'.repeat(101) })
     expect(result.success).toBe(false)
   })
+
+  it('coerces saved boolean from string', () => {
+    const result = ResourceFilterSchema.safeParse({ saved: 'true' })
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.saved).toBe(true)
+  })
 })
+
+describe('ToggleSaveResourceSchema', () => {
+  it('accepts a valid UUID', () => {
+    const result = ToggleSaveResourceSchema.safeParse({
+      resource_id: '00000000-0000-0000-0002-000000000001',
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects an invalid UUID', () => {
+    const result = ToggleSaveResourceSchema.safeParse({
+      resource_id: 'invalid-id',
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects missing resource_id', () => {
+    const result = ToggleSaveResourceSchema.safeParse({})
+    expect(result.success).toBe(false)
+  })
+})
+
 
 describe('Acad Notification Schemas (README.md §10)', () => {
   it('validates acad.resource_approved notification payload', () => {

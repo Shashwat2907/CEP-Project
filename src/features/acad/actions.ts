@@ -8,8 +8,10 @@ import {
   UploadResourceSchema,
   ApproveResourceSchema,
   RejectResourceSchema,
+  ToggleSaveResourceSchema,
   type ActionResult,
 } from './schema'
+
 import { getMaxFileSizeMb } from './queries'
 
 /**
@@ -327,3 +329,82 @@ export async function deleteMyPendingResource(
   revalidatePath('/acad')
   return { ok: true }
 }
+
+// ---------------------------------------------------------------------------
+// Toggle save / bookmark resource (student / teacher)
+// ---------------------------------------------------------------------------
+
+export async function toggleSaveResource(
+  formData: FormData
+): Promise<ActionResult<{ saved: boolean }>> {
+  const { user } = await requireAuth()
+
+  const parsed = ToggleSaveResourceSchema.safeParse({
+    resource_id: formData.get('resource_id'),
+  })
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Invalid resource ID.' },
+    }
+  }
+
+  const supabase = await createClient()
+  const resourceId = parsed.data.resource_id
+
+  // Check if already saved
+  const { data: existing, error: checkError } = await supabase
+    .from('saved_resources')
+    .select('resource_id')
+    .eq('user_id', user.id)
+    .eq('resource_id', resourceId)
+    .maybeSingle()
+
+  if (checkError) {
+    console.error('[acad/actions] toggleSaveResource check error:', checkError.message)
+    return {
+      ok: false,
+      error: { code: 'DB_ERROR', message: 'Could not update bookmark. Please try again.' },
+    }
+  }
+
+  if (existing) {
+    // Unsave
+    const { error: deleteError } = await supabase
+      .from('saved_resources')
+      .delete()
+      .eq('user_id', user.id)
+      .eq('resource_id', resourceId)
+
+    if (deleteError) {
+      console.error('[acad/actions] unsave error:', deleteError.message)
+      return {
+        ok: false,
+        error: { code: 'DB_ERROR', message: 'Could not remove bookmark.' },
+      }
+    }
+
+    revalidatePath('/acad')
+    return { ok: true, data: { saved: false } }
+  } else {
+    // Save
+    const { error: insertError } = await supabase
+      .from('saved_resources')
+      .insert({
+        user_id: user.id,
+        resource_id: resourceId,
+      })
+
+    if (insertError) {
+      console.error('[acad/actions] save error:', insertError.message)
+      return {
+        ok: false,
+        error: { code: 'DB_ERROR', message: 'Could not save bookmark.' },
+      }
+    }
+
+    revalidatePath('/acad')
+    return { ok: true, data: { saved: true } }
+  }
+}
+

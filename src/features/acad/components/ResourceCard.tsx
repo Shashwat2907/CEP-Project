@@ -1,8 +1,11 @@
+import Link from 'next/link'
+import { SaveBookmarkButton } from './SaveBookmarkButton'
 import type { Resource } from '../schema'
 
 interface ResourceCardProps {
   resource: Resource
   showStatus?: boolean
+  showBookmark?: boolean
   /** If provided, rendered inside the card as action buttons */
   actions?: React.ReactNode
 }
@@ -26,7 +29,12 @@ const TYPE_LABELS: Record<string, string> = {
   other:  'Other',
 }
 
-export function ResourceCard({ resource, showStatus = false, actions }: ResourceCardProps) {
+export function ResourceCard({
+  resource,
+  showStatus = false,
+  showBookmark = true,
+  actions,
+}: ResourceCardProps) {
   return (
     <article
       aria-label={`Resource: ${resource.title}`}
@@ -38,26 +46,50 @@ export function ResourceCard({ resource, showStatus = false, actions }: Resource
         flexDirection: 'column',
         gap: '0.5rem',
         background: 'var(--card)',
+        transition: 'border-color 0.15s ease',
       }}
     >
       {/* Header row */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.5rem' }}>
         <h3 style={{ fontSize: '1rem', fontWeight: 600, margin: 0 }}>
-          {resource.title}
+          {resource.status === 'approved' ? (
+            <Link
+              href={`/acad/${resource.id}`}
+              style={{
+                color: 'inherit',
+                textDecoration: 'none',
+              }}
+            >
+              {resource.title}
+            </Link>
+          ) : (
+            resource.title
+          )}
         </h3>
-        {showStatus && (
-          <span
-            style={{
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              color: STATUS_COLORS[resource.status] ?? 'inherit',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {STATUS_LABELS[resource.status] ?? resource.status}
-          </span>
-        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {showBookmark && resource.status === 'approved' && (
+            <SaveBookmarkButton
+              resourceId={resource.id}
+              initialSaved={resource.is_saved ?? false}
+            />
+          )}
+
+          {showStatus && (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                color: STATUS_COLORS[resource.status] ?? 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {STATUS_LABELS[resource.status] ?? resource.status}
+            </span>
+          )}
+        </div>
       </div>
+
 
       {/* Meta */}
       <div style={{ fontSize: '0.8rem', color: 'var(--muted-foreground)', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>

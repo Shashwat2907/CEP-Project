@@ -40,15 +40,45 @@ export async function getSubjects(opts?: {
 // Resources — student browse
 // ---------------------------------------------------------------------------
 
+/** Fetch the set of resource IDs saved by the current user. */
+export async function getSavedResourceIds(): Promise<string[]> {
+  try {
+    const { user } = await requireAuth()
+    const supabase = await createClient()
+
+    const { data, error } = await supabase
+      .from('saved_resources')
+      .select('resource_id')
+      .eq('user_id', user.id)
+
+    if (error) {
+      console.error('[acad/queries] getSavedResourceIds error:', error.message)
+      return []
+    }
+
+    return (data ?? []).map((row) => row.resource_id)
+  } catch {
+    return []
+  }
+}
+
 /**
  * Returns approved resources. Students see only approved resources.
  * Default view is pre-filtered to the student's own year and branch (PLAN.md §5.6).
+ * Annotates each resource with is_saved boolean.
  */
 export async function getApprovedResources(
   filter: ResourceFilterInput
 ): Promise<Resource[]> {
   await requireAuth()
   const supabase = await createClient()
+  const savedList = await getSavedResourceIds()
+  const savedIds = new Set(savedList)
+
+  // If filtered specifically by saved bookmarks and user has none, return empty list early
+  if (filter.saved && savedList.length === 0) {
+    return []
+  }
 
   let query = supabase
     .from('resources')
@@ -64,12 +94,9 @@ export async function getApprovedResources(
   if (filter.branch)     query = query.eq('branch', filter.branch)
   if (filter.subject_id) query = query.eq('subject_id', filter.subject_id)
   if (filter.type)       query = query.eq('type', filter.type)
-  if (filter.query) {
-    // Full-text search on title (see README §6)
-    query = query.textSearch('title', filter.query, {
-      type: 'websearch',
-      config: 'english',
-    })
+  if (filter.saved)      query = query.in('id', savedList)
+  if (filter.query && filter.query.trim().length > 0) {
+    query = query.ilike('title', `%${filter.query.trim()}%`)
   }
 
   const { data, error } = await query
@@ -77,8 +104,12 @@ export async function getApprovedResources(
     console.error('[acad/queries] getApprovedResources error:', error.message)
     return []
   }
-  return data as Resource[]
+  return (data as Resource[]).map((r) => ({
+    ...r,
+    is_saved: savedIds.has(r.id),
+  }))
 }
+
 
 /** Returns the student's own pending uploads (visible only to the uploader). */
 export async function getMyPendingUploads(): Promise<Resource[]> {
@@ -196,8 +227,15 @@ export async function getResourceWithSignedUrl(
     return null
   }
 
-  return { resource: resource as Resource, signedUrl: urlData.signedUrl }
+  const savedList = await getSavedResourceIds()
+  const isSaved = savedList.includes(resource.id)
+
+  return {
+    resource: { ...(resource as Resource), is_saved: isSaved },
+    signedUrl: urlData.signedUrl,
+  }
 }
+
 
 // ---------------------------------------------------------------------------
 // Helpers
