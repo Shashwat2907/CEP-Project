@@ -50,7 +50,11 @@ export const metadata: Metadata = {
   robots: { index: false }, // flip to true before public launch
 }
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html
       lang="en"
