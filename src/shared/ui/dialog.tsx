@@ -58,10 +58,9 @@ export function Dialog({
 
 export function DialogTrigger({
   children,
-  asChild,
   className,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { asChild?: boolean }) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement>) {
   const { onOpenChange } = useDialog()
   return (
     <button
