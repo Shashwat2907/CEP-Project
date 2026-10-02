@@ -115,51 +115,79 @@ export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeTogg
       })
   }
 
+  // Sidebar variant: sliding switch above the profile card
   if (variant === 'sidebar') {
     return (
       <button
         type="button"
+        role="switch"
+        aria-checked={theme === 'dark'}
         onClick={toggleTheme}
         className={cn(
-          'w-full flex items-center justify-between px-2.5 py-1.5 rounded-sm border border-border bg-surface hover:bg-surface-sunken text-small text-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink',
+          'w-full flex items-center justify-between px-2.5 py-1.5 rounded-sm border border-border bg-surface hover:bg-surface-sunken text-small text-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink group',
           className
         )}
         aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         title="Toggle dark / light appearance with circular ripple"
         {...props}
       >
-        <span className="flex items-center gap-2 text-ink font-medium">
+        <span className="flex items-center gap-2 font-medium">
           {theme === 'dark' ? (
-            <Sun size={18} strokeWidth={1.75} className="text-highlight" />
+            <Moon size={16} strokeWidth={1.75} className="text-highlight" />
           ) : (
-            <Moon size={18} strokeWidth={1.75} className="text-ink" />
+            <Sun size={16} strokeWidth={1.75} className="text-ink" />
           )}
-          <span>{theme === 'dark' ? 'Dark Mode' : 'Light Mode'}</span>
+          <span className="text-small text-ink">
+            {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
+          </span>
         </span>
-        <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-surface-sunken border border-border text-ink-muted">
-          {theme.toUpperCase()}
-        </span>
+
+        {/* Sliding Switch Track */}
+        <div className="relative w-10 h-5.5 rounded-full bg-surface-sunken border border-border flex items-center p-0.5 transition-colors">
+          <div
+            className={cn(
+              'w-4 h-4 rounded-full bg-surface border border-border shadow-xs flex items-center justify-center transition-transform duration-200 ease-out',
+              theme === 'dark' ? 'translate-x-4.5 bg-ink text-on-ink border-ink' : 'translate-x-0'
+            )}
+          >
+            {theme === 'dark' ? (
+              <span className="w-1.5 h-1.5 rounded-full bg-highlight" />
+            ) : (
+              <span className="w-1.5 h-1.5 rounded-full bg-ink" />
+            )}
+          </div>
+        </div>
       </button>
     )
   }
 
+  // Icon / compact variant: sliding toggle switch
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={theme === 'dark'}
       onClick={toggleTheme}
       className={cn(
-        'w-9 h-9 rounded-sm border border-border bg-surface text-ink-muted hover:text-ink hover:bg-surface-sunken flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-ink',
+        'relative inline-flex items-center w-12 h-7 rounded-full bg-surface-sunken border border-border p-0.5 transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink',
         className
       )}
       aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
       title={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
       {...props}
     >
-      {theme === 'dark' ? (
-        <Sun size={20} strokeWidth={1.75} className="text-highlight" />
-      ) : (
-        <Moon size={20} strokeWidth={1.75} className="text-ink" />
-      )}
+      <div
+        className={cn(
+          'w-5.5 h-5.5 rounded-full bg-surface border border-border shadow-xs flex items-center justify-center transition-transform duration-200 ease-out',
+          theme === 'dark' ? 'translate-x-5 bg-ink text-on-ink border-ink' : 'translate-x-0'
+        )}
+      >
+        {theme === 'dark' ? (
+          <Moon size={12} strokeWidth={2} className="text-highlight" />
+        ) : (
+          <Sun size={12} strokeWidth={2} className="text-ink" />
+        )}
+      </div>
     </button>
   )
 }

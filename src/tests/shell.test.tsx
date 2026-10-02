@@ -67,7 +67,7 @@ describe('App Shell — Sidebar & Role Navigation', () => {
     )
 
     // Theme toggle in sidebar mode exists
-    expect(screen.getByRole('button', { name: /Switch to dark mode/i })).toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: /Switch to dark mode/i })).toBeInTheDocument()
     expect(screen.getByText('Aarav Sharma')).toBeInTheDocument()
     expect(screen.getByText('23BCE1001')).toBeInTheDocument()
     expect(screen.getByText('AS')).toBeInTheDocument() // Initials
@@ -88,7 +88,7 @@ describe('App Shell — Signature Status Cluster & Pop-out ID Card (DESIGN.MD §
     const handleToggle = vi.fn()
     render(<StatusCluster presenceState="in" onPresenceToggle={handleToggle} />)
 
-    const pill = screen.getByRole('button', { name: /Campus presence: IN\. Click to toggle/i })
+    const pill = screen.getByRole('switch', { name: /Campus presence: IN\. Click to toggle/i })
     expect(pill).toBeInTheDocument()
 
     // Click directly flips presence to OUT
@@ -145,7 +145,7 @@ describe('App Shell — Theme Toggle', () => {
   it('toggles dark mode class on document root and persists in localStorage', () => {
     render(<ThemeToggle />)
 
-    const toggle = screen.getByRole('button', { name: /Switch to dark theme/i })
+    const toggle = screen.getByRole('switch', { name: /Switch to dark theme/i })
     expect(toggle).toBeInTheDocument()
 
     // Click to toggle to dark mode

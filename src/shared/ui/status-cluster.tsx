@@ -4,7 +4,6 @@ import * as React from 'react'
 import {
   Bell,
   CheckCircle,
-  AlertTriangle,
   CreditCard,
   ShieldCheck,
   Building2,
@@ -98,53 +97,57 @@ export function StatusCluster({
           </span>
         </button>
 
-        {/* 2. IN / OUT Pill: Simple Direct Toggle (DESIGN.MD §7 + User Instruction) */}
+        {/* 2. IN / OUT Sliding Pill: Simple Direct Toggle (DESIGN.MD §7 + User Instruction) */}
         <button
           type="button"
+          role="switch"
+          aria-checked={presence === 'in'}
           onClick={handleTogglePresence}
           className={cn(
-            'relative inline-flex items-center gap-1.5 px-3 py-1 bg-surface border border-border rounded-full text-meta font-medium shadow-none hover:border-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink'
+            'relative inline-flex items-center h-8 p-0.5 bg-surface-sunken border border-border rounded-full cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink transition-colors group'
           )}
           title={`Presence status: ${presence.toUpperCase()} (Click to toggle)`}
           aria-label={`Campus presence: ${presence.toUpperCase()}. Click to toggle`}
         >
-          {presence === 'checking' ? (
-            <span className="inline-flex items-center gap-1 text-ink-muted">
-              <span className="w-2 h-2 rounded-full bg-warning animate-ping" />
-              Checking...
-            </span>
-          ) : presence === 'denied' ? (
-            <span className="inline-flex items-center gap-1 text-danger">
-              <AlertTriangle size={14} strokeWidth={1.75} />
-              GPS off
-            </span>
-          ) : (
-            <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  'flex items-center gap-1.5 transition-all duration-150 ease-out',
-                  presence === 'in' ? 'text-in-campus font-semibold' : 'text-ink-muted opacity-60'
-                )}
-              >
-                {presence === 'in' && (
-                  <span className="w-2 h-2 rounded-full bg-in-campus animate-pulse" />
-                )}
-                <span>IN</span>
-              </div>
-              <span className="text-border">|</span>
-              <div
-                className={cn(
-                  'flex items-center gap-1.5 transition-all duration-150 ease-out',
-                  presence === 'out' ? 'text-ink font-semibold' : 'text-ink-muted opacity-60'
-                )}
-              >
-                {presence === 'out' && (
-                  <span className="w-2 h-2 rounded-full bg-out-campus" />
-                )}
-                <span>OUT</span>
-              </div>
-            </div>
-          )}
+          {/* Sliding active pill background thumb */}
+          <div
+            className={cn(
+              'absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-full bg-surface border border-border shadow-xs transition-transform duration-200 ease-out pointer-events-none',
+              presence === 'in' ? 'left-0.5 translate-x-0' : 'left-0.5 translate-x-full'
+            )}
+          />
+
+          {/* IN segment */}
+          <span
+            className={cn(
+              'relative z-10 flex items-center justify-center gap-1.5 px-2.5 min-w-[42px] h-full text-meta font-medium transition-colors duration-150',
+              presence === 'in' ? 'text-in-campus font-bold' : 'text-ink-muted group-hover:text-ink'
+            )}
+          >
+            <span
+              className={cn(
+                'w-2 h-2 rounded-full transition-opacity',
+                presence === 'in' ? 'bg-in-campus animate-pulse opacity-100' : 'opacity-0 w-0'
+              )}
+            />
+            <span>IN</span>
+          </span>
+
+          {/* OUT segment */}
+          <span
+            className={cn(
+              'relative z-10 flex items-center justify-center gap-1.5 px-2.5 min-w-[42px] h-full text-meta font-medium transition-colors duration-150',
+              presence === 'out' ? 'text-ink font-bold' : 'text-ink-muted group-hover:text-ink'
+            )}
+          >
+            <span
+              className={cn(
+                'w-2 h-2 rounded-full transition-opacity',
+                presence === 'out' ? 'bg-out-campus opacity-100' : 'opacity-0 w-0'
+              )}
+            />
+            <span>OUT</span>
+          </span>
         </button>
 
         {/* 3. Notification Bell (DESIGN.MD §6) */}
