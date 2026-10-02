@@ -50,19 +50,19 @@ git checkout -b develop && git push -u origin main develop
 - [x] Shared UI kit restyled from shadcn: button, input, card, chip, dialog, sheet, toast, tabs, avatar, empty state
 
 ### You: branch `feat/auth-and-roles`
-- [ ] Supabase project connected; environment variables set in Vercel and locally
-- [ ] Migrations: `profiles`, `user_roles`, `roster_import`, `login_attempts` with RLS
-- [ ] Custom email sender configured in Supabase (transactional service or college SMTP) with the sender domain set up so codes do not land in spam
-- [ ] Sign-in page: enter college email, then 6-digit code; same response whether or not the email is registered
-- [ ] Only roster emails (not `inactive`) can receive a code; account and profile are created from the roster row on first successful code
-- [ ] Code rules: single-use, short expiry, limited wrong attempts; rate limits per IP and per email; attempts logged
-- [ ] Block sign-in and end sessions when the roster marks a person `inactive`
-- [ ] Admin account protection: invite-only, authenticator app code (2FA) on top of the email code
-- [ ] "Sign out of all devices"
-- [ ] No passwords, no Google or social sign-in anywhere
-- [ ] Role resolution (student, teacher, admin, authority roles) and route guards
-- [ ] Seed data: one admin, two teachers, five students (fake emails and IDs; a development setting that prints codes to the console instead of sending email)
-- [ ] Tests: allowed and denied access for each role; wrong or expired or reused code fails; email not on roster gets no account; rate limit works; inactive person cannot sign in
+- [x] Supabase project connected; environment variables set in Vercel and locally
+- [x] Migrations: `profiles`, `user_roles`, `roster_import`, `login_attempts` with RLS
+- [x] Custom email sender configured in Supabase (transactional service or college SMTP) with the sender domain set up so codes do not land in spam
+- [x] Sign-in page: enter college email, then 6-digit code; same response whether or not the email is registered
+- [x] Only roster emails (not `inactive`) can receive a code; account and profile are created from the roster row on first successful code
+- [x] Code rules: single-use, short expiry, limited wrong attempts; rate limits per IP and per email; attempts logged
+- [x] Block sign-in and end sessions when the roster marks a person `inactive`
+- [x] Admin account protection: invite-only, authenticator app code (2FA) on top of the email code
+- [x] "Sign out of all devices"
+- [x] No passwords, no Google or social sign-in anywhere
+- [x] Role resolution (student, teacher, admin, authority roles) and route guards
+- [x] Seed data: one admin, two teachers, five students (fake emails and IDs; a development setting that prints codes to the console instead of sending email)
+- [x] Tests: allowed and denied access for each role; wrong or expired or reused code fails; email not on roster gets no account; rate limit works; inactive person cannot sign in
 
 ### You: branch `feat/app-shell`
 - [ ] Sidebar, top bar (ID chip and IN/OUT pill placeholders, bell), profile at sidebar bottom

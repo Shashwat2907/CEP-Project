@@ -1,24 +1,114 @@
--- Campus Super-App: seed data for development
--- Safe to run repeatedly (uses INSERT ... ON CONFLICT DO NOTHING)
--- NEVER run against production; production has real roster data.
+-- ==============================================================================
+-- Seed Data: Campus App Initial Development Seed
+-- Source of truth: documents/TEAM_TASKS.MD (feat/auth-and-roles)
+-- ==============================================================================
 
--- ============================================================
--- Seed users must be created through Supabase Auth in local dev.
--- Run: supabase auth user create --email admin@college.edu
--- Then copy the UUID here.
--- ============================================================
+-- 1. College Roster Seed
+-- 1 Admin, 2 Teachers, 5 Students (one inactive to test access blocking)
+INSERT INTO public.roster_import (
+  college_email,
+  college_id,
+  full_name,
+  branch,
+  year,
+  division,
+  batch,
+  role,
+  status
+) VALUES
+  -- Admin
+  (
+    'admin@campus.edu',
+    'ADM001',
+    'Campus Administrator',
+    'Administration',
+    NULL,
+    NULL,
+    NULL,
+    'admin',
+    'invited'
+  ),
 
--- Placeholder: profiles will be auto-created from roster on first OTP sign-in.
--- seed.sql is used for reference data only at this stage.
+  -- Teachers
+  (
+    'sharma@campus.edu',
+    'TCH101',
+    'Prof. Rajesh Sharma',
+    'Computer Science',
+    NULL,
+    NULL,
+    NULL,
+    'teacher',
+    'invited'
+  ),
+  (
+    'patel@campus.edu',
+    'TCH102',
+    'Dr. Priya Patel',
+    'Electronics & Comm',
+    NULL,
+    NULL,
+    NULL,
+    'teacher',
+    'invited'
+  ),
 
--- Example domain seeds (SEED VALUE: confirm routing chains with administration)
--- INSERT INTO complaint_domains (id, parent_id, name, visibility, routing_mode)
--- VALUES
---   ('00000000-0000-0000-0000-000000000001', NULL, 'Hostel',         'public',    'chain'),
---   ('00000000-0000-0000-0000-000000000002', NULL, 'Mess',           'public',    'chain'),
---   ('00000000-0000-0000-0000-000000000003', NULL, 'Infrastructure', 'public',    'chain'),
---   ('00000000-0000-0000-0000-000000000004', NULL, 'Academics',      'public',    'chain'),
---   ('00000000-0000-0000-0000-000000000005', NULL, 'Administration', 'public',    'chain'),
---   ('00000000-0000-0000-0000-000000000006', NULL, 'Ragging',        'sensitive', 'direct_committee'),
---   ('00000000-0000-0000-0000-000000000007', NULL, 'Harassment',     'sensitive', 'direct_committee')
--- ON CONFLICT DO NOTHING;
+  -- Students (Active)
+  (
+    'student1@campus.edu',
+    '23BCE1001',
+    'Aarav Mehta',
+    'Computer Science',
+    2,
+    'A',
+    'A1',
+    'student',
+    'invited'
+  ),
+  (
+    'student2@campus.edu',
+    '23BCE1002',
+    'Diya Sen',
+    'Computer Science',
+    2,
+    'A',
+    'A1',
+    'student',
+    'invited'
+  ),
+  (
+    'student3@campus.edu',
+    '23BCE1003',
+    'Rohan Gupta',
+    'Computer Science',
+    2,
+    'B',
+    'B2',
+    'student',
+    'invited'
+  ),
+  (
+    'student4@campus.edu',
+    '24BIT2001',
+    'Ananya Verma',
+    'Information Tech',
+    1,
+    'A',
+    'A1',
+    'student',
+    'invited'
+  ),
+
+  -- Student (Inactive - should be blocked from signing in)
+  (
+    'student5@campus.edu',
+    '22BCE0099',
+    'Vikram Rao',
+    'Computer Science',
+    3,
+    'C',
+    'C1',
+    'student',
+    'inactive'
+  )
+ON CONFLICT (college_email) DO NOTHING;
