@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { requireAuth } from '@/shared/auth/guards'
-import { getResourceWithSignedUrl } from '@/features/acad/queries'
+import { getResourceWithSignedUrl, getResourceChunkCount } from '@/features/acad/queries'
 import { ResourceDetailView } from '@/features/acad/components/ResourceDetailView'
 import type { Metadata } from 'next'
 
@@ -26,14 +26,23 @@ export default async function ResourceDetailPage({ params }: ResourceDetailPageP
   await requireAuth()
   const { id } = await params
 
-  const data = await getResourceWithSignedUrl(id)
+  const [data, chunkCount] = await Promise.all([
+    getResourceWithSignedUrl(id),
+    getResourceChunkCount(id),
+  ])
+
   if (!data || !data.resource) {
     notFound()
   }
 
   return (
     <main>
-      <ResourceDetailView resource={data.resource} signedUrl={data.signedUrl} />
+      <ResourceDetailView
+        resource={data.resource}
+        signedUrl={data.signedUrl}
+        chunkCount={chunkCount}
+      />
     </main>
   )
 }
+

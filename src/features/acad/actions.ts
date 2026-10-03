@@ -9,10 +9,16 @@ import {
   ApproveResourceSchema,
   RejectResourceSchema,
   ToggleSaveResourceSchema,
+  RetryProcessingSchema,
   type ActionResult,
+  type AiQuotaStatus,
 } from './schema'
 
 import { getMaxFileSizeMb } from './queries'
+import { extractText } from './lib/text-extractor'
+import { chunkPages, chunkText } from './lib/chunker'
+import { generateBatchEmbeddings } from './lib/gemini'
+
 
 /**
  * Server Actions for the Academic Resources feature.
@@ -180,6 +186,10 @@ export async function approveResource(
     supabase as unknown as Parameters<typeof notify>[1]
   )
 
+  // Kick off background processing for embeddings immediately upon approval
+  void processResourceEmbeddings(updatedResource.id).catch((err) => {
+    console.error('[acad/actions] Auto-processing failed for approved resource:', err)
+  })
 
   revalidatePath('/acad')
   revalidatePath('/teacher/acad')
@@ -407,4 +417,165 @@ export async function toggleSaveResource(
     return { ok: true, data: { saved: true } }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Resource Processing Pipeline & Embeddings (feat/acad-processing-pipeline)
+// ---------------------------------------------------------------------------
+
+/**
+ * Extracts text, chunks it, generates Gemini embeddings, and saves to resource_chunks.
+ * Updates resource.processing_status throughout the state machine.
+ */
+export async function processResourceEmbeddings(
+  resourceId: string
+): Promise<ActionResult<{ chunksCreated: number }>> {
+  const supabase = await createClient()
+
+  // Fetch resource to verify approval status and get storage path
+  const { data: resource, error: fetchError } = await supabase
+    .from('resources')
+    .select('id, title, storage_path, file_ext, status, processing_status')
+    .eq('id', resourceId)
+    .single()
+
+  if (fetchError || !resource) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Resource not found.' } }
+  }
+
+  if (resource.status !== 'approved') {
+    return {
+      ok: false,
+      error: { code: 'NOT_APPROVED', message: 'Only approved resources can be processed.' },
+    }
+  }
+
+  // Update status to processing
+  await supabase
+    .from('resources')
+    .update({ processing_status: 'processing' })
+    .eq('id', resourceId)
+
+  try {
+    // 1. Download file from Supabase Storage
+    const { data: fileData, error: downloadError } = await supabase.storage
+      .from('resources')
+      .download(resource.storage_path)
+
+    if (downloadError || !fileData) {
+      throw new Error(`Failed to download resource file: ${downloadError?.message ?? 'Empty file'}`)
+    }
+
+    // 2. Extract text
+    const buffer = await fileData.arrayBuffer()
+    const extracted = await extractText(buffer, resource.file_ext)
+
+    // 3. Chunk text into ~500 tokens with 50-token overlap
+    const chunks =
+      extracted.pages && extracted.pages.length > 0
+        ? chunkPages(extracted.pages)
+        : chunkText(extracted.text)
+
+    if (chunks.length === 0) {
+      throw new Error('No readable text chunks could be produced from document.')
+    }
+
+    // 4. Generate embeddings via Gemini API
+    const chunkContents = chunks.map((c) => c.content)
+    const embeddings = await generateBatchEmbeddings(chunkContents)
+
+    // 5. Clean up old chunks if retrying
+    await supabase.from('resource_chunks').delete().eq('resource_id', resourceId)
+
+    // 6. Insert new chunks
+    const chunkRows = chunks.map((c, i) => ({
+      resource_id: resourceId,
+      chunk_index: c.chunkIndex,
+      page_number: c.pageNumber,
+      content:     c.content,
+      token_count: c.tokenCount,
+      embedding:   embeddings[i] ? `[${embeddings[i].join(',')}]` : null,
+    }))
+
+    const { error: insertError } = await supabase
+      .from('resource_chunks')
+      .insert(chunkRows)
+
+    if (insertError) {
+      throw new Error(`Failed to save chunks: ${insertError.message}`)
+    }
+
+    // 7. Mark processing_status as ready
+    await supabase
+      .from('resources')
+      .update({ processing_status: 'ready' })
+      .eq('id', resourceId)
+
+    revalidatePath('/acad')
+    revalidatePath(`/acad/${resourceId}`)
+    revalidatePath('/teacher/acad')
+
+    return { ok: true, data: { chunksCreated: chunks.length } }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown processing error'
+    console.error('[acad/actions] processResourceEmbeddings failed:', message)
+
+    await supabase
+      .from('resources')
+      .update({ processing_status: 'failed' })
+      .eq('id', resourceId)
+
+    revalidatePath('/acad')
+    revalidatePath(`/acad/${resourceId}`)
+    revalidatePath('/teacher/acad')
+
+    return {
+      ok: false,
+      error: { code: 'PROCESSING_FAILED', message },
+    }
+  }
+}
+
+/**
+ * Retries failed resource processing.
+ */
+export async function retryResourceProcessing(
+  formData: FormData
+): Promise<ActionResult<{ chunksCreated: number }>> {
+  await requireAuth()
+
+  const parsed = RetryProcessingSchema.safeParse({
+    resource_id: formData.get('resource_id'),
+  })
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Invalid resource ID.' },
+    }
+  }
+
+  return processResourceEmbeddings(parsed.data.resource_id)
+}
+
+/**
+ * Checks and increments AI quota atomically for the authenticated user.
+ */
+export async function checkAndIncrementAiQuota(): Promise<ActionResult<AiQuotaStatus>> {
+  const { user } = await requireAuth()
+  const supabase = await createClient()
+
+  const { data, error } = await supabase.rpc('check_and_increment_ai_quota', {
+    p_user_id: user.id,
+  })
+
+  if (error || !data) {
+    console.error('[acad/actions] check_and_increment_ai_quota error:', error?.message)
+    return {
+      ok: false,
+      error: { code: 'QUOTA_ERROR', message: 'Could not check AI quota.' },
+    }
+  }
+
+  return { ok: true, data: data as AiQuotaStatus }
+}
+
 

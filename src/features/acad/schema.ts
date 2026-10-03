@@ -123,6 +123,49 @@ export type SavedResource = z.infer<typeof SavedResourceSchema>
 
 
 // ---------------------------------------------------------------------------
+// Resource Chunks & Processing
+// ---------------------------------------------------------------------------
+
+export const ResourceChunkSchema = z.object({
+  id:          z.string().uuid(),
+  resource_id: z.string().uuid(),
+  chunk_index: z.number().int().min(0),
+  page_number: z.number().int().positive().nullable().optional(),
+  content:     z.string().min(1),
+  token_count: z.number().int().min(0).default(0),
+  embedding:   z.array(z.number()).length(768).optional(),
+  created_at:  z.string().optional(),
+})
+export type ResourceChunk = z.infer<typeof ResourceChunkSchema>
+
+export const RetryProcessingSchema = z.object({
+  resource_id: z.string().uuid(),
+})
+export type RetryProcessingInput = z.infer<typeof RetryProcessingSchema>
+
+export const AiQuotaCheckSchema = z.object({
+  user_id: z.string().uuid(),
+})
+export type AiQuotaCheckInput = z.infer<typeof AiQuotaCheckSchema>
+
+export const AiUsageSchema = z.object({
+  id:         z.string().uuid().optional(),
+  user_id:    z.string().uuid(),
+  usage_date: z.string(),
+  call_count: z.number().int().min(0),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+})
+export type AiUsage = z.infer<typeof AiUsageSchema>
+
+export interface AiQuotaStatus {
+  allowed:    boolean
+  call_count: number
+  limit:      number
+  remaining:  number
+}
+
+// ---------------------------------------------------------------------------
 // Server action response shape (CONTRACT.md §5.5)
 // ---------------------------------------------------------------------------
 
@@ -135,3 +178,4 @@ export type ActionError = {
 }
 
 export type ActionResult<T = undefined> = ActionOk<T> | ActionError
+
