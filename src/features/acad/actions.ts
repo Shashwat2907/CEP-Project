@@ -10,14 +10,20 @@ import {
   RejectResourceSchema,
   ToggleSaveResourceSchema,
   RetryProcessingSchema,
+  GenerateFlashcardsSchema,
+  RateFlashcardSchema,
+  EditFlashcardSchema,
+  DeleteFlashcardSchema,
   type ActionResult,
   type AiQuotaStatus,
 } from './schema'
 
-import { getMaxFileSizeMb } from './queries'
+import { getMaxFileSizeMb, getResourceChunks } from './queries'
 import { extractText } from './lib/text-extractor'
 import { chunkPages, chunkText } from './lib/chunker'
 import { generateBatchEmbeddings } from './lib/gemini'
+import { calculateSm2 } from './lib/sm2'
+import { generateFlashcardsWithGemini } from './lib/flashcard-gen'
 
 
 /**
@@ -577,5 +583,376 @@ export async function checkAndIncrementAiQuota(): Promise<ActionResult<AiQuotaSt
 
   return { ok: true, data: data as AiQuotaStatus }
 }
+
+// ---------------------------------------------------------------------------
+// Flashcard Decks & Spaced Repetition Actions (feat/flashcards)
+// ---------------------------------------------------------------------------
+
+/**
+ * Generates or regenerates an AI flashcard deck for a resource using Gemini.
+ * Enforces per-user daily AI quota and chunk citations.
+ */
+export async function generateFlashcardsDeck(
+  formData: FormData
+): Promise<ActionResult<{ deckId: string; cardCount: number }>> {
+  const { user } = await requireAuth()
+
+  const parsed = GenerateFlashcardsSchema.safeParse({
+    resource_id: formData.get('resource_id'),
+  })
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Invalid resource ID.' },
+    }
+  }
+
+  const supabase = await createClient()
+
+  // 1. Fetch resource and verify it is approved
+  const { data: resource, error: fetchError } = await supabase
+    .from('resources')
+    .select('id, title, status, processing_status')
+    .eq('id', parsed.data.resource_id)
+    .single()
+
+  if (fetchError || !resource) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Resource not found.' } }
+  }
+
+  if (resource.status !== 'approved') {
+    return {
+      ok: false,
+      error: { code: 'NOT_APPROVED', message: 'Flashcards can only be generated from approved resources.' },
+    }
+  }
+
+  // 2. Check and increment AI quota
+  const quotaRes = await checkAndIncrementAiQuota()
+  if (!quotaRes.ok) {
+    return quotaRes
+  }
+  if (!quotaRes.data.allowed) {
+    return {
+      ok: false,
+      error: {
+        code: 'QUOTA_EXCEEDED',
+        message: "You've used your AI quota for today. Try again tomorrow.",
+      },
+    }
+  }
+
+  // 3. Ensure chunks exist; if not ready, attempt pipeline run
+  let chunks = await getResourceChunks(resource.id)
+  if (chunks.length === 0) {
+    const processRes = await processResourceEmbeddings(resource.id)
+    if (!processRes.ok) {
+      return {
+        ok: false,
+        error: {
+          code: 'PROCESSING_ERROR',
+          message: 'Unable to process document for flashcards. Please try again.',
+        },
+      }
+    }
+    chunks = await getResourceChunks(resource.id)
+  }
+
+  if (chunks.length === 0) {
+    return {
+      ok: false,
+      error: {
+        code: 'NO_CHUNKS',
+        message: 'No readable text chunks found in this document.',
+      },
+    }
+  }
+
+  try {
+    // 4. Generate cards grounded in chunks with Gemini
+    const generated = await generateFlashcardsWithGemini(resource.title, chunks)
+    if (generated.length === 0) {
+      return {
+        ok: false,
+        error: { code: 'GEN_FAILED', message: 'Could not generate cards from this resource.' },
+      }
+    }
+
+    // 5. Look for existing deck for (resource_id, owner_id)
+    const { data: existingDeck } = await supabase
+      .from('flashcard_decks')
+      .select('id')
+      .eq('resource_id', resource.id)
+      .eq('owner_id', user.id)
+      .maybeSingle()
+
+    let deckId: string
+
+    if (existingDeck) {
+      deckId = existingDeck.id
+      // Clean up previous cards (cascade cleans reviews)
+      await supabase.from('flashcards').delete().eq('deck_id', deckId)
+      await supabase
+        .from('flashcard_decks')
+        .update({
+          title: `${resource.title} Deck`,
+          card_count: generated.length,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', deckId)
+    } else {
+      const { data: newDeck, error: deckErr } = await supabase
+        .from('flashcard_decks')
+        .insert({
+          resource_id: resource.id,
+          owner_id: user.id,
+          title: `${resource.title} Deck`,
+          card_count: generated.length,
+        })
+        .select('id')
+        .single()
+
+      if (deckErr || !newDeck) {
+        throw new Error(deckErr?.message ?? 'Failed to create flashcard deck.')
+      }
+      deckId = newDeck.id
+    }
+
+    // 6. Insert new flashcards
+    const cardRows = generated.map((c, i) => ({
+      deck_id:     deckId,
+      position:    i,
+      front:       c.front,
+      back:        c.back,
+      source_page: c.source_page,
+      chunk_id:    c.chunk_id,
+    }))
+
+    const { data: insertedCards, error: cardsErr } = await supabase
+      .from('flashcards')
+      .insert(cardRows)
+      .select('id')
+
+    if (cardsErr || !insertedCards) {
+      throw new Error(cardsErr?.message ?? 'Failed to save flashcards.')
+    }
+
+    // 7. Initialize reviews for each card with standard SM-2 defaults
+    const reviewRows = insertedCards.map((card) => ({
+      card_id:     card.id,
+      user_id:     user.id,
+      due_at:      new Date().toISOString(),
+      interval:    1,
+      ease:        2.5,
+      repetitions: 0,
+    }))
+
+    const { error: reviewErr } = await supabase
+      .from('flashcard_reviews')
+      .insert(reviewRows)
+
+    if (reviewErr) {
+      console.warn('[acad/actions] Failed to initialize reviews:', reviewErr.message)
+    }
+
+    revalidatePath(`/acad/${resource.id}`)
+    revalidatePath(`/acad/${resource.id}/flashcards`)
+    revalidatePath('/acad')
+
+    return { ok: true, data: { deckId, cardCount: generated.length } }
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Unknown generation error'
+    console.error('[acad/actions] generateFlashcardsDeck error:', message)
+    return {
+      ok: false,
+      error: { code: 'GENERATION_ERROR', message },
+    }
+  }
+}
+
+/**
+ * Rates a card review using the SM-2 algorithm.
+ */
+export async function rateFlashcardReview(
+  formData: FormData
+): Promise<ActionResult<{ interval: number; ease: number; repetitions: number; nextDueAt: string }>> {
+  const { user } = await requireAuth()
+
+  const parsed = RateFlashcardSchema.safeParse({
+    card_id: formData.get('card_id'),
+    quality: Number(formData.get('quality')),
+  })
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message ?? 'Invalid rating.' },
+    }
+  }
+
+  const supabase = await createClient()
+
+  // Fetch current review if exists
+  const { data: existing } = await supabase
+    .from('flashcard_reviews')
+    .select('interval, ease, repetitions')
+    .eq('card_id', parsed.data.card_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  const sm2Result = calculateSm2({
+    quality:            parsed.data.quality,
+    currentInterval:    existing?.interval ?? 1,
+    currentEase:        existing?.ease ? Number(existing.ease) : 2.5,
+    currentRepetitions: existing?.repetitions ?? 0,
+  })
+
+  const { error: upsertError } = await supabase
+    .from('flashcard_reviews')
+    .upsert(
+      {
+        card_id:      parsed.data.card_id,
+        user_id:      user.id,
+        interval:     sm2Result.interval,
+        ease:         sm2Result.ease,
+        repetitions:  sm2Result.repetitions,
+        last_quality: parsed.data.quality,
+        due_at:       sm2Result.dueAt.toISOString(),
+        reviewed_at:  new Date().toISOString(),
+      },
+      { onConflict: 'card_id,user_id' }
+    )
+
+  if (upsertError) {
+    console.error('[acad/actions] rateFlashcardReview error:', upsertError.message)
+    return {
+      ok: false,
+      error: { code: 'DB_ERROR', message: 'Could not record card review.' },
+    }
+  }
+
+  return {
+    ok: true,
+    data: {
+      interval:    sm2Result.interval,
+      ease:        sm2Result.ease,
+      repetitions: sm2Result.repetitions,
+      nextDueAt:   sm2Result.dueAt.toISOString(),
+    },
+  }
+}
+
+/**
+ * Edits the front / back content of a card.
+ */
+export async function updateFlashcard(
+  formData: FormData
+): Promise<ActionResult> {
+  const { user } = await requireAuth()
+
+  const parsed = EditFlashcardSchema.safeParse({
+    card_id: formData.get('card_id'),
+    front:   formData.get('front'),
+    back:    formData.get('back'),
+  })
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: { code: 'VALIDATION_ERROR', message: parsed.error.errors[0]?.message ?? 'Invalid input.' },
+    }
+  }
+
+  const supabase = await createClient()
+
+  // Verify ownership via parent deck
+  const { data: card, error: cardError } = await supabase
+    .from('flashcards')
+    .select('id, deck_id, deck:flashcard_decks!inner(owner_id)')
+    .eq('id', parsed.data.card_id)
+    .single()
+
+  if (cardError || !card) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Flashcard not found.' } }
+  }
+
+  const deckOwner = (card.deck as unknown as { owner_id: string })?.owner_id
+  if (deckOwner !== user.id) {
+    return { ok: false, error: { code: 'FORBIDDEN', message: 'You can only edit cards in your own deck.' } }
+  }
+
+  const { error: updateError } = await supabase
+    .from('flashcards')
+    .update({
+      front: parsed.data.front,
+      back:  parsed.data.back,
+    })
+    .eq('id', parsed.data.card_id)
+
+  if (updateError) {
+    return { ok: false, error: { code: 'DB_ERROR', message: 'Failed to update flashcard.' } }
+  }
+
+  return { ok: true }
+}
+
+/**
+ * Deletes a flashcard from the deck.
+ */
+export async function deleteFlashcard(
+  formData: FormData
+): Promise<ActionResult> {
+  const { user } = await requireAuth()
+
+  const parsed = DeleteFlashcardSchema.safeParse({
+    card_id: formData.get('card_id'),
+  })
+
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Invalid card ID.' },
+    }
+  }
+
+  const supabase = await createClient()
+
+  // Check card & deck ownership
+  const { data: card, error: cardError } = await supabase
+    .from('flashcards')
+    .select('id, deck_id, deck:flashcard_decks!inner(id, owner_id, card_count)')
+    .eq('id', parsed.data.card_id)
+    .single()
+
+  if (cardError || !card) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Flashcard not found.' } }
+  }
+
+  const deck = card.deck as unknown as { id: string; owner_id: string; card_count: number }
+  if (deck?.owner_id !== user.id) {
+    return { ok: false, error: { code: 'FORBIDDEN', message: 'You can only delete cards in your own deck.' } }
+  }
+
+  // Delete card
+  const { error: delError } = await supabase
+    .from('flashcards')
+    .delete()
+    .eq('id', parsed.data.card_id)
+
+  if (delError) {
+    return { ok: false, error: { code: 'DB_ERROR', message: 'Failed to delete card.' } }
+  }
+
+  // Decrement card count on deck
+  await supabase
+    .from('flashcard_decks')
+    .update({
+      card_count: Math.max(0, (deck.card_count || 1) - 1),
+    })
+    .eq('id', deck.id)
+
+  return { ok: true }
+}
+
 
 

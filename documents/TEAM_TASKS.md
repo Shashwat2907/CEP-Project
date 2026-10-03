@@ -242,10 +242,10 @@ Kedar: `docs/acad-and-community-spec`
 
 
 ### `feat/flashcards`
-- [ ] Migrations: `flashcard_decks`, `flashcards`, `flashcard_reviews`
-- [ ] Generate a deck from a selected resource with Gemini, grounded in chunks, each card linked to its source page
-- [ ] Study view with flip and rating; simple spaced repetition scheduling
-- [ ] Edit, delete and regenerate cards; daily limit respected
+- [x] Migrations: `flashcard_decks`, `flashcards`, `flashcard_reviews`
+- [x] Generate a deck from a selected resource with Gemini, grounded in chunks, each card linked to its source page
+- [x] Study view with flip and rating; simple spaced repetition scheduling
+- [x] Edit, delete and regenerate cards; daily limit respected
 
 ### `feat/doubt-chat`
 - [ ] Retrieval-augmented chat scoped to one resource or one subject

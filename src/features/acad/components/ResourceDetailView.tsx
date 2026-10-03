@@ -6,7 +6,6 @@ import {
   Calendar,
   User,
   GraduationCap,
-  Sparkles,
   Bot,
   AlertCircle,
   CheckCircle2,
@@ -14,12 +13,16 @@ import {
 } from 'lucide-react'
 import { SaveBookmarkButton } from './SaveBookmarkButton'
 import { ProcessingStatusBadge } from './ProcessingStatusBadge'
+import { FlashcardDeckButton } from './FlashcardDeckButton'
 import type { Resource } from '../schema'
 
 interface ResourceDetailViewProps {
   resource: Resource
   signedUrl: string
   chunkCount?: number
+  hasDeck?: boolean
+  cardCount?: number
+  dueCount?: number
 }
 
 
@@ -60,6 +63,9 @@ export function ResourceDetailView({
   resource,
   signedUrl,
   chunkCount,
+  hasDeck = false,
+  cardCount = 0,
+  dueCount = 0,
 }: ResourceDetailViewProps) {
   const statusInfo =
     PROCESSING_STATUS_INFO[resource.processing_status] ?? PROCESSING_STATUS_INFO.not_started
@@ -269,20 +275,13 @@ export function ResourceDetailView({
             paddingTop: '1rem',
           }}
         >
-          <div
-            style={{
-              padding: '0.75rem',
-              borderRadius: '0.5rem',
-              border: '1px dashed var(--border)',
-              textAlign: 'center',
-              color: 'var(--muted-foreground)',
-              fontSize: '0.8125rem',
-            }}
-          >
-            <Sparkles size={16} style={{ marginBottom: '0.25rem', margin: '0 auto' }} />
-            <div>Generate Flashcards</div>
-            <div style={{ fontSize: '0.7rem' }}>Available in Phase 2</div>
-          </div>
+          <FlashcardDeckButton
+            resourceId={resource.id}
+            hasDeck={hasDeck}
+            cardCount={cardCount}
+            dueCount={dueCount}
+            processingStatus={resource.processing_status}
+          />
 
           <div
             style={{

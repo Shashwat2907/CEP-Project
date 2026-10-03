@@ -1,6 +1,10 @@
 import { notFound } from 'next/navigation'
 import { requireAuth } from '@/shared/auth/guards'
-import { getResourceWithSignedUrl, getResourceChunkCount } from '@/features/acad/queries'
+import {
+  getResourceWithSignedUrl,
+  getResourceChunkCount,
+  getDeckDueStatus,
+} from '@/features/acad/queries'
 import { ResourceDetailView } from '@/features/acad/components/ResourceDetailView'
 import type { Metadata } from 'next'
 
@@ -26,9 +30,10 @@ export default async function ResourceDetailPage({ params }: ResourceDetailPageP
   await requireAuth()
   const { id } = await params
 
-  const [data, chunkCount] = await Promise.all([
+  const [data, chunkCount, deckStatus] = await Promise.all([
     getResourceWithSignedUrl(id),
     getResourceChunkCount(id),
+    getDeckDueStatus(id),
   ])
 
   if (!data || !data.resource) {
@@ -41,6 +46,9 @@ export default async function ResourceDetailPage({ params }: ResourceDetailPageP
         resource={data.resource}
         signedUrl={data.signedUrl}
         chunkCount={chunkCount}
+        hasDeck={deckStatus.hasDeck}
+        cardCount={deckStatus.totalCards}
+        dueCount={deckStatus.dueCards}
       />
     </main>
   )

@@ -2,7 +2,16 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth, requireRole } from '@/shared/auth/guards'
-import type { ResourceFilterInput, Subject, Resource, ResourceChunk, AiQuotaStatus } from './schema'
+import type {
+  ResourceFilterInput,
+  Subject,
+  Resource,
+  ResourceChunk,
+  AiQuotaStatus,
+  FlashcardDeck,
+  FlashcardWithReview,
+  FlashcardReview,
+} from './schema'
 
 /**
  * Read-side data fetching for the Academic Resources feature.
@@ -325,4 +334,103 @@ export async function getResourceChunkCount(resourceId: string): Promise<number>
   }
   return count ?? 0
 }
+
+// ---------------------------------------------------------------------------
+// Flashcards (feat/flashcards)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches the flashcard deck owned by current user for a resource.
+ * Includes cards and their SM-2 review progress.
+ */
+export async function getFlashcardDeck(
+  resourceId: string
+): Promise<{ deck: FlashcardDeck | null; cards: FlashcardWithReview[] }> {
+  const { user } = await requireAuth()
+  const supabase = await createClient()
+
+  // 1. Fetch deck
+  const { data: deck, error: deckError } = await supabase
+    .from('flashcard_decks')
+    .select('*')
+    .eq('resource_id', resourceId)
+    .eq('owner_id', user.id)
+    .maybeSingle()
+
+  if (deckError || !deck) {
+    if (deckError) console.error('[acad/queries] getFlashcardDeck error:', deckError.message)
+    return { deck: null, cards: [] }
+  }
+
+  // 2. Fetch cards in deck
+  const { data: cards, error: cardsError } = await supabase
+    .from('flashcards')
+    .select('*')
+    .eq('deck_id', deck.id)
+    .order('position', { ascending: true })
+
+  if (cardsError || !cards) {
+    console.error('[acad/queries] getFlashcards error:', cardsError?.message)
+    return { deck: deck as FlashcardDeck, cards: [] }
+  }
+
+  // 3. Fetch reviews for these cards
+  const cardIds = cards.map((c) => c.id)
+  let reviewsMap = new Map<string, FlashcardReview>()
+
+  if (cardIds.length > 0) {
+    const { data: reviews } = await supabase
+      .from('flashcard_reviews')
+      .select('*')
+      .in('card_id', cardIds)
+      .eq('user_id', user.id)
+
+    if (reviews) {
+      reviewsMap = new Map(reviews.map((r) => [r.card_id, r]))
+    }
+  }
+
+  const cardsWithReviews: FlashcardWithReview[] = cards.map((c) => ({
+    ...c,
+    review: reviewsMap.get(c.id) ?? null,
+  }))
+
+  return {
+    deck: deck as FlashcardDeck,
+    cards: cardsWithReviews,
+  }
+}
+
+/**
+ * Returns review and due summary for a resource's deck.
+ */
+export async function getDeckDueStatus(resourceId: string): Promise<{
+  hasDeck: boolean
+  totalCards: number
+  dueCards: number
+  deckId: string | null
+}> {
+  try {
+    const { deck, cards } = await getFlashcardDeck(resourceId)
+    if (!deck) {
+      return { hasDeck: false, totalCards: 0, dueCards: 0, deckId: null }
+    }
+
+    const now = new Date()
+    const dueCards = cards.filter((c) => {
+      if (!c.review || !c.review.due_at) return true
+      return new Date(c.review.due_at) <= now
+    }).length
+
+    return {
+      hasDeck: true,
+      totalCards: cards.length,
+      dueCards,
+      deckId: deck.id,
+    }
+  } catch {
+    return { hasDeck: false, totalCards: 0, dueCards: 0, deckId: null }
+  }
+}
+
 

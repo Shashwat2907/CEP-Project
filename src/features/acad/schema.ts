@@ -166,6 +166,76 @@ export interface AiQuotaStatus {
 }
 
 // ---------------------------------------------------------------------------
+// Flashcards & Spaced Repetition (feat/flashcards)
+// ---------------------------------------------------------------------------
+
+export const FlashcardSchema = z.object({
+  id:          z.string().uuid(),
+  deck_id:     z.string().uuid(),
+  position:    z.number().int().min(0),
+  front:       z.string().min(1, 'Question cannot be empty'),
+  back:        z.string().min(1, 'Answer cannot be empty'),
+  source_page: z.number().int().positive().nullable().optional(),
+  chunk_id:    z.string().uuid().nullable().optional(),
+  created_at:  z.string().optional(),
+})
+export type Flashcard = z.infer<typeof FlashcardSchema>
+
+export const FlashcardReviewSchema = z.object({
+  id:           z.string().uuid().optional(),
+  card_id:      z.string().uuid(),
+  user_id:      z.string().uuid(),
+  due_at:       z.string(),
+  interval:     z.number().int().min(1),
+  ease:         z.number().min(1.3),
+  repetitions:  z.number().int().min(0),
+  last_quality: z.number().int().min(0).max(5).nullable().optional(),
+  reviewed_at:  z.string().nullable().optional(),
+  created_at:   z.string().optional(),
+  updated_at:   z.string().optional(),
+})
+export type FlashcardReview = z.infer<typeof FlashcardReviewSchema>
+
+export interface FlashcardWithReview extends Flashcard {
+  review?: FlashcardReview | null
+}
+
+export const FlashcardDeckSchema = z.object({
+  id:          z.string().uuid(),
+  resource_id: z.string().uuid(),
+  owner_id:    z.string().uuid(),
+  title:       z.string().min(1),
+  card_count:  z.number().int().min(0),
+  created_at:  z.string().optional(),
+  updated_at:  z.string().optional(),
+  cards:       z.array(FlashcardSchema).optional(),
+})
+export type FlashcardDeck = z.infer<typeof FlashcardDeckSchema>
+
+export const GenerateFlashcardsSchema = z.object({
+  resource_id: z.string().uuid(),
+})
+export type GenerateFlashcardsInput = z.infer<typeof GenerateFlashcardsSchema>
+
+export const RateFlashcardSchema = z.object({
+  card_id: z.string().uuid(),
+  quality: z.number().int().min(0).max(5),
+})
+export type RateFlashcardInput = z.infer<typeof RateFlashcardSchema>
+
+export const EditFlashcardSchema = z.object({
+  card_id: z.string().uuid(),
+  front:   z.string().min(1, 'Front cannot be empty').max(1000).trim(),
+  back:    z.string().min(1, 'Back cannot be empty').max(2000).trim(),
+})
+export type EditFlashcardInput = z.infer<typeof EditFlashcardSchema>
+
+export const DeleteFlashcardSchema = z.object({
+  card_id: z.string().uuid(),
+})
+export type DeleteFlashcardInput = z.infer<typeof DeleteFlashcardSchema>
+
+// ---------------------------------------------------------------------------
 // Server action response shape (CONTRACT.md §5.5)
 // ---------------------------------------------------------------------------
 
@@ -178,4 +248,5 @@ export type ActionError = {
 }
 
 export type ActionResult<T = undefined> = ActionOk<T> | ActionError
+
 
