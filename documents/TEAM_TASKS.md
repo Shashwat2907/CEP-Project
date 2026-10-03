@@ -230,15 +230,16 @@ Kedar: `docs/acad-and-community-spec`
 - [ ] Signed URL download and view
 
 ### `feat/acad-browse-and-filter`
-- [ ] Resource list defaulting to the student's own year and branch
-- [ ] Filters: year, branch, subject, type; search by title and subject
-- [ ] Resource detail page; saved or bookmarked resources
-- [ ] Empty and loading states, mobile layout
+- [x] Resource list defaulting to the student's own year and branch
+- [x] Filters: year, branch, subject, type; search by title and subject
+- [x] Resource detail page; saved or bookmarked resources
+- [x] Empty and loading states, mobile layout
 
 ### `feat/acad-processing-pipeline`
-- [ ] Edge Function: on approved upload, extract text, chunk, create embeddings in `pgvector`
-- [ ] Table `resource_chunks`; status shown on the resource (processing, ready, failed) with retry
-- [ ] Usage table `ai_usage` and per-user daily limit helper
+- [x] Text extraction, chunking, and Gemini embeddings in `pgvector`
+- [x] Table `resource_chunks`; status shown on the resource (processing, ready, failed) with retry
+- [x] Usage table `ai_usage` and per-user daily limit helper
+
 
 ### `feat/flashcards`
 - [ ] Migrations: `flashcard_decks`, `flashcards`, `flashcard_reviews`

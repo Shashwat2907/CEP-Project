@@ -13,12 +13,15 @@ import {
   Clock,
 } from 'lucide-react'
 import { SaveBookmarkButton } from './SaveBookmarkButton'
+import { ProcessingStatusBadge } from './ProcessingStatusBadge'
 import type { Resource } from '../schema'
 
 interface ResourceDetailViewProps {
   resource: Resource
   signedUrl: string
+  chunkCount?: number
 }
+
 
 const TYPE_LABELS: Record<string, string> = {
   notes:  'Notes',
@@ -53,7 +56,11 @@ const PROCESSING_STATUS_INFO: Record<
   },
 }
 
-export function ResourceDetailView({ resource, signedUrl }: ResourceDetailViewProps) {
+export function ResourceDetailView({
+  resource,
+  signedUrl,
+  chunkCount,
+}: ResourceDetailViewProps) {
   const statusInfo =
     PROCESSING_STATUS_INFO[resource.processing_status] ?? PROCESSING_STATUS_INFO.not_started
   const StatusIcon = statusInfo.icon
@@ -196,6 +203,7 @@ export function ResourceDetailView({ resource, signedUrl }: ResourceDetailViewPr
           style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'space-between',
             gap: '0.625rem',
             padding: '0.75rem 1rem',
             borderRadius: '0.5rem',
@@ -204,13 +212,19 @@ export function ResourceDetailView({ resource, signedUrl }: ResourceDetailViewPr
             fontSize: '0.8125rem',
           }}
         >
-          <StatusIcon size={16} color={statusInfo.color} />
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <StatusIcon size={16} color={statusInfo.color} />
             <span style={{ fontWeight: 600, color: statusInfo.color }}>
               {statusInfo.label}
             </span>
           </div>
+          <ProcessingStatusBadge
+            status={resource.processing_status}
+            resourceId={resource.id}
+            chunkCount={chunkCount}
+          />
         </div>
+
 
         {/* Primary Download Button */}
         <div>

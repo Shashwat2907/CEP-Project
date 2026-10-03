@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { SaveBookmarkButton } from './SaveBookmarkButton'
+import { ProcessingStatusBadge } from './ProcessingStatusBadge'
 import type { Resource } from '../schema'
 
 interface ResourceCardProps {
@@ -116,11 +117,15 @@ export function ResourceCard({
       )}
 
       {/* Processing status (for AI features — shown after approval) */}
-      {resource.status === 'approved' && resource.processing_status === 'failed' && (
-        <p style={{ fontSize: '0.8rem', color: 'var(--destructive)', margin: 0 }}>
-          Processing failed — contact admin to retry.
-        </p>
+      {resource.status === 'approved' && resource.processing_status !== 'not_started' && (
+        <div style={{ marginTop: '0.25rem' }}>
+          <ProcessingStatusBadge
+            status={resource.processing_status}
+            resourceId={resource.id}
+          />
+        </div>
       )}
+
 
       {/* Action slot */}
       {actions && <div style={{ marginTop: '0.5rem' }}>{actions}</div>}

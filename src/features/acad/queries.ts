@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth, requireRole } from '@/shared/auth/guards'
-import type { ResourceFilterInput, Subject, Resource } from './schema'
+import type { ResourceFilterInput, Subject, Resource, ResourceChunk, AiQuotaStatus } from './schema'
 
 /**
  * Read-side data fetching for the Academic Resources feature.
@@ -238,7 +238,7 @@ export async function getResourceWithSignedUrl(
 
 
 // ---------------------------------------------------------------------------
-// Helpers
+// Helpers & AI Quota
 // ---------------------------------------------------------------------------
 
 /** Fetch configurable max file size from app_config (returns number in MB). */
@@ -251,3 +251,78 @@ export async function getMaxFileSizeMb(): Promise<number> {
     .single()
   return data?.value ? parseInt(data.value, 10) : 50
 }
+
+/** Fetch configurable daily AI limit per user from app_config. */
+export async function getAiDailyLimit(): Promise<number> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('app_config')
+    .select('value')
+    .eq('key', 'ai_daily_limit_per_user')
+    .single()
+  return data?.value ? parseInt(data.value, 10) : 20
+}
+
+/** Fetch current user's AI quota status for today. */
+export async function getUserAiUsage(): Promise<AiQuotaStatus> {
+  const { user } = await requireAuth()
+  const supabase = await createClient()
+  const limit = await getAiDailyLimit()
+
+  const today = new Date().toISOString().split('T')[0]
+  const { data, error } = await supabase
+    .from('ai_usage')
+    .select('call_count')
+    .eq('user_id', user.id)
+    .eq('usage_date', today)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[acad/queries] getUserAiUsage error:', error.message)
+  }
+
+  const callCount = data?.call_count ?? 0
+  return {
+    allowed: callCount < limit,
+    call_count: callCount,
+    limit,
+    remaining: Math.max(0, limit - callCount),
+  }
+}
+
+/** Fetch chunks for an approved resource. */
+export async function getResourceChunks(resourceId: string): Promise<ResourceChunk[]> {
+
+  await requireAuth()
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('resource_chunks')
+    .select('id, resource_id, chunk_index, page_number, content, token_count, created_at')
+    .eq('resource_id', resourceId)
+    .order('chunk_index', { ascending: true })
+
+  if (error) {
+    console.error('[acad/queries] getResourceChunks error:', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+/** Fetch chunk count for a resource. */
+export async function getResourceChunkCount(resourceId: string): Promise<number> {
+  await requireAuth()
+  const supabase = await createClient()
+
+  const { count, error } = await supabase
+    .from('resource_chunks')
+    .select('*', { count: 'exact', head: true })
+    .eq('resource_id', resourceId)
+
+  if (error) {
+    console.error('[acad/queries] getResourceChunkCount error:', error.message)
+    return 0
+  }
+  return count ?? 0
+}
+
