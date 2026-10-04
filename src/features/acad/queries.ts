@@ -541,35 +541,41 @@ export async function getDeckDueStatus(resourceId: string): Promise<{
 export async function getDoubtThread(
   threadId: string
 ): Promise<{ thread: DoubtThread | null; messages: DoubtMessage[] }> {
-  try {
-    const { user } = await requireAuth()
-    const supabase = await createClient()
+  if (await isSupabaseOnline()) {
+    try {
+      const { user } = await requireAuth()
+      const supabase = await createClient()
 
-    const { data: thread, error: threadError } = await supabase
-      .from('doubt_threads')
-      .select('*')
-      .eq('id', threadId)
-      .single()
-
-    if (!threadError && thread && thread.user_id === user.id) {
-      const { data: messages } = await supabase
-        .from('doubt_messages')
+      const { data: thread, error: threadError } = await supabase
+        .from('doubt_threads')
         .select('*')
-        .eq('thread_id', threadId)
-        .order('created_at', { ascending: true })
+        .eq('id', threadId)
+        .single()
 
-      return {
-        thread: thread as DoubtThread,
-        messages: (messages || []) as DoubtMessage[],
+      if (!threadError && thread && thread.user_id === user.id) {
+        const { data: messages } = await supabase
+          .from('doubt_messages')
+          .select('*')
+          .eq('thread_id', threadId)
+          .order('created_at', { ascending: true })
+
+        return {
+          thread: thread as DoubtThread,
+          messages: (messages || []) as DoubtMessage[],
+        }
       }
+    } catch {
+      // Offline
     }
-  } catch {
-    // Offline
   }
+
+  const isValidUuid =
+    typeof threadId === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(threadId)
 
   return {
     thread: {
-      id: threadId,
+      id: isValidUuid ? threadId : '00000000-0000-0000-0040-000000000001',
       user_id: '00000000-0000-0000-0000-000000000001',
       resource_id: '00000000-0000-0000-0010-000000000001',
       subject_id: null,
@@ -588,62 +594,67 @@ export async function getOrCreateDoubtThread(
   resourceId?: string,
   subjectId?: string
 ): Promise<{ thread: DoubtThread | null; messages: DoubtMessage[] }> {
-  try {
-    const { user } = await requireAuth()
-    const supabase = await createClient()
+  if (await isSupabaseOnline()) {
+    try {
+      const { user } = await requireAuth()
+      const supabase = await createClient()
 
-    let query = supabase
-      .from('doubt_threads')
-      .select('*')
-      .eq('user_id', user.id)
+      let query = supabase
+        .from('doubt_threads')
+        .select('*')
+        .eq('user_id', user.id)
 
-    if (resourceId) {
-      query = query.eq('resource_id', resourceId)
-    } else if (subjectId) {
-      query = query.eq('subject_id', subjectId)
-    }
-
-    const { data: existing } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle()
-
-    if (existing) {
-      return getDoubtThread(existing.id)
-    }
-
-    // Create new thread
-    let title = 'Doubt Clearing Session'
-    if (resourceId) {
-      const { data: res } = await supabase.from('resources').select('title').eq('id', resourceId).single()
-      if (res?.title) title = `Doubts: ${res.title}`
-    } else if (subjectId) {
-      const { data: sub } = await supabase.from('subjects').select('name').eq('id', subjectId).single()
-      if (sub?.name) title = `Doubts: ${sub.name}`
-    }
-
-    const { data: newThread, error: createError } = await supabase
-      .from('doubt_threads')
-      .insert({
-        user_id: user.id,
-        resource_id: resourceId ?? null,
-        subject_id: subjectId ?? null,
-        title,
-      })
-      .select('*')
-      .single()
-
-    if (!createError && newThread) {
-      return {
-        thread: newThread as DoubtThread,
-        messages: [],
+      if (resourceId) {
+        query = query.eq('resource_id', resourceId)
+      } else if (subjectId) {
+        query = query.eq('subject_id', subjectId)
       }
+
+      const { data: existing } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+      if (existing) {
+        return getDoubtThread(existing.id)
+      }
+
+      // Create new thread
+      let title = 'Doubt Clearing Session'
+      if (resourceId) {
+        const { data: res } = await supabase.from('resources').select('title').eq('id', resourceId).single()
+        if (res?.title) title = `Doubts: ${res.title}`
+      } else if (subjectId) {
+        const { data: sub } = await supabase.from('subjects').select('name').eq('id', subjectId).single()
+        if (sub?.name) title = `Doubts: ${sub.name}`
+      }
+
+      const { data: newThread, error: createError } = await supabase
+        .from('doubt_threads')
+        .insert({
+          user_id: user.id,
+          resource_id: resourceId ?? null,
+          subject_id: subjectId ?? null,
+          title,
+        })
+        .select('*')
+        .single()
+
+      if (!createError && newThread) {
+        return {
+          thread: newThread as DoubtThread,
+          messages: [],
+        }
+      }
+    } catch {
+      // Offline
     }
-  } catch {
-    // Offline
   }
 
   const mockRes = MOCK_RESOURCES.find((r) => r.id === resourceId)
+  const idSuffix = (resourceId || subjectId || '000000000001').replace(/-/g, '').slice(-12).padStart(12, '0')
+  const mockThreadId = `00000000-0000-0000-0040-${idSuffix}`
+
   return {
     thread: {
-      id: `mock-thread-${resourceId || subjectId || 'general'}`,
+      id: mockThreadId,
       user_id: '00000000-0000-0000-0000-000000000001',
       resource_id: resourceId ?? null,
       subject_id: subjectId ?? null,
