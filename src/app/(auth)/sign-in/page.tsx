@@ -257,8 +257,25 @@ function SignInForm() {
                   }}
                   className="w-full text-left px-3 py-2 text-xs rounded-sm border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-ink transition-colors flex items-center justify-between font-medium cursor-pointer"
                 >
-                  <span>🎓 <strong>Student:</strong> Aarav Mehta (23BCE1001)</span>
+                  <span>🎓 <strong>Student 1:</strong> Aarav Mehta (23BCE1001)</span>
                   <span className="text-[10px] text-blue-700 dark:text-blue-300 font-mono">student@campus.edu</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setLoading(true)
+                    const res = await quickSwitchRoleAction('student2@campus.edu')
+                    if (res.success) {
+                      window.location.href = '/'
+                    } else {
+                      setLoading(false)
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs rounded-sm border border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-ink transition-colors flex items-center justify-between font-medium cursor-pointer"
+                >
+                  <span>🎓 <strong>Student 2:</strong> Diya Sen (23BCE1002)</span>
+                  <span className="text-[10px] text-sky-700 dark:text-sky-300 font-mono">student2@campus.edu</span>
                 </button>
 
                 <button

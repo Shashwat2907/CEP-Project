@@ -78,21 +78,33 @@ export function ResourceDetailView({
   return (
     <div style={{ maxWidth: '48rem', margin: '0 auto', padding: '1.5rem 1rem' }}>
       {/* Back navigation */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <Link
-          href="/acad"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            fontSize: '0.875rem',
-            color: 'var(--muted-foreground)',
-            textDecoration: 'none',
-          }}
-        >
-          <ArrowLeft size={16} />
-          <span>Back to Resources</span>
-        </Link>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+          <Link
+            href="/"
+            style={{
+              color: 'var(--muted-foreground)',
+              textDecoration: 'none',
+              fontWeight: 500,
+            }}
+          >
+            ← Return to Homepage
+          </Link>
+          <span style={{ color: 'var(--border)' }}>/</span>
+          <Link
+            href="/acad"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              color: 'var(--muted-foreground)',
+              textDecoration: 'none',
+            }}
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Resources</span>
+          </Link>
+        </div>
       </div>
 
       {/* Main card */}

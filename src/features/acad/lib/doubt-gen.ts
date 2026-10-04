@@ -201,6 +201,8 @@ export function generateFallbackDoubtAnswer(
     .split(/\s+/)
     .filter((w) => w.length > 2 && !stopWords.has(w))
 
+  const isSummaryQuestion = /summar|overview|topic|core|main|about|cover|key|concept|explain|syllabus/i.test(question)
+
   // Find chunks that match keywords
   const matchedList = chunks
     .map((chunk) => {
@@ -211,7 +213,7 @@ export function generateFallbackDoubtAnswer(
     .filter((item) => item.matchCount > 0)
     .sort((a, b) => b.matchCount - a.matchCount)
 
-  if (matchedList.length === 0 && keywords.length > 0) {
+  if (matchedList.length === 0 && keywords.length > 0 && !isSummaryQuestion) {
     return {
       answer: WEAK_RETRIEVAL_MESSAGE,
       citations: [],
@@ -219,7 +221,9 @@ export function generateFallbackDoubtAnswer(
     }
   }
 
-  const selected = matchedList.length > 0 ? matchedList.slice(0, 3) : chunks.slice(0, 2).map((c) => ({ chunk: c, matchCount: 1 }))
+  const selected = matchedList.length > 0
+    ? matchedList.slice(0, 3)
+    : chunks.slice(0, 3).map((c) => ({ chunk: c, matchCount: 1 }))
 
   const citations: DoubtCitation[] = selected.map(({ chunk }) => {
     // Extract first two sentences as excerpt

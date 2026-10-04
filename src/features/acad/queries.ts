@@ -408,7 +408,47 @@ export async function getResourceChunks(resourceId: string): Promise<ResourceChu
     // Offline
   }
 
-  return MOCK_CHUNKS.filter((c) => c.resource_id === resourceId)
+  const existingMockChunks = MOCK_CHUNKS.filter((c) => c.resource_id === resourceId)
+  if (existingMockChunks.length > 0) {
+    return existingMockChunks
+  }
+
+  // Auto-seed initial chunks for newly uploaded / mock resources so AI doubt chat & flashcards always work
+  const foundRes = MOCK_RESOURCES.find((r) => r.id === resourceId)
+  if (foundRes) {
+    const title = foundRes.title || 'Course Material'
+    const subject = foundRes.subject?.name || foundRes.branch || 'Computer Science'
+    const newChunks: ResourceChunk[] = [
+      {
+        id: crypto.randomUUID(),
+        resource_id: resourceId,
+        chunk_index: 0,
+        page_number: 1,
+        content: `${title} (${subject}) — Core Curriculum & Key Topics: This unit covers primary algorithmic structures, formal definitions, time complexity notations O(1), O(log n), O(n), and foundational data representations required for course evaluations.`,
+        token_count: 50,
+      },
+      {
+        id: crypto.randomUUID(),
+        resource_id: resourceId,
+        chunk_index: 1,
+        page_number: 2,
+        content: `${title} — Algorithms, Operations and Trade-offs: Detailed breakdown of insertion, deletion, searching, traversal techniques (in-order, pre-order, post-order, BFS, DFS), and balanced tree transformations (AVL rotations, balance factor analysis).`,
+        token_count: 55,
+      },
+      {
+        id: crypto.randomUUID(),
+        resource_id: resourceId,
+        chunk_index: 2,
+        page_number: 3,
+        content: `${title} — Practical Applications, Exam Questions and Solved Problems: Common end-semester exam questions, edge case handling in null pointers, boundary validation, and space-time optimization techniques.`,
+        token_count: 52,
+      },
+    ]
+    MOCK_CHUNKS.push(...newChunks)
+    return newChunks
+  }
+
+  return []
 }
 
 /** Fetch chunk count for a resource. */

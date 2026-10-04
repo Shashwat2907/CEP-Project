@@ -709,13 +709,19 @@ export async function generateFlashcardsDeck(
   // 1. Fetch resource and verify it is approved
   let resource: { id: string; title: string; status: string } | null = null
   if (supabase) {
-    const { data: dbRes } = await supabase
-      .from('resources')
-      .select('id, title, status, processing_status')
-      .eq('id', parsed.data.resource_id)
-      .single()
-    if (dbRes) resource = dbRes
-  } else {
+    try {
+      const { data: dbRes } = await supabase
+        .from('resources')
+        .select('id, title, status, processing_status')
+        .eq('id', parsed.data.resource_id)
+        .single()
+      if (dbRes) resource = dbRes
+    } catch {
+      // Remote DB may not have the table yet
+    }
+  }
+  // Always fallback to MOCK_RESOURCES if DB returned nothing
+  if (!resource) {
     const mock = MOCK_RESOURCES.find((r) => r.id === parsed.data.resource_id)
     if (mock) resource = mock
   }

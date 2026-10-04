@@ -173,14 +173,24 @@ export function FlashcardStudyView({
   if (!cards || cards.length === 0) {
     return (
       <div style={{ maxWidth: '640px', margin: '0 auto', padding: '2rem 1rem' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+          <Link
+            href="/"
+            style={{
+              color: 'var(--muted-foreground)',
+              textDecoration: 'none',
+              fontWeight: 500,
+            }}
+          >
+            ← Return to Homepage
+          </Link>
+          <span style={{ color: 'var(--border)' }}>/</span>
           <Link
             href={`/acad/${resourceId}`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.375rem',
-              fontSize: '0.875rem',
               color: 'var(--muted-foreground)',
               textDecoration: 'none',
             }}
@@ -368,20 +378,32 @@ export function FlashcardStudyView({
           gap: '0.5rem',
         }}
       >
-        <Link
-          href={`/acad/${resourceId}`}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            fontSize: '0.875rem',
-            color: 'var(--muted-foreground)',
-            textDecoration: 'none',
-          }}
-        >
-          <ArrowLeft size={16} />
-          <span>{resourceTitle}</span>
-        </Link>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+          <Link
+            href="/"
+            style={{
+              color: 'var(--muted-foreground)',
+              textDecoration: 'none',
+              fontWeight: 500,
+            }}
+          >
+            ← Return to Homepage
+          </Link>
+          <span style={{ color: 'var(--border)' }}>/</span>
+          <Link
+            href={`/acad/${resourceId}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              color: 'var(--muted-foreground)',
+              textDecoration: 'none',
+            }}
+          >
+            <ArrowLeft size={16} />
+            <span>{resourceTitle}</span>
+          </Link>
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button

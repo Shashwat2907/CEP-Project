@@ -49,14 +49,16 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
 ]
 
 export const TEACHER_NAV_ITEMS: NavItem[] = [
+  { label: 'Home', href: '/', icon: Home },
   { label: 'Sessions', href: '/sessions', icon: CalendarClock },
   { label: 'Assigned Complaints', href: '/complaints/assigned', icon: ClipboardList },
-  { label: 'Resources', href: '/resources', icon: BookOpen },
+  { label: 'Resources', href: '/teacher/acad', icon: BookOpen },
   { label: 'Calendar', href: '/calendar', icon: CalendarDays },
   { label: 'Community', href: '/community', icon: MessageSquare },
 ]
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
+  { label: 'Home', href: '/', icon: Home },
   { label: 'Overview', href: '/admin', icon: Shield },
   { label: 'Digital ID & Access', href: '/admin/digital-id', icon: ShieldAlert },
   { label: 'Roster Import', href: '/admin/roster', icon: Users },
@@ -112,19 +114,23 @@ export function Sidebar({
       )}
     >
       {/* 1. Header: University Logo & Wordmark (DESIGN.MD §6) */}
-      <div className="h-14 px-5 border-b border-border flex items-center gap-3">
-        <div className="w-8 h-8 rounded-sm bg-ink text-on-ink flex items-center justify-center font-display font-black text-lg tracking-wider border border-border">
+      <Link
+        href="/"
+        className="h-14 px-5 border-b border-border flex items-center gap-3 hover:bg-surface-sunken/70 transition-colors cursor-pointer group"
+        title="Return to Homepage"
+      >
+        <div className="w-8 h-8 rounded-sm bg-ink text-on-ink flex items-center justify-center font-display font-black text-lg tracking-wider border border-border group-hover:scale-105 transition-transform">
           C
         </div>
         <div className="flex flex-col">
-          <span className="font-display font-bold text-ink text-base leading-tight">
+          <span className="font-display font-bold text-ink text-base leading-tight group-hover:text-primary transition-colors">
             Campus
           </span>
           <span className="text-[11px] font-mono text-ink-muted leading-none">
             {role.toUpperCase()} PORTAL
           </span>
         </div>
-      </div>
+      </Link>
 
       {/* 2. Middle: Role-based Navigation Links (DESIGN.MD §6) */}
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
