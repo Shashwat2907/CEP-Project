@@ -165,9 +165,9 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Profile view for friends and public profile for others
 
 ### `chore/pwa-and-performance`
-- [ ] Installable PWA, push notifications through the notifications table
-- [ ] Accessibility audit against `DESIGN.md` section 11
-- [ ] Load test with simulated concurrent users; fix slow queries and add indexes
+- [x] Installable PWA, push notifications through the notifications table
+- [x] Accessibility audit against `DESIGN.md` section 11
+- [x] Load test with simulated concurrent users; fix slow queries and add indexes
 
 ---
 
