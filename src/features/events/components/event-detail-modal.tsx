@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import * as React from 'react'
 import {
   X,
   Calendar,
@@ -27,6 +27,8 @@ import {
   rejectEventAction,
 } from '../actions'
 import { reportEventAction } from '@/features/organizer/actions'
+import { Button } from '@/shared/ui/button'
+import { cn } from '@/lib/utils'
 
 interface EventDetailModalProps {
   event: EventItem | null
@@ -47,48 +49,24 @@ export function EventDetailModal({
   onEventUpdated,
   isAdmin = false,
 }: EventDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'details' | 'teams' | 'discussion'>('details')
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [syncToCalendar, setSyncToCalendar] = useState(true)
-  const [feedback, setFeedback] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = React.useState<'details' | 'teams' | 'discussion'>('details')
+  const [isProcessing, setIsProcessing] = React.useState(false)
+  const [syncToCalendar, setSyncToCalendar] = React.useState(true)
+  const [feedback, setFeedback] = React.useState<string | null>(null)
 
   // Team creation state
-  const [showTeamForm, setShowTeamForm] = useState(false)
-  const [teamName, setTeamName] = useState('')
-  const [desiredSkillsStr, setDesiredSkillsStr] = useState('')
-  const [teamNotes, setTeamNotes] = useState('')
+  const [showTeamForm, setShowTeamForm] = React.useState(false)
+  const [teamName, setTeamName] = React.useState('')
+  const [desiredSkillsStr, setDesiredSkillsStr] = React.useState('')
+  const [teamNotes, setTeamNotes] = React.useState('')
 
   // Message posting state
-  const [messageContent, setMessageContent] = useState('')
+  const [messageContent, setMessageContent] = React.useState('')
 
   // Report event state
-  const [showReportForm, setShowReportForm] = useState(false)
-  const [reportReason, setReportReason] = useState('Misleading or inaccurate information')
-  const [reportDetails, setReportDetails] = useState('')
-
-  const handleReportEvent = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!event) return
-    setIsProcessing(true)
-    try {
-      const res = await reportEventAction({
-        eventId: event.id,
-        reason: reportReason,
-        details: reportDetails.trim() || undefined,
-      })
-      if (res.ok) {
-        setShowReportForm(false)
-        setReportDetails('')
-        setFeedback(res.message || 'Report submitted to campus administrators.')
-      } else {
-        setFeedback(res.error || 'Failed to submit report')
-      }
-    } catch {
-      setFeedback('Error submitting report')
-    } finally {
-      setIsProcessing(false)
-    }
-  }
+  const [showReportForm, setShowReportForm] = React.useState(false)
+  const [reportReason, setReportReason] = React.useState('Misleading or inaccurate information')
+  const [reportDetails, setReportDetails] = React.useState('')
 
   if (!isOpen || !event) return null
 
@@ -121,11 +99,7 @@ export function EventDetailModal({
         addToCalendar: syncToCalendar,
       })
       if (res.ok) {
-        setFeedback(
-          syncToCalendar
-            ? 'RSVP confirmed! Event has been added to your personal schedule.'
-            : 'RSVP confirmed!'
-        )
+        setFeedback('RSVP confirmed! Event synced with your calendar.')
         onEventUpdated()
       } else {
         setFeedback(res.error || 'Failed to submit RSVP')
@@ -237,85 +211,115 @@ export function EventDetailModal({
     }
   }
 
+  const handleReportEvent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsProcessing(true)
+    try {
+      const res = await reportEventAction({
+        eventId: event.id,
+        reason: reportReason,
+        details: reportDetails.trim() || undefined,
+      })
+      if (res.ok) {
+        setShowReportForm(false)
+        setReportDetails('')
+        setFeedback(res.message || 'Report submitted to campus administrators.')
+      } else {
+        setFeedback(res.error || 'Failed to submit report')
+      }
+    } catch {
+      setFeedback('Error submitting report')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl bg-[var(--surface-paper)] rounded-2xl border border-[var(--border-subtle)] shadow-2xl overflow-hidden my-8 max-h-[90vh] flex flex-col">
-        {/* Banner Header */}
-        <div className="relative h-52 shrink-0 bg-[var(--surface-sunken)]">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
+      <div className="relative w-full max-w-2xl bg-surface rounded-md border border-border shadow-[var(--shadow-float)] overflow-hidden my-8 max-h-[90vh] flex flex-col">
+        {/* Banner Header: Clean surface, NO gradient decoration per DESIGN.MD §2 & §12 */}
+        <div className="relative h-44 shrink-0 bg-surface-sunken border-b border-border">
           {event.bannerUrl ? (
             <img src={event.bannerUrl} alt={event.title} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full bg-gradient-to-tr from-blue-700 via-indigo-700 to-purple-800 flex items-center justify-center">
-              <Sparkles className="w-16 h-16 text-white/30" />
+            <div className="w-full h-full flex flex-col items-center justify-center bg-surface-sunken text-ink-muted">
+              <Calendar className="w-10 h-10 opacity-30 mb-1" />
+              <span className="text-[11px] font-mono opacity-60">Campus event</span>
             </div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
 
           {/* Close button */}
           <button
+            type="button"
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70 transition-colors backdrop-blur-xs z-10"
+            className="absolute top-3 right-3 p-1.5 rounded-sm bg-surface/90 border border-border text-ink hover:bg-surface transition-colors cursor-pointer"
+            aria-label="Close dialog"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
 
-          {/* Header text on banner */}
-          <div className="absolute bottom-4 left-5 right-5 text-white">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
+          {/* Header text overlay banner */}
+          <div className="absolute bottom-3 left-4 right-4 bg-surface/95 backdrop-blur-xs p-3 rounded-sm border border-border flex flex-col gap-1">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span
-                className={`px-2.5 py-0.5 text-xs font-semibold rounded-full backdrop-blur-md ${
+                className={cn(
+                  'px-2 py-0.5 text-[10px] font-mono font-medium rounded-sm border',
                   event.kind === 'college'
-                    ? 'bg-blue-600/90 text-white'
-                    : 'bg-purple-600/90 text-white'
-                }`}
+                    ? 'bg-ink text-on-ink border-ink'
+                    : 'bg-surface text-ink border-border'
+                )}
               >
-                {event.kind === 'college' ? 'College Event' : 'External Event'}
+                {event.kind === 'college' ? 'College event' : 'External event'}
               </span>
 
               {event.status === 'pending' && (
-                <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-500 text-slate-900">
-                  Pending Approval
+                <span className="px-2 py-0.5 text-[10px] font-mono font-medium rounded-sm bg-warning text-white">
+                  Pending approval
                 </span>
               )}
 
               {event.allowTeams && (
-                <span className="px-2.5 py-0.5 text-xs font-medium rounded-full bg-black/60 text-white flex items-center gap-1">
-                  <Users className="w-3 h-3 text-[var(--highlight)]" />
-                  Teams ({event.minTeamSize}-{event.maxTeamSize})
+                <span className="px-2 py-0.5 text-[10px] font-mono text-ink rounded-sm bg-surface border border-border flex items-center gap-1">
+                  <Users className="w-3 h-3 text-highlight" />
+                  Teams ({event.minTeamSize}–{event.maxTeamSize})
                 </span>
               )}
             </div>
 
-            <h2 className="text-xl sm:text-2xl font-bold leading-tight line-clamp-2">
+            <h2 className="font-display text-lg sm:text-xl font-bold text-ink leading-tight line-clamp-1">
               {event.title}
             </h2>
-            <p className="text-xs text-white/80 mt-1">
-              Organized by <span className="font-semibold text-white">{event.organizerName}</span>
+            <p className="text-meta font-mono text-ink-muted truncate">
+              Organized by <strong className="text-ink">{event.organizerName}</strong>
             </p>
           </div>
         </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex border-b border-[var(--border-subtle)] bg-[var(--surface-ground)] px-4 shrink-0">
+        {/* Navigation Tabs (Overview & RSVP, Teams, Discussion) */}
+        <div className="flex border-b border-border bg-surface-sunken/40 px-4 shrink-0">
           <button
+            type="button"
             onClick={() => setActiveTab('details')}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all ${
+            className={cn(
+              'py-2.5 px-3 text-small font-medium border-b-2 transition-colors cursor-pointer',
               activeTab === 'details'
-                ? 'border-[var(--primary)] text-[var(--primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
+                ? 'border-highlight text-ink font-bold'
+                : 'border-transparent text-ink-muted hover:text-ink'
+            )}
           >
             Overview & RSVP
           </button>
 
           {event.allowTeams && (
             <button
+              type="button"
               onClick={() => setActiveTab('teams')}
-              className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5 ${
+              className={cn(
+                'py-2.5 px-3 text-small font-medium border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer',
                 activeTab === 'teams'
-                  ? 'border-[var(--primary)] text-[var(--primary)]'
-                  : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-              }`}
+                  ? 'border-highlight text-ink font-bold'
+                  : 'border-transparent text-ink-muted hover:text-ink'
+              )}
             >
               <Users className="w-3.5 h-3.5" />
               <span>Teams ({teams.length})</span>
@@ -323,12 +327,14 @@ export function EventDetailModal({
           )}
 
           <button
+            type="button"
             onClick={() => setActiveTab('discussion')}
-            className={`py-3 px-4 text-xs font-semibold border-b-2 transition-all flex items-center gap-1.5 ${
+            className={cn(
+              'py-2.5 px-3 text-small font-medium border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer',
               activeTab === 'discussion'
-                ? 'border-[var(--primary)] text-[var(--primary)]'
-                : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-            }`}
+                ? 'border-highlight text-ink font-bold'
+                : 'border-transparent text-ink-muted hover:text-ink'
+            )}
           >
             <MessageSquare className="w-3.5 h-3.5" />
             <span>Discussion ({messages.length})</span>
@@ -336,36 +342,36 @@ export function EventDetailModal({
         </div>
 
         {/* Scrollable Content */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+        <div className="p-5 overflow-y-auto flex-1 space-y-4">
           {feedback && (
-            <div className="p-3.5 rounded-xl bg-blue-500/10 text-blue-800 dark:text-blue-300 text-xs font-medium border border-blue-500/20 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+            <div className="p-3 rounded-sm bg-surface-sunken text-ink text-small border border-border flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-ink-muted" />
               <span>{feedback}</span>
             </div>
           )}
 
           {/* TAB 1: DETAILS */}
           {activeTab === 'details' && (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {/* Event Metadata Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-[var(--primary)] shrink-0 mt-0.5" />
+                <div className="p-3 rounded-sm bg-surface-sunken border border-border flex items-start gap-2.5">
+                  <Clock className="w-4 h-4 text-ink-muted shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs font-semibold text-[var(--text-primary)]">
+                    <p className="text-small font-semibold text-ink font-display">
                       {formattedDate}
                     </p>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    <p className="text-meta font-mono text-ink-muted mt-0.5">
                       {formattedStartTime} – {formattedEndTime}
                     </p>
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                <div className="p-3 rounded-sm bg-surface-sunken border border-border flex items-start gap-2.5">
+                  <MapPin className="w-4 h-4 text-ink-muted shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-xs font-semibold text-[var(--text-primary)]">Location</p>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5 line-clamp-2">
+                    <p className="text-small font-semibold text-ink font-display">Location</p>
+                    <p className="text-meta font-mono text-ink-muted mt-0.5 line-clamp-2">
                       {event.location}
                     </p>
                   </div>
@@ -374,9 +380,9 @@ export function EventDetailModal({
 
               {/* External Organizer Notice */}
               {event.kind === 'external' && (
-                <div className="p-3.5 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-900 dark:text-purple-300 flex items-center justify-between">
+                <div className="p-3 rounded-sm bg-surface-sunken border border-border text-meta font-mono text-ink flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-purple-600" />
+                    <ShieldCheck className="w-4 h-4 text-ink-muted" />
                     <span>External organizer: {event.organizerName}</span>
                   </div>
                   {event.registrationLink && (
@@ -384,7 +390,7 @@ export function EventDetailModal({
                       href={event.registrationLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 font-semibold text-purple-700 dark:text-purple-400 hover:underline"
+                      className="inline-flex items-center gap-1 font-semibold text-ink underline"
                     >
                       Visit Site <ExternalLink className="w-3 h-3" />
                     </a>
@@ -393,22 +399,22 @@ export function EventDetailModal({
               )}
 
               {/* Description */}
-              <div>
-                <h3 className="text-sm font-bold text-[var(--text-primary)] mb-2">About Event</h3>
-                <div className="text-xs text-[var(--text-secondary)] leading-relaxed whitespace-pre-line bg-[var(--surface-sunken)]/40 p-4 rounded-xl border border-[var(--border-subtle)]">
+              <div className="space-y-1.5">
+                <h3 className="font-display text-small font-bold text-ink">About Event</h3>
+                <div className="text-small text-ink leading-relaxed whitespace-pre-line bg-surface p-3.5 rounded-sm border border-border">
                   {event.description}
                 </div>
               </div>
 
               {/* Tags */}
               {event.tags && event.tags.length > 0 && (
-                <div>
-                  <h4 className="text-xs font-semibold text-[var(--text-primary)] mb-2">Tags</h4>
-                  <div className="flex flex-wrap gap-1.5">
+                <div className="space-y-1.5">
+                  <span className="text-meta font-mono text-ink-muted block">Tags</span>
+                  <div className="flex flex-wrap gap-1">
                     {event.tags.map((tag, idx) => (
                       <span
                         key={idx}
-                        className="px-2.5 py-1 text-xs rounded-lg bg-[var(--surface-sunken)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"
+                        className="px-2 py-0.5 text-[11px] font-mono rounded-sm bg-surface-sunken text-ink-muted border border-border"
                       >
                         #{tag}
                       </span>
@@ -418,13 +424,13 @@ export function EventDetailModal({
               )}
 
               {/* RSVP Action Box */}
-              <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-paper)] shadow-sm space-y-3">
+              <div className="p-4 rounded-md border border-border bg-surface-sunken/60 space-y-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-bold text-[var(--text-primary)]">
+                    <h4 className="font-display text-small font-bold text-ink">
                       Your Attendance
                     </h4>
-                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    <p className="text-meta text-ink-muted mt-0.5">
                       {isAttending
                         ? 'You are confirmed for this event.'
                         : 'Let organizers know you are attending.'}
@@ -432,48 +438,51 @@ export function EventDetailModal({
                   </div>
 
                   <span
-                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                    className={cn(
+                      'px-2.5 py-0.5 text-meta font-mono font-medium rounded-sm border',
                       isAttending
-                        ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30'
-                        : 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400'
-                    }`}
+                        ? 'bg-success/15 text-success border-success/30'
+                        : 'bg-surface text-ink-muted border-border'
+                    )}
                   >
                     {isAttending ? 'Attending' : 'Not Registered'}
                   </span>
                 </div>
 
                 {!isAttending && (
-                  <label className="flex items-center gap-2 cursor-pointer text-xs text-[var(--text-secondary)] select-none pt-1">
+                  <label className="flex items-center gap-2 cursor-pointer text-meta text-ink select-none pt-1">
                     <input
                       type="checkbox"
                       checked={syncToCalendar}
                       onChange={(e) => setSyncToCalendar(e.target.checked)}
-                      className="rounded border-[var(--border-subtle)] text-[var(--primary)] focus:ring-[var(--primary)]"
+                      className="rounded-xs border-border text-ink focus:ring-ink"
                     />
                     <span>Automatically add to my campus timetable & personal calendar</span>
                   </label>
                 )}
 
-                <div className="pt-2 flex items-center gap-3">
+                <div className="pt-1 flex items-center gap-3">
                   {isAttending ? (
-                    <button
-                      type="button"
+                    <Button
+                      variant="secondary"
+                      size="sm"
                       disabled={isProcessing}
                       onClick={handleCancelRsvp}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 transition-colors"
+                      className="text-danger hover:bg-danger/10 border-danger/30"
                     >
                       Cancel RSVP
-                    </button>
+                    </Button>
                   ) : (
-                    <button
-                      type="button"
+                    <Button
+                      variant="primary"
+                      size="sm"
                       disabled={isProcessing}
                       onClick={handleRsvp}
-                      className="px-5 py-2.5 rounded-xl text-xs font-bold bg-[var(--primary)] text-white hover:opacity-95 active:scale-95 transition-all shadow-sm flex items-center gap-2"
+                      className="flex items-center gap-1.5"
                     >
                       <Calendar className="w-4 h-4" />
                       <span>RSVP Attending</span>
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -483,7 +492,7 @@ export function EventDetailModal({
                 <button
                   type="button"
                   onClick={() => setShowReportForm(true)}
-                  className="text-xs text-[var(--text-secondary)] hover:text-rose-500 flex items-center gap-1.5 transition-colors"
+                  className="text-meta font-mono text-ink-muted hover:text-danger flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Flag className="w-3.5 h-3.5" />
                   <span>Report this event</span>
@@ -492,67 +501,68 @@ export function EventDetailModal({
 
               {/* Report Event Modal Form */}
               {showReportForm && (
-                <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 space-y-3">
+                <div className="p-3.5 rounded-sm border border-danger/40 bg-surface space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                    <h4 className="text-small font-bold text-danger flex items-center gap-1.5">
                       <Flag className="w-3.5 h-3.5" />
                       <span>Report Event to Campus Administration</span>
                     </h4>
                     <button
                       type="button"
                       onClick={() => setShowReportForm(false)}
-                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      className="text-meta text-ink-muted hover:text-ink cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
                   <form onSubmit={handleReportEvent} className="space-y-3">
-                    <div>
-                      <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
+                    <div className="space-y-1">
+                      <label className="text-meta font-mono text-ink block font-bold">
                         Reason for Report *
                       </label>
                       <select
                         value={reportReason}
                         onChange={(e) => setReportReason(e.target.value)}
-                        className="w-full text-xs px-3 py-2 rounded-lg bg-[var(--surface-paper)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden"
+                        className="w-full bg-surface-sunken border border-border rounded-sm px-3 py-1.5 text-small text-ink"
                       >
                         <option value="Misleading or inaccurate information">Misleading or inaccurate information</option>
-                        <option value="Spam or unauthorized commercial advertising">Spam or unauthorized commercial advertising</option>
-                        <option value="Inappropriate or offensive content">Inappropriate or offensive content</option>
-                        <option value="Safety or campus policy violation">Safety or campus policy violation</option>
-                        <option value="Impersonating an official club/department">Impersonating an official club/department</option>
+                        <option value="Inappropriate commercial promotion">Inappropriate commercial promotion</option>
+                        <option value="Safety or security concern">Safety or security concern</option>
+                        <option value="Duplicate or spam event">Duplicate or spam event</option>
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
+                    <div className="space-y-1">
+                      <label className="text-meta font-mono text-ink block">
                         Additional Context (Optional)
                       </label>
                       <textarea
                         rows={2}
-                        placeholder="Provide any relevant details to assist campus administration review..."
+                        placeholder="Provide details to assist administrative review..."
                         value={reportDetails}
                         onChange={(e) => setReportDetails(e.target.value)}
-                        className="w-full text-xs px-3 py-2 rounded-lg bg-[var(--surface-paper)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden"
+                        className="w-full bg-surface-sunken border border-border rounded-sm px-3 py-1.5 text-small text-ink placeholder:text-ink-muted"
                       />
                     </div>
 
-                    <div className="flex justify-end gap-2">
-                      <button
+                    <div className="flex justify-end gap-2 pt-1">
+                      <Button
                         type="button"
+                        variant="secondary"
+                        size="sm"
                         onClick={() => setShowReportForm(false)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)]"
                       >
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         type="submit"
+                        variant="danger"
+                        size="sm"
                         disabled={isProcessing}
-                        className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white"
                       >
-                        Submit Report
-                      </button>
+                        Submit report
+                      </Button>
                     </div>
                   </form>
                 </div>
@@ -560,30 +570,33 @@ export function EventDetailModal({
 
               {/* Admin Moderation controls */}
               {isAdmin && event.status === 'pending' && (
-                <div className="p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 space-y-2">
-                  <h4 className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                <div className="p-3.5 rounded-sm border border-warning/40 bg-surface space-y-2">
+                  <h4 className="text-small font-bold text-warning font-display">
                     Administrator Review Queue
                   </h4>
-                  <p className="text-xs text-amber-800/80 dark:text-amber-300/80">
+                  <p className="text-meta text-ink-muted">
                     This event is currently pending approval for college-wide calendar and directory visibility.
                   </p>
-                  <div className="flex gap-2 pt-2">
-                    <button
+                  <div className="flex gap-2 pt-1">
+                    <Button
                       type="button"
+                      variant="primary"
+                      size="sm"
                       disabled={isProcessing}
                       onClick={handleApprove}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700"
                     >
-                      Approve Event
-                    </button>
-                    <button
+                      Approve event
+                    </Button>
+                    <Button
                       type="button"
+                      variant="secondary"
+                      size="sm"
                       disabled={isProcessing}
                       onClick={handleReject}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 text-white hover:bg-rose-700"
+                      className="text-danger hover:bg-danger/10"
                     >
-                      Reject Event
-                    </button>
+                      Reject event
+                    </Button>
                   </div>
                 </div>
               )}
@@ -592,40 +605,39 @@ export function EventDetailModal({
 
           {/* TAB 2: TEAMS */}
           {activeTab === 'teams' && event.allowTeams && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                  <h3 className="font-display text-small font-bold text-ink">
                     Hackathon & Project Teams
                   </h3>
-                  <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                    Connect with other students forming teams (Allowed size: {event.minTeamSize} -{' '}
-                    {event.maxTeamSize} members).
+                  <p className="text-meta text-ink-muted">
+                    Connect with other students forming teams ({event.minTeamSize} – {event.maxTeamSize} members allowed).
                   </p>
                 </div>
 
-                <button
-                  type="button"
+                <Button
+                  variant="primary"
+                  size="sm"
                   onClick={() => setShowTeamForm(!showTeamForm)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[var(--primary)] text-white hover:opacity-90 flex items-center gap-1.5 transition-all shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
-                  <span>{showTeamForm ? 'Close Form' : 'Register Team'}</span>
-                </button>
+                  <span>{showTeamForm ? 'Close form' : 'Register team'}</span>
+                </Button>
               </div>
 
-              {/* Form New Team Modal / Dropdown */}
+              {/* Form New Team */}
               {showTeamForm && (
                 <form
                   onSubmit={handleCreateTeam}
-                  className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] space-y-3"
+                  className="p-3.5 rounded-sm border border-border bg-surface-sunken space-y-3"
                 >
-                  <h4 className="text-xs font-bold text-[var(--text-primary)]">
+                  <h4 className="font-display text-small font-bold text-ink">
                     Register a New Team
                   </h4>
 
-                  <div>
-                    <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
+                  <div className="space-y-1">
+                    <label className="text-meta font-mono font-bold text-ink block">
                       Team Name
                     </label>
                     <input
@@ -634,12 +646,12 @@ export function EventDetailModal({
                       placeholder="e.g. NeuralPulse"
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
-                      className="w-full text-xs px-3 py-2 rounded-lg bg-[var(--surface-paper)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden focus:border-[var(--primary)]"
+                      className="w-full bg-surface border border-border rounded-sm px-3 py-1.5 text-small text-ink"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
+                  <div className="space-y-1">
+                    <label className="text-meta font-mono text-ink block">
                       Desired Skills / Roles (comma separated)
                     </label>
                     <input
@@ -647,156 +659,147 @@ export function EventDetailModal({
                       placeholder="e.g. Next.js, PyTorch, Hardware, UI Design"
                       value={desiredSkillsStr}
                       onChange={(e) => setDesiredSkillsStr(e.target.value)}
-                      className="w-full text-xs px-3 py-2 rounded-lg bg-[var(--surface-paper)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden focus:border-[var(--primary)]"
+                      className="w-full bg-surface border border-border rounded-sm px-3 py-1.5 text-small text-ink"
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
-                      Pitch / What you plan to build
+                  <div className="space-y-1">
+                    <label className="text-meta font-mono text-ink block">
+                      Team Pitch / Notes
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="Short summary of your project vision and who you need..."
+                      placeholder="What is your team building? What roles do you need?"
                       value={teamNotes}
                       onChange={(e) => setTeamNotes(e.target.value)}
-                      className="w-full text-xs px-3 py-2 rounded-lg bg-[var(--surface-paper)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden focus:border-[var(--primary)]"
+                      className="w-full bg-surface border border-border rounded-sm px-3 py-1.5 text-small text-ink"
                     />
                   </div>
 
                   <div className="flex justify-end gap-2 pt-1">
-                    <button
+                    <Button
                       type="button"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => setShowTeamForm(false)}
-                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:bg-[var(--surface-paper)]"
                     >
                       Cancel
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="submit"
+                      variant="primary"
+                      size="sm"
                       disabled={isProcessing}
-                      className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-[var(--primary)] text-white hover:opacity-90"
                     >
-                      Post Team
-                    </button>
+                      Create team
+                    </Button>
                   </div>
                 </form>
               )}
 
-              {/* Team list */}
-              {teams.length === 0 ? (
-                <div className="p-8 text-center rounded-xl border border-dashed border-[var(--border-subtle)] text-[var(--text-secondary)]">
-                  <Users className="w-8 h-8 mx-auto mb-2 opacity-40" />
-                  <p className="text-xs font-medium">No teams registered yet.</p>
-                  <p className="text-[11px] text-[var(--text-secondary)]/80 mt-1">
-                    Be the first to create a team and invite collaborators!
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {teams.map((t) => (
+              {/* Existing Teams List */}
+              <div className="space-y-2">
+                {teams.length === 0 ? (
+                  <div className="p-8 text-center bg-surface-sunken/40 border border-border rounded-sm space-y-1">
+                    <Users className="w-8 h-8 text-ink-muted opacity-40 mx-auto" />
+                    <p className="text-small text-ink font-medium">No teams formed yet</p>
+                    <p className="text-meta text-ink-muted">Be the first to create a team for this hackathon!</p>
+                  </div>
+                ) : (
+                  teams.map((t) => (
                     <div
                       key={t.id}
-                      className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-paper)] hover:border-[var(--primary)]/40 transition-colors"
+                      className="p-3.5 rounded-sm border border-border bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h4 className="text-xs font-bold text-[var(--text-primary)]">{t.name}</h4>
-                          <p className="text-[11px] text-[var(--text-secondary)] mt-0.5">
-                            Leader: {t.leaderName || 'Student'}
-                          </p>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-display text-small font-bold text-ink">
+                            {t.name}
+                          </h4>
+                          {t.lookingForMembers && (
+                            <span className="px-1.5 py-0.5 rounded-xs text-[10px] font-mono bg-highlight/20 border border-highlight text-ink font-bold">
+                              Recruiting
+                            </span>
+                          )}
                         </div>
-                        {t.lookingForMembers && (
-                          <span className="px-2.5 py-0.5 text-[11px] font-semibold rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-                            Looking for members
-                          </span>
+
+                        <p className="text-meta font-mono text-ink-muted">
+                          Leader: {t.leaderName}
+                        </p>
+
+                        {t.notes && (
+                          <p className="text-small text-ink mt-1">
+                            {t.notes}
+                          </p>
+                        )}
+
+                        {t.desiredSkills && t.desiredSkills.length > 0 && (
+                          <div className="flex flex-wrap gap-1 pt-1">
+                            {t.desiredSkills.map((s, idx) => (
+                              <span
+                                key={idx}
+                                className="px-1.5 py-0.2 rounded-xs bg-surface-sunken text-ink-muted font-mono text-[10px] border border-border"
+                              >
+                                {s}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
-
-                      {t.notes && (
-                        <p className="text-xs text-[var(--text-secondary)] mt-2 italic leading-relaxed">
-                          "{t.notes}"
-                        </p>
-                      )}
-
-                      {t.desiredSkills && t.desiredSkills.length > 0 && (
-                        <div className="mt-3 flex flex-wrap gap-1.5 items-center">
-                          <span className="text-[11px] text-[var(--text-secondary)] font-medium">
-                            Seeking:
-                          </span>
-                          {t.desiredSkills.map((sk, idx) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-0.5 text-[11px] rounded bg-[var(--surface-sunken)] font-mono text-[var(--text-primary)] border border-[var(--border-subtle)]"
-                            >
-                              {sk}
-                            </span>
-                          ))}
-                        </div>
-                      )}
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
             </div>
           )}
 
-          {/* TAB 3: DISCUSSION / CHAT */}
+          {/* TAB 3: DISCUSSION */}
           {activeTab === 'discussion' && (
             <div className="space-y-4">
-              <div>
-                <h3 className="text-sm font-bold text-[var(--text-primary)]">
-                  Event Q&A & Community Discussion
-                </h3>
-                <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-                  Ask organizers questions or discuss topics with fellow participants.
-                </p>
-              </div>
-
-              {/* Messages feed */}
-              <div className="space-y-3 min-h-[140px] max-h-[300px] overflow-y-auto p-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)]">
+              <div className="space-y-2 max-h-[320px] overflow-y-auto p-1">
                 {messages.length === 0 ? (
-                  <div className="py-8 text-center text-xs text-[var(--text-secondary)]">
-                    <MessageSquare className="w-6 h-6 mx-auto mb-2 opacity-30" />
-                    <p>No questions or messages yet. Start the conversation!</p>
+                  <div className="p-8 text-center bg-surface-sunken/40 border border-border rounded-sm space-y-1">
+                    <MessageSquare className="w-8 h-8 text-ink-muted opacity-40 mx-auto" />
+                    <p className="text-small text-ink font-medium">No discussion questions yet</p>
+                    <p className="text-meta text-ink-muted">Ask the event organizers or chat with participants.</p>
                   </div>
                 ) : (
                   messages.map((m) => (
                     <div
                       key={m.id}
-                      className="p-3 rounded-xl bg-[var(--surface-paper)] border border-[var(--border-subtle)] text-xs space-y-1 shadow-2xs"
+                      className="p-3 rounded-sm border border-border bg-surface space-y-1"
                     >
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="font-bold text-[var(--text-primary)]">{m.authorName}</span>
-                        <span className="text-[var(--text-secondary)]">
-                          {new Date(m.createdAt).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
+                      <div className="flex items-center justify-between text-meta font-mono text-ink-muted">
+                        <span className="font-bold text-ink">{m.authorName}</span>
+                        <span>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                       </div>
-                      <p className="text-[var(--text-secondary)] leading-relaxed">{m.content}</p>
+                      <p className="text-small text-ink leading-relaxed">
+                        {m.content}
+                      </p>
                     </div>
                   ))
                 )}
               </div>
 
-              {/* Post form */}
-              <form onSubmit={handleSendMessage} className="flex gap-2">
+              {/* Message input */}
+              <form onSubmit={handleSendMessage} className="flex gap-2 pt-2 border-t border-border">
                 <input
                   type="text"
-                  placeholder="Ask a question or share a note..."
+                  placeholder="Ask a question or post to event chat..."
                   value={messageContent}
                   onChange={(e) => setMessageContent(e.target.value)}
-                  className="flex-1 text-xs px-3.5 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden focus:border-[var(--primary)]"
+                  className="flex-1 bg-surface-sunken border border-border rounded-sm px-3 py-1.5 text-small text-ink placeholder:text-ink-muted focus-visible:outline-2 focus-visible:outline-ink"
                 />
-                <button
+                <Button
                   type="submit"
+                  variant="primary"
+                  size="sm"
                   disabled={isProcessing || !messageContent.trim()}
-                  className="px-4 py-2.5 rounded-xl bg-[var(--primary)] text-white hover:opacity-90 disabled:opacity-40 transition-all flex items-center justify-center"
+                  className="shrink-0 flex items-center gap-1.5"
                 >
-                  <Send className="w-4 h-4" />
-                </button>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Send</span>
+                </Button>
               </form>
             </div>
           )}

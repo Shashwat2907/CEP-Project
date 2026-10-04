@@ -17,6 +17,8 @@ import { getEventsAction, getEventByIdAction, rsvpEventAction, cancelRsvpAction 
 import { EventCard } from './event-card'
 import { EventDetailModal } from './event-detail-modal'
 import { CreateEventModal } from './create-event-modal'
+import { Button } from '@/shared/ui/button'
+import { cn } from '@/lib/utils'
 
 interface EventsListProps {
   initialEvents?: EventItem[]
@@ -126,86 +128,89 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
   return (
     <div className="space-y-6">
       {/* Top Banner & Action */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2.5">
-            <Compass className="w-6 h-6 text-[var(--primary)]" />
+          <h1 className="font-display text-display font-bold text-ink tracking-tight flex items-center gap-2.5">
+            <Compass className="w-6 h-6 text-ink" />
             Campus Events & Hackathons
           </h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-1">
-            Discover college club events, technical symposia, and national hackathons
+          <p className="text-small text-ink-muted mt-1 max-w-2xl">
+            Discover college club events, technical symposia, and national hackathons. One-tap sync with your unified calendar.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
           <a
             href="/organizer/sign-in"
-            className="px-3.5 py-2.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold hover:bg-purple-500/20 transition-all flex items-center gap-1.5"
+            className="px-3 py-2 rounded-sm border border-border bg-surface text-ink text-meta font-mono font-medium hover:bg-surface-sunken transition-colors flex items-center gap-1.5"
           >
             <span>Hosting an event? Organizer access</span>
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
 
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={() => setIsCreateOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-[var(--primary)] text-white text-xs font-bold hover:opacity-90 active:scale-95 shadow-sm flex items-center gap-2 transition-all"
+            className="flex items-center gap-1.5"
           >
             <Plus className="w-4 h-4" />
-            <span>Propose Event</span>
-          </button>
+            <span>Propose event</span>
+          </Button>
         </div>
       </div>
 
-      {/* Kind Tabs */}
-      <div className="flex border-b border-[var(--border-subtle)] gap-2">
+      {/* Kind Tabs (DESIGN.MD §8 segmented switcher) */}
+      <div className="inline-flex rounded-sm border border-border bg-surface-sunken p-1 self-start">
         <button
           type="button"
           onClick={() => setSelectedKind('all')}
-          className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all ${
+          className={cn(
+            'px-3 py-1 rounded-xs text-small font-medium transition-colors cursor-pointer',
             selectedKind === 'all'
-              ? 'border-[var(--primary)] text-[var(--primary)]'
-              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
+              ? 'bg-surface text-ink font-bold'
+              : 'text-ink-muted hover:text-ink'
+          )}
         >
-          All Opportunities ({events.length})
+          All events ({events.length})
         </button>
 
         <button
           type="button"
           onClick={() => setSelectedKind('college')}
-          className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all ${
+          className={cn(
+            'px-3 py-1 rounded-xs text-small font-medium transition-colors cursor-pointer',
             selectedKind === 'college'
-              ? 'border-[var(--primary)] text-[var(--primary)]'
-              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
+              ? 'bg-surface text-ink font-bold'
+              : 'text-ink-muted hover:text-ink'
+          )}
         >
-          College Events
+          College events
         </button>
 
         <button
           type="button"
           onClick={() => setSelectedKind('external')}
-          className={`pb-3 px-3 text-xs font-bold border-b-2 transition-all ${
+          className={cn(
+            'px-3 py-1 rounded-xs text-small font-medium transition-colors cursor-pointer',
             selectedKind === 'external'
-              ? 'border-[var(--primary)] text-[var(--primary)]'
-              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-          }`}
+              ? 'bg-surface text-ink font-bold'
+              : 'text-ink-muted hover:text-ink'
+          )}
         >
-          External Hackathons & Summits
+          External hackathons
         </button>
       </div>
 
       {/* Search & Filter Bar */}
       <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
         <div className="relative flex-1 max-w-md">
-          <Search className="w-4 h-4 text-[var(--text-secondary)] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <Search className="w-4 h-4 text-ink-muted absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
             type="text"
             placeholder="Search by title, club, department, or venue..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full text-xs pl-9 pr-4 py-2.5 rounded-xl bg-[var(--surface-paper)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden focus:border-[var(--primary)] shadow-2xs"
+            className="w-full text-small pl-9 pr-3 py-2 rounded-sm bg-surface border border-border text-ink placeholder:text-ink-muted focus-visible:outline-2 focus-visible:outline-ink"
           />
         </div>
 
@@ -213,11 +218,12 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
           <button
             type="button"
             onClick={() => setShowOnlyAttending(!showOnlyAttending)}
-            className={`px-3 py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all ${
+            className={cn(
+              'px-3 py-2 rounded-sm text-meta font-mono font-medium border flex items-center gap-1.5 transition-colors cursor-pointer',
               showOnlyAttending
-                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 font-semibold'
-                : 'border-[var(--border-subtle)] bg-[var(--surface-paper)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]'
-            }`}
+                ? 'border-ink bg-ink text-on-ink font-bold'
+                : 'border-border bg-surface text-ink-muted hover:text-ink'
+            )}
           >
             <CheckCircle className="w-3.5 h-3.5" />
             <span>My RSVPs</span>
@@ -227,14 +233,15 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
             <button
               type="button"
               onClick={() => setShowPending(!showPending)}
-              className={`px-3 py-2 rounded-xl text-xs font-medium border flex items-center gap-1.5 transition-all ${
+              className={cn(
+                'px-3 py-2 rounded-sm text-meta font-mono font-medium border flex items-center gap-1.5 transition-colors cursor-pointer',
                 showPending
-                  ? 'border-amber-500 bg-amber-500/10 text-amber-700 dark:text-amber-300 font-semibold'
-                  : 'border-[var(--border-subtle)] bg-[var(--surface-paper)] text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]'
-              }`}
+                  ? 'border-warning bg-warning text-white font-bold'
+                  : 'border-border bg-surface text-ink-muted hover:text-ink'
+              )}
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Review Queue</span>
+              <span>Review queue</span>
             </button>
           )}
         </div>
@@ -242,18 +249,19 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
 
       {/* Tag Chips */}
       {allTags.length > 0 && (
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs no-scrollbar">
-          <span className="text-[11px] font-medium text-[var(--text-secondary)] mr-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-meta font-mono no-scrollbar">
+          <span className="text-[11px] font-mono text-ink-muted mr-1">
             Filter by:
           </span>
           <button
             type="button"
             onClick={() => setSelectedTag(null)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
+            className={cn(
+              'px-2.5 py-0.5 rounded-sm text-meta font-mono transition-colors cursor-pointer border',
               selectedTag === null
-                ? 'bg-[var(--primary)] text-white shadow-2xs'
-                : 'bg-[var(--surface-paper)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)]'
-            }`}
+                ? 'bg-ink text-on-ink border-ink font-bold'
+                : 'bg-surface text-ink-muted border-border hover:text-ink'
+            )}
           >
             All
           </button>
@@ -262,11 +270,12 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
               key={tag}
               type="button"
               onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all shrink-0 ${
+              className={cn(
+                'px-2.5 py-0.5 rounded-sm text-meta font-mono transition-colors cursor-pointer border shrink-0',
                 selectedTag === tag
-                  ? 'bg-[var(--primary)] text-white shadow-2xs'
-                  : 'bg-[var(--surface-paper)] text-[var(--text-secondary)] border border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)]'
-              }`}
+                  ? 'bg-ink text-on-ink border-ink font-bold'
+                  : 'bg-surface text-ink-muted border-border hover:text-ink'
+              )}
             >
               #{tag}
             </button>
@@ -276,10 +285,10 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
 
       {/* Events Grid */}
       {filteredEvents.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--surface-paper)] space-y-3">
-          <Calendar className="w-10 h-10 mx-auto text-[var(--text-secondary)] opacity-40" />
-          <h3 className="text-sm font-bold text-[var(--text-primary)]">No events match your criteria</h3>
-          <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
+        <div className="p-12 text-center rounded-md border border-dashed border-border bg-surface space-y-3">
+          <Calendar className="w-10 h-10 mx-auto text-ink-muted opacity-40" />
+          <h3 className="font-display text-small font-bold text-ink">No events match your criteria</h3>
+          <p className="text-small text-ink-muted max-w-sm mx-auto">
             Try adjusting your search query, clearing filters, or submit a new proposal.
           </p>
           <button
@@ -290,7 +299,7 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
               setSelectedKind('all')
               setShowOnlyAttending(false)
             }}
-            className="px-3.5 py-1.5 rounded-lg text-xs font-semibold text-[var(--primary)] hover:bg-[var(--surface-sunken)] transition-colors"
+            className="px-3.5 py-1.5 rounded-sm text-small font-medium text-ink border border-border bg-surface-sunken hover:bg-surface transition-colors cursor-pointer"
           >
             Clear all filters
           </button>

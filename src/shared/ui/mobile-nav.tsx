@@ -67,6 +67,7 @@ export function MobileNav({
           { label: 'Events', href: '/events', icon: Calendar },
           { label: 'Calendar', href: '/calendar', icon: CalendarDays },
           { label: 'Lost & Found', href: '/lost-found', icon: Search },
+          { label: 'Friends', href: '/friends', icon: Users },
           { label: 'Acad & Resources', href: '/acad', icon: BookOpen },
         ]
       : role === 'teacher'

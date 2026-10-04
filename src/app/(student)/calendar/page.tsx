@@ -20,8 +20,8 @@ export default async function CalendarPage() {
       userEmail="shashwat@college.edu"
       activePath="/calendar"
     >
-      <div className="max-w-5xl mx-auto py-2">
-        <CalendarView initialEntries={initialEntries} initialViewMode="agenda" />
+      <div className="w-full py-2">
+        <CalendarView initialEntries={initialEntries} initialViewMode="day" />
       </div>
     </AppShell>
   )

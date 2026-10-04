@@ -89,7 +89,7 @@ function AdminRosterContent() {
   })
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-10">
+    <div className="w-full py-2 space-y-10">
       <div>
         <div className="flex items-center gap-2">
           <FileSpreadsheet size={24} className="text-ink" />

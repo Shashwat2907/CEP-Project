@@ -88,7 +88,7 @@ export function TodayScheduleBlock({
   return (
     <section
       className={cn(
-        'bg-surface border border-border rounded-lg p-5 sm:p-6 shadow-sm space-y-5',
+        'bg-surface border border-border rounded-md p-5 sm:p-6 space-y-5',
         className
       )}
     >
@@ -101,7 +101,7 @@ export function TodayScheduleBlock({
               Today on Campus
             </h2>
             <span className="text-small font-mono text-ink-muted">
-              · {formattedDate}
+              — {formattedDate}
             </span>
           </div>
           <p className="text-small text-ink-muted mt-0.5">
@@ -117,12 +117,12 @@ export function TodayScheduleBlock({
             className="text-small h-8"
           >
             <Plus size={14} />
-            <span>Add Item</span>
+            <span>Add personal item</span>
           </Button>
 
           <Link href="/calendar">
             <Button variant="ghost" size="sm" className="text-small h-8">
-              <span>Full Calendar</span>
+              <span>Full calendar</span>
               <ArrowRight size={14} />
             </Button>
           </Link>
@@ -147,7 +147,7 @@ export function TodayScheduleBlock({
               className="mt-3"
             >
               <Plus size={14} />
-              <span>Add Personal Item</span>
+              <span>Add personal item</span>
             </Button>
           </div>
         ) : (
@@ -174,7 +174,7 @@ export function TodayScheduleBlock({
                   <div className="flex items-center gap-2 mb-1">
                     <span
                       className={cn(
-                        'text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-xs border',
+                        'text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-xs border',
                         meta.badgeClass
                       )}
                     >

@@ -114,9 +114,9 @@ export function VerifierDesk({
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="w-full space-y-6">
       {/* 1. Header & Checkpoint Selector */}
-      <div className="bg-surface border border-border rounded-lg p-5 shadow-sm space-y-4">
+      <div className="bg-surface border border-border rounded-md p-5 shadow-none space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
           <div>
             <div className="flex items-center gap-2">
@@ -131,7 +131,7 @@ export function VerifierDesk({
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono text-ink-muted uppercase">Station:</span>
+            <span className="text-[11px] font-mono text-ink-muted">Station:</span>
             <select
               value={checkpoint}
               onChange={(e) => setCheckpoint(e.target.value as VerificationCheckpoint)}
@@ -208,7 +208,7 @@ export function VerifierDesk({
                 ) : (
                   <ShieldCheck size={15} />
                 )}
-                <span>Verify Token</span>
+                <span>Verify token</span>
               </Button>
             </div>
             <p className="text-[11px] font-mono text-ink-muted">
@@ -226,7 +226,7 @@ export function VerifierDesk({
                 value={manualRollNumber}
                 onChange={(e) => setManualRollNumber(e.target.value)}
                 placeholder="e.g. 23BCE1042 or T-CS-102"
-                className="flex-1 bg-surface-sunken border border-border rounded-sm px-3 py-2 text-small font-mono uppercase text-ink placeholder:text-ink-muted focus-visible:outline-2 focus-visible:outline-ink"
+                className="flex-1 bg-surface-sunken border border-border rounded-sm px-3 py-2 text-small font-mono text-ink placeholder:text-ink-muted focus-visible:outline-2 focus-visible:outline-ink"
               />
               <Button
                 type="submit"
@@ -239,7 +239,7 @@ export function VerifierDesk({
                 ) : (
                   <Search size={15} />
                 )}
-                <span>Check Roll Number</span>
+                <span>Check roll number</span>
               </Button>
             </div>
             <p className="text-[11px] font-mono text-ink-muted">
@@ -253,23 +253,23 @@ export function VerifierDesk({
       {result && (
         <div
           className={cn(
-            'rounded-lg border p-6 shadow-md transition-all animate-in fade-in slide-in-from-top-2 duration-200',
+            'rounded-md border p-6 transition-all',
             result.status === 'valid'
-              ? 'bg-surface border-in-campus shadow-[0_4px_16px_rgba(31,157,107,0.12)]'
+              ? 'bg-surface border-in-campus'
               : result.status === 'expired'
-              ? 'bg-surface border-warning shadow-[0_4px_16px_rgba(245,183,0,0.15)]'
-              : 'bg-surface border-danger shadow-[0_4px_16px_rgba(220,38,38,0.15)]'
+              ? 'bg-surface border-warning'
+              : 'bg-surface border-danger'
           )}
         >
           {/* Top Status Header */}
           <div className="flex items-center justify-between pb-4 border-b border-border">
             <div className="flex items-center gap-3">
               {result.status === 'valid' ? (
-                <div className="w-12 h-12 rounded-full bg-in-campus text-white flex items-center justify-center shadow-sm">
+                <div className="w-12 h-12 rounded-full bg-in-campus text-white flex items-center justify-center">
                   <CheckCircle2 size={28} strokeWidth={2.25} />
                 </div>
               ) : result.status === 'expired' ? (
-                <div className="w-12 h-12 rounded-full bg-warning/20 text-warning-border border border-warning flex items-center justify-center">
+                <div className="w-12 h-12 rounded-full bg-warning/20 text-warning border border-warning flex items-center justify-center">
                   <Clock size={28} strokeWidth={2.25} />
                 </div>
               ) : (
@@ -281,25 +281,25 @@ export function VerifierDesk({
               <div>
                 <span
                   className={cn(
-                    'font-mono text-xs font-bold uppercase tracking-wider block',
+                    'font-mono text-xs font-semibold block',
                     result.status === 'valid'
                       ? 'text-in-campus'
                       : result.status === 'expired'
-                      ? 'text-warning-border'
+                      ? 'text-warning'
                       : 'text-danger'
                   )}
                 >
                   {result.status === 'valid'
-                    ? 'CLEARANCE GRANTED'
+                    ? 'Clearance granted'
                     : result.status === 'expired'
-                    ? 'TOKEN EXPIRED'
+                    ? 'Token expired'
                     : result.status === 'revoked'
-                    ? 'ID REVOKED'
+                    ? 'ID revoked'
                     : result.status === 'suspended'
-                    ? 'ID SUSPENDED'
+                    ? 'ID suspended'
                     : result.status === 'tampered'
-                    ? 'COUNTERFEIT TOKEN'
-                    : 'RECORD NOT FOUND'}
+                    ? 'Counterfeit token'
+                    : 'Record not found'}
                 </span>
                 <h3 className="font-display text-h2 font-bold text-ink">
                   {result.message}
@@ -308,7 +308,7 @@ export function VerifierDesk({
             </div>
 
             <div className="text-right">
-              <span className="text-[10px] font-mono text-ink-muted uppercase block">
+              <span className="text-[10px] font-mono text-ink-muted block">
                 Verified at
               </span>
               <span className="font-mono text-small font-bold text-ink">
@@ -339,13 +339,13 @@ export function VerifierDesk({
                           .join('')
                           .slice(0, 2)}
                       </span>
-                      <span className="text-[9px] font-mono text-ink-muted mt-1 uppercase">Photo</span>
+                      <span className="text-[9px] font-mono text-ink-muted mt-1">Photo</span>
                     </>
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <span className="text-[10px] font-mono font-medium text-ink-muted uppercase tracking-wider block">
+                  <span className="text-[10px] font-mono font-medium text-ink-muted block">
                     {result.subject.role === 'teacher' ? 'Faculty Member' : 'Enrolled Student'}
                   </span>
                   <h4 className="font-display text-h1 font-bold text-ink truncate leading-tight">
@@ -362,8 +362,8 @@ export function VerifierDesk({
                     {result.subject.year && (
                       <span className="text-meta font-mono text-ink-muted">
                         Year {result.subject.year}
-                        {result.subject.division ? ` · Div ${result.subject.division}` : ''}
-                        {result.subject.batch ? ` · ${result.subject.batch}` : ''}
+                        {result.subject.division ? `, Div ${result.subject.division}` : ''}
+                        {result.subject.batch ? `, ${result.subject.batch}` : ''}
                       </span>
                     )}
                   </div>
@@ -380,15 +380,15 @@ export function VerifierDesk({
               {result.tokenMeta && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 rounded-md bg-surface-sunken border border-border text-meta font-mono">
                   <div>
-                    <span className="text-[10px] text-ink-muted uppercase block">Issued At</span>
+                    <span className="text-[10px] text-ink-muted block">Issued at</span>
                     <span className="font-semibold text-ink">{result.tokenMeta.issuedAt}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-ink-muted uppercase block">Expires At</span>
+                    <span className="text-[10px] text-ink-muted block">Expires at</span>
                     <span className="font-semibold text-ink">{result.tokenMeta.expiresAt}</span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-ink-muted uppercase block">Time Remaining</span>
+                    <span className="text-[10px] text-ink-muted block">Time remaining</span>
                     <span
                       className={cn(
                         'font-semibold',
@@ -403,7 +403,7 @@ export function VerifierDesk({
                     </span>
                   </div>
                   <div>
-                    <span className="text-[10px] text-ink-muted uppercase block">Station</span>
+                    <span className="text-[10px] text-ink-muted block">Station</span>
                     <span className="font-semibold text-ink">{result.checkpoint}</span>
                   </div>
                 </div>
@@ -418,7 +418,7 @@ export function VerifierDesk({
             </span>
             <Button variant="primary" size="sm" onClick={handleResetForNext}>
               <UserCheck size={14} />
-              <span>Verify Next Student</span>
+              <span>Verify next student</span>
             </Button>
           </div>
         </div>
@@ -426,12 +426,12 @@ export function VerifierDesk({
 
       {/* 3. Verification History Desk Log */}
       {scanHistory.length > 0 && (
-        <div className="bg-surface border border-border rounded-lg p-5 shadow-sm space-y-3">
+        <div className="bg-surface border border-border rounded-md p-5 shadow-none space-y-3">
           <div className="flex items-center justify-between pb-2 border-b border-border">
             <div className="flex items-center gap-2">
               <History size={16} className="text-ink-muted" />
-              <h3 className="font-display text-small font-bold text-ink uppercase tracking-wider">
-                Recent Verifications at {checkpoint}
+              <h3 className="font-display text-small font-bold text-ink">
+                Recent verifications at {checkpoint}
               </h3>
             </div>
             <span className="text-[11px] font-mono text-ink-muted">
@@ -465,11 +465,11 @@ export function VerifierDesk({
                 <div className="flex items-center gap-3 shrink-0 text-meta font-mono text-ink-muted">
                   <span
                     className={cn(
-                      'px-1.5 py-0.5 rounded-xs text-[10px] uppercase font-bold',
+                      'px-1.5 py-0.5 rounded-xs text-[10px] font-medium capitalize',
                       scan.status === 'valid'
                         ? 'bg-in-campus/10 text-in-campus'
                         : scan.status === 'expired'
-                        ? 'bg-warning/15 text-warning-border'
+                        ? 'bg-warning/15 text-warning'
                         : 'bg-danger/10 text-danger'
                     )}
                   >

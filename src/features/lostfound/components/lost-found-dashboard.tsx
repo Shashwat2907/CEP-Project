@@ -268,7 +268,6 @@ export function LostFoundDashboard({
               variant="secondary"
               size="sm"
               onClick={() => setIsReportLostOpen(true)}
-              className="border-ink text-ink font-semibold"
             >
               <span>I Lost Something</span>
             </Button>
@@ -428,7 +427,7 @@ export function LostFoundDashboard({
             return (
               <div
                 key={item.id}
-                className="bg-surface border border-border rounded-lg p-5 shadow-xs hover:shadow-sm transition-all space-y-4 flex flex-col justify-between"
+                className="bg-surface border border-border rounded-md p-5 transition-colors hover:border-ink/50 space-y-4 flex flex-col justify-between"
               >
                 <div className="space-y-3">
                   {/* Status row */}

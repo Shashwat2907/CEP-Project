@@ -160,7 +160,7 @@ export function AdminIdManagement({
   return (
     <div className="space-y-6">
       {/* 1. Header Card */}
-      <div className="bg-surface border border-border rounded-lg p-5 shadow-sm space-y-4">
+      <div className="bg-surface border border-border rounded-md p-5 shadow-none space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-border">
           <div>
             <div className="flex items-center gap-2">
@@ -230,9 +230,9 @@ export function AdminIdManagement({
       </div>
 
       {/* 2. Roster Table */}
-      <div className="bg-surface border border-border rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-surface border border-border rounded-md shadow-none overflow-hidden">
         <div className="px-5 py-3 border-b border-border bg-surface-sunken/40 flex items-center justify-between">
-          <span className="text-small font-bold text-ink uppercase tracking-wider font-display">
+          <span className="text-small font-bold text-ink font-display">
             Member Credentials ({filteredUsers.length})
           </span>
           <span className="text-[11px] font-mono text-ink-muted">
@@ -243,7 +243,7 @@ export function AdminIdManagement({
         <div className="divide-y divide-border overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-surface-sunken/30 text-[11px] font-mono text-ink-muted uppercase border-b border-border">
+              <tr className="bg-surface-sunken/30 text-[11px] font-mono text-ink-muted border-b border-border">
                 <th className="px-4 py-2.5">Roll / ID</th>
                 <th className="px-4 py-2.5">Member Name</th>
                 <th className="px-4 py-2.5">Branch / Role</th>

@@ -13,6 +13,8 @@ import { PresenceConsentDialog } from '@/features/presence/components/presence-c
 import { useOptionalPresence } from '@/features/presence/presence-context'
 import { DigitalIdCard } from '@/features/digital-id/components/digital-id-card'
 import type { PresenceConfidence, PresenceConsentRecord } from '@/features/presence/schema'
+import { motion } from 'framer-motion'
+import { motionMicro, reduceMotion } from '@/lib/motion'
 
 export type PresenceState = 'in' | 'out' | 'checking' | 'denied' | 'offline'
 
@@ -189,18 +191,20 @@ export function StatusCluster({
             className={cn(
               'relative grid grid-cols-2 w-[116px] h-8 p-1 rounded-full cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink transition-all group overflow-hidden',
               presence === 'in'
-                ? 'bg-in-campus/15 border border-in-campus/40 shadow-[0_0_8px_rgba(31,157,107,0.2)]'
+                ? 'bg-in-campus/15 border border-in-campus/40'
                 : 'bg-surface-sunken border border-border'
             )}
             title={`Presence status: ${presence.toUpperCase()} (Click to toggle)`}
             aria-label={`Campus presence: ${presence.toUpperCase()}. Click to toggle`}
           >
             {/* Sliding active pill background thumb: perfectly symmetrical 50% - 4px width */}
-            <div
+            <motion.div
+              layout
+              transition={reduceMotion(motionMicro)}
               className={cn(
-                'absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-all duration-200 ease-out pointer-events-none',
+                'absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full pointer-events-none',
                 presence === 'in'
-                  ? 'left-1 bg-in-campus text-white shadow-sm'
+                  ? 'left-1 bg-in-campus text-white shadow-xs'
                   : 'left-[50%] bg-surface border border-border text-ink shadow-xs'
               )}
             />
