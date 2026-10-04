@@ -60,8 +60,11 @@ export default function RootLayout({
       lang="en"
       // dark class toggled here by theme switcher (next-themes, added in app-shell slice)
       className={`${display.variable} ${body.variable} ${mono.variable} h-full`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   )
 }
