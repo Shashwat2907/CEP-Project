@@ -19,4 +19,10 @@ All notification `type` strings must follow the naming convention `<feature>.<pa
 | `security.new_login` | Identity | Sent on successful sign-in from a new device/IP | `{ ip, timestamp, userAgent }` | `/profile/security` |
 | `acad.resource_approved` | Acad | Sent to student when their uploaded academic resource is approved | `{ resourceId, title }` | `/acad` |
 | `acad.resource_rejected` | Acad | Sent to student when their uploaded academic resource is rejected | `{ resourceId, title, reason }` | `/acad` |
+| `clubs.join_requested` | Clubs | Sent to club lead when a student requests to join | `{ clubId, clubName, studentId }` | `/clubs/[id]` |
+| `clubs.join_approved` | Clubs | Sent to student when club lead approves membership | `{ clubId, clubName }` | `/clubs/[id]` |
+| `clubs.join_rejected` | Clubs | Sent to student when club join request is rejected | `{ clubId, clubName, reason }` | `/clubs/[id]` |
+| `clubs.payment_confirmed` | Clubs | Sent to member when payment webhook activates membership | `{ clubId, clubName, paymentRef, amount }` | `/clubs/[id]` |
+| `clubs.payment_failed` | Clubs | Sent to student when payment fails | `{ clubId, clubName, errorCode }` | `/clubs/[id]` |
+| `clubs.notice_posted` | Clubs | Sent to club members when lead posts a notice | `{ clubId, clubName, noticeId }` | `/clubs/[id]` |
 

@@ -384,16 +384,16 @@ Mark each branch as the team progresses. Status values: `not started`, `in progr
 | `feat/meet-booking` | Kushal | meet-availability | not started |
 | `feat/meet-online-call` | Kushal | meet-booking | not started |
 | `feat/meet-whiteboard` | Kushal | meet-online-call | not started |
-| `feat/acad-resources-core` | Kedar | auth-and-roles | not started |
-| `feat/acad-browse-and-filter` | Kedar | acad-resources-core | not started |
-| `feat/acad-processing-pipeline` | Kedar | acad-resources-core | not started |
-| `feat/flashcards` | Kedar | acad-processing-pipeline | not started |
-| `feat/doubt-chat` | Kedar | acad-processing-pipeline | not started |
-| `feat/community-core` | Kedar | roster import | not started |
-| `feat/community-chat` | Kedar | community-core | not started |
-| `feat/community-tags` | Kedar | community-chat | not started |
-| `feat/clubs-core` | Kedar | community-core | not started |
-| `feat/clubs-join-and-payments` | Kedar | clubs-core | not started |
+| `feat/acad-resources-core` | Kedar | auth-and-roles | done |
+| `feat/acad-browse-and-filter` | Kedar | acad-resources-core | done |
+| `feat/acad-processing-pipeline` | Kedar | acad-resources-core | done |
+| `feat/flashcards` | Kedar | acad-processing-pipeline | done |
+| `feat/doubt-chat` | Kedar | acad-processing-pipeline | done |
+| `feat/community-core` | Kedar | roster import | done |
+| `feat/community-chat` | Kedar | community-core | done |
+| `feat/community-tags` | Kedar | community-chat | done |
+| `feat/clubs-core` | Kedar | community-core | done |
+| `feat/clubs-join-and-payments` | Kedar | clubs-core | done |
 
 Detailed checklists per branch are in `TEAM_TASKS.md`.
 

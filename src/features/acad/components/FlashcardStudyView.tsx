@@ -38,6 +38,9 @@ export function FlashcardStudyView({
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [completed, setCompleted] = useState(false)
   const [studyStats, setStudyStats] = useState({ reviewedCount: 0, passedCount: 0 })
+  const [wrongCards, setWrongCards] = useState<FlashcardWithReview[]>([])
+  const [retryRound, setRetryRound] = useState(0)
+  const [showAdvancedSm2, setShowAdvancedSm2] = useState(false)
 
   const currentCard = cards[currentIndex]
 
@@ -59,6 +62,14 @@ export function FlashcardStudyView({
     if (!currentCard) return
     setErrorMsg(null)
 
+    const isPassed = quality >= 3
+    if (!isPassed) {
+      setWrongCards((prev) => {
+        if (prev.some((c) => c.id === currentCard.id)) return prev
+        return [...prev, currentCard]
+      })
+    }
+
     startTransition(async () => {
       const formData = new FormData()
       formData.append('card_id', currentCard.id)
@@ -68,7 +79,7 @@ export function FlashcardStudyView({
       if (res.ok) {
         setStudyStats((prev) => ({
           reviewedCount: prev.reviewedCount + 1,
-          passedCount: quality >= 3 ? prev.passedCount + 1 : prev.passedCount,
+          passedCount: isPassed ? prev.passedCount + 1 : prev.passedCount,
         }))
 
         // Move to next card or complete
@@ -83,6 +94,35 @@ export function FlashcardStudyView({
       }
     })
   }, [currentCard, currentIndex, cards.length])
+
+  const handleMarkIncorrect = useCallback(() => {
+    handleRate(1)
+  }, [handleRate])
+
+  const handleMarkCorrect = useCallback(() => {
+    handleRate(4)
+  }, [handleRate])
+
+  const handleRetryWrongCards = useCallback(() => {
+    if (wrongCards.length === 0) return
+    setCards([...wrongCards])
+    setWrongCards([])
+    setCurrentIndex(0)
+    setIsFlipped(false)
+    setCompleted(false)
+    setRetryRound((r) => r + 1)
+    setStudyStats({ reviewedCount: 0, passedCount: 0 })
+  }, [wrongCards])
+
+  const handleRestartFullDeck = useCallback(() => {
+    setCards(initialCards)
+    setWrongCards([])
+    setCurrentIndex(0)
+    setIsFlipped(false)
+    setCompleted(false)
+    setRetryRound(0)
+    setStudyStats({ reviewedCount: 0, passedCount: 0 })
+  }, [initialCards])
 
   const handleSaveEdit = () => {
     if (!currentCard) return
@@ -158,21 +198,26 @@ export function FlashcardStudyView({
         e.preventDefault()
         handleFlip()
       } else if (isFlipped && !isPending && !completed) {
-        if (e.key === '1') handleRate(1)
-        else if (e.key === '2') handleRate(2)
-        else if (e.key === '3') handleRate(3)
-        else if (e.key === '4' || e.key === '5') handleRate(5)
+        if (e.key === '1' || e.key.toLowerCase() === 'x' || e.key === 'ArrowLeft') {
+          handleMarkIncorrect()
+        } else if (e.key === '2' || e.key.toLowerCase() === 'c' || e.key === 'ArrowRight') {
+          handleMarkCorrect()
+        } else if (e.key === '3') {
+          handleRate(3)
+        } else if (e.key === '4' || e.key === '5') {
+          handleRate(5)
+        }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isFlipped, isPending, completed, isEditing, handleFlip, handleRate])
+  }, [isFlipped, isPending, completed, isEditing, handleFlip, handleMarkIncorrect, handleMarkCorrect, handleRate])
 
   // Empty deck state
   if (!cards || cards.length === 0) {
     return (
-      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '2rem 1rem' }}>
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '2rem 1rem' }}>
         <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
           <Link
             href="/"
@@ -249,9 +294,10 @@ export function FlashcardStudyView({
     const accuracy = studyStats.reviewedCount > 0
       ? Math.round((studyStats.passedCount / studyStats.reviewedCount) * 100)
       : 100
+    const missedCount = wrongCards.length
 
     return (
-      <div style={{ maxWidth: '640px', margin: '0 auto', padding: '2rem 1rem' }}>
+      <div style={{ maxWidth: '680px', margin: '0 auto', padding: '2rem 1rem' }}>
         <div
           style={{
             background: 'var(--card)',
@@ -267,63 +313,143 @@ export function FlashcardStudyView({
         >
           <div
             style={{
-              width: '56px',
-              height: '56px',
+              width: '64px',
+              height: '64px',
               borderRadius: '50%',
-              background: 'rgba(34, 197, 94, 0.12)',
+              background: missedCount === 0 ? 'rgba(34, 197, 94, 0.12)' : 'rgba(245, 158, 11, 0.12)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              color: 'var(--success, #22c55e)',
+              color: missedCount === 0 ? 'var(--success, #22c55e)' : '#d97706',
             }}
           >
-            <CheckCircle2 size={32} />
+            {missedCount === 0 ? <CheckCircle2 size={36} /> : <RotateCw size={36} />}
           </div>
 
           <div>
             <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: '0 0 0.5rem' }}>
-              Study Session Complete!
+              {retryRound > 0 ? `Targeted Practice Round #${retryRound} Complete!` : 'Study Session Complete!'}
             </h2>
             <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', margin: 0 }}>
               You reviewed {studyStats.reviewedCount || cards.length} cards from &ldquo;{resourceTitle}&rdquo;.
             </p>
           </div>
 
+          {/* Stats Bar */}
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '1rem',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '0.75rem',
               width: '100%',
-              maxWidth: '360px',
+              maxWidth: '440px',
               padding: '1rem',
               background: 'var(--muted, #f9fafb)',
               borderRadius: '0.5rem',
             }}
           >
             <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--primary)' }}>
+              <div style={{ fontSize: '1.375rem', fontWeight: 700, color: 'var(--primary)' }}>
                 {studyStats.reviewedCount}
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Reviewed</div>
             </div>
             <div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--success, #22c55e)' }}>
+              <div style={{ fontSize: '1.375rem', fontWeight: 700, color: '#16a34a' }}>
+                {studyStats.passedCount}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Correct</div>
+            </div>
+            <div>
+              <div style={{ fontSize: '1.375rem', fontWeight: 700, color: missedCount > 0 ? '#dc2626' : '#16a34a' }}>
                 {accuracy}%
               </div>
               <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Retention</div>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center' }}>
+          {/* Targeted Retry Prompt if any cards were marked incorrect */}
+          {missedCount > 0 ? (
+            <div
+              style={{
+                width: '100%',
+                maxWidth: '480px',
+                padding: '1.25rem',
+                borderRadius: '0.625rem',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                background: 'rgba(239, 68, 68, 0.04)',
+                textAlign: 'left',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <AlertCircle size={18} style={{ color: '#dc2626' }} />
+                <span style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#dc2626' }}>
+                  {missedCount} Flashcard{missedCount > 1 ? 's' : ''} Need Review
+                </span>
+              </div>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--muted-foreground)', marginBottom: '0.75rem', lineHeight: 1.4 }}>
+                Solidify your retention by attempting only the cards you marked as incorrect:
+              </p>
+              <ul style={{ margin: '0 0 1rem 1.25rem', padding: 0, fontSize: '0.8125rem', color: 'var(--foreground)' }}>
+                {wrongCards.slice(0, 4).map((c) => (
+                  <li key={c.id} style={{ marginBottom: '0.25rem' }}>
+                    {c.front}
+                  </li>
+                ))}
+                {wrongCards.length > 4 && (
+                  <li style={{ color: 'var(--muted-foreground)' }}>
+                    + {wrongCards.length - 4} more missed questions
+                  </li>
+                )}
+              </ul>
+
+              <button
+                type="button"
+                onClick={handleRetryWrongCards}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '0.75rem 1.25rem',
+                  borderRadius: '0.5rem',
+                  background: '#dc2626',
+                  color: '#ffffff',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)',
+                }}
+              >
+                <RotateCw size={16} />
+                <span>Attempt Wrong Cards Again ({missedCount})</span>
+              </button>
+            </div>
+          ) : (
+            <div
+              style={{
+                width: '100%',
+                maxWidth: '440px',
+                padding: '0.875rem 1rem',
+                borderRadius: '0.5rem',
+                background: 'rgba(34, 197, 94, 0.08)',
+                border: '1px solid rgba(34, 197, 94, 0.2)',
+                color: '#15803d',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              🎉 Outstanding! You mastered all cards in this session.
+            </div>
+          )}
+
+          {/* Action Navigation Buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'center', marginTop: '0.5rem' }}>
             <button
               type="button"
-              onClick={() => {
-                setCurrentIndex(0)
-                setIsFlipped(false)
-                setCompleted(false)
-                setStudyStats({ reviewedCount: 0, passedCount: 0 })
-              }}
+              onClick={handleRestartFullDeck}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -338,7 +464,7 @@ export function FlashcardStudyView({
               }}
             >
               <RotateCw size={15} />
-              <span>Review Again</span>
+              <span>Restart Full Deck</span>
             </button>
 
             <Link
@@ -366,7 +492,7 @@ export function FlashcardStudyView({
   }
 
   return (
-    <div style={{ maxWidth: '640px', margin: '0 auto', padding: '1.5rem 1rem' }}>
+    <div style={{ maxWidth: '680px', margin: '0 auto', padding: '1.5rem 1rem' }}>
       {/* Top Header & Navigation */}
       <div
         style={{
@@ -406,6 +532,21 @@ export function FlashcardStudyView({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {retryRound > 0 && (
+            <span
+              style={{
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '0.2rem 0.5rem',
+                borderRadius: '999px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                color: '#dc2626',
+                border: '1px solid rgba(239, 68, 68, 0.2)',
+              }}
+            >
+              Retry Mode ({cards.length} cards)
+            </span>
+          )}
           <button
             type="button"
             onClick={handleRegenerate}
@@ -433,7 +574,14 @@ export function FlashcardStudyView({
       {/* Progress Bar & Counter */}
       <div style={{ marginBottom: '1.25rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginBottom: '0.375rem', color: 'var(--muted-foreground)' }}>
-          <span>Card {currentIndex + 1} of {cards.length}</span>
+          <span>
+            Card {currentIndex + 1} of {cards.length}
+            {wrongCards.length > 0 && (
+              <span style={{ marginLeft: '0.5rem', color: '#dc2626' }}>
+                ({wrongCards.length} missed)
+              </span>
+            )}
+          </span>
           <span>{Math.round(((currentIndex) / cards.length) * 100)}% Completed</span>
         </div>
         <div
@@ -449,7 +597,7 @@ export function FlashcardStudyView({
             style={{
               height: '100%',
               width: `${((currentIndex + 1) / cards.length) * 100}%`,
-              background: 'var(--primary)',
+              background: retryRound > 0 ? '#dc2626' : 'var(--primary)',
               transition: 'width 0.3s ease',
             }}
           />
@@ -570,7 +718,7 @@ export function FlashcardStudyView({
           </div>
         </div>
       ) : (
-        // Standard Flip Card
+        // Standard Flip Card with Clear Question / Answer Distinction
         <div style={{ perspective: '1000px', width: '100%' }}>
           <div
             onClick={handleFlip}
@@ -578,12 +726,12 @@ export function FlashcardStudyView({
             tabIndex={0}
             aria-label={isFlipped ? 'Card flipped to answer. Press space to flip back.' : 'Card showing question. Press space to flip.'}
             style={{
-              minHeight: '260px',
+              minHeight: '280px',
               width: '100%',
-              borderRadius: '0.75rem',
+              borderRadius: '0.875rem',
               border: `2px solid ${isFlipped ? 'var(--primary)' : 'var(--border)'}`,
               background: 'var(--card)',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+              boxShadow: '0 4px 14px rgba(0,0,0,0.06)',
               padding: '1.75rem',
               cursor: 'pointer',
               display: 'flex',
@@ -604,13 +752,34 @@ export function FlashcardStudyView({
                 color: 'var(--muted-foreground)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                <BookOpen size={14} />
-                <span>
-                  {currentCard.source_page
-                    ? `Source: Page ${currentCard.source_page}`
-                    : 'Course Resource Citation'}
-                </span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <BookOpen size={14} />
+                  <span>
+                    {currentCard.source_page
+                      ? `Source: Page ${currentCard.source_page}`
+                      : 'Course Resource Citation'}
+                  </span>
+                </div>
+
+                {isFlipped && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: '0.15rem 0.5rem',
+                      borderRadius: '999px',
+                      background: 'rgba(34, 197, 94, 0.12)',
+                      color: '#16a34a',
+                      fontWeight: 600,
+                      fontSize: '0.7rem',
+                    }}
+                  >
+                    <CheckCircle2 size={11} />
+                    Answer Revealed
+                  </span>
+                )}
               </div>
 
               {/* Action buttons (Edit & Delete) */}
@@ -652,30 +821,80 @@ export function FlashcardStudyView({
             </div>
 
             {/* Center Content: Question (Front) or Answer (Back) */}
-            <div style={{ padding: '1.25rem 0', textAlign: 'center' }}>
-              <div
-                style={{
-                  fontSize: '0.75rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  fontWeight: 700,
-                  color: isFlipped ? 'var(--primary)' : 'var(--muted-foreground)',
-                  marginBottom: '0.5rem',
-                }}
-              >
-                {isFlipped ? 'Answer' : 'Question'}
-              </div>
-              <p
-                style={{
-                  fontSize: isFlipped ? '1.0625rem' : '1.1875rem',
-                  fontWeight: isFlipped ? 500 : 600,
-                  lineHeight: 1.5,
-                  margin: 0,
-                  color: 'var(--foreground)',
-                }}
-              >
-                {isFlipped ? currentCard.back : currentCard.front}
-              </p>
+            <div style={{ padding: '1.25rem 0', textAlign: 'left' }}>
+              {isFlipped ? (
+                <div>
+                  {/* Subtle Question Reminder Box */}
+                  <div
+                    style={{
+                      padding: '0.625rem 0.875rem',
+                      borderRadius: '0.5rem',
+                      background: 'var(--muted, #f3f4f6)',
+                      border: '1px solid var(--border)',
+                      marginBottom: '1rem',
+                      fontSize: '0.8125rem',
+                      color: 'var(--muted-foreground)',
+                      lineHeight: 1.4,
+                    }}
+                  >
+                    <strong style={{ color: 'var(--foreground)' }}>Question:</strong> {currentCard.front}
+                  </div>
+
+                  {/* High-Yield Answer Text */}
+                  <div>
+                    <div
+                      style={{
+                        fontSize: '0.75rem',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        fontWeight: 700,
+                        color: 'var(--primary)',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      Answer / Key Concept
+                    </div>
+                    <p
+                      style={{
+                        fontSize: '1.0625rem',
+                        fontWeight: 500,
+                        lineHeight: 1.6,
+                        margin: 0,
+                        color: 'var(--foreground)',
+                        whiteSpace: 'pre-line',
+                      }}
+                    >
+                      {currentCard.back}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      fontWeight: 700,
+                      color: 'var(--muted-foreground)',
+                      marginBottom: '0.75rem',
+                    }}
+                  >
+                    Question
+                  </div>
+                  <p
+                    style={{
+                      fontSize: '1.1875rem',
+                      fontWeight: 600,
+                      lineHeight: 1.5,
+                      margin: 0,
+                      color: 'var(--foreground)',
+                    }}
+                  >
+                    {currentCard.front}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Bottom prompt */}
@@ -691,136 +910,217 @@ export function FlashcardStudyView({
               }}
             >
               <RotateCw size={12} />
-              <span>{isFlipped ? 'Click or press Space to see question' : 'Click or press Space to flip'}</span>
+              <span>{isFlipped ? 'Click card or press Space to flip back' : 'Click or press Space to reveal answer'}</span>
             </div>
           </div>
         </div>
       )}
 
-      {/* SM-2 Rating Controls (Revealed when card is flipped) */}
+      {/* Answer Evaluation Controls (Revealed when card is flipped) */}
       {isFlipped && !isEditing && (
-        <div style={{ marginTop: '1.25rem' }}>
+        <div style={{ marginTop: '1.5rem' }}>
           <div
             style={{
-              fontSize: '0.75rem',
+              fontSize: '0.8125rem',
               fontWeight: 600,
-              color: 'var(--muted-foreground)',
+              color: 'var(--foreground)',
               textAlign: 'center',
-              marginBottom: '0.5rem',
+              marginBottom: '0.75rem',
             }}
           >
-            How well did you know this? (SM-2 Interval Scheduling)
+            Did you get this question right?
           </div>
 
+          {/* Primary Binary Buttons: Incorrect vs Correct */}
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '0.5rem',
+              gridTemplateColumns: '1fr 1fr',
+              gap: '0.875rem',
+              marginBottom: '0.75rem',
             }}
           >
-            {/* Again (1) */}
+            {/* Incorrect Button */}
             <button
               type="button"
-              onClick={() => handleRate(1)}
+              onClick={handleMarkIncorrect}
               disabled={isPending}
               style={{
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '0.625rem 0.375rem',
-                borderRadius: '0.5rem',
-                border: '1px solid rgba(239, 68, 68, 0.3)',
+                gap: '0.5rem',
+                padding: '0.875rem 1rem',
+                borderRadius: '0.625rem',
+                border: '1.5px solid rgba(239, 68, 68, 0.4)',
                 background: 'rgba(239, 68, 68, 0.08)',
                 color: '#dc2626',
-                fontWeight: 600,
-                fontSize: '0.8125rem',
+                fontWeight: 700,
+                fontSize: '0.9375rem',
                 cursor: isPending ? 'not-allowed' : 'pointer',
-                transition: 'transform 0.1s ease',
+                transition: 'all 0.15s ease',
               }}
             >
-              <span>Again [1]</span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 400, opacity: 0.85 }}>1 day</span>
+              <span>❌ Incorrect</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.8 }}>(Press 1 or X)</span>
             </button>
 
-            {/* Hard (2) */}
+            {/* Correct Button */}
             <button
               type="button"
-              onClick={() => handleRate(2)}
+              onClick={handleMarkCorrect}
               disabled={isPending}
               style={{
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                padding: '0.625rem 0.375rem',
-                borderRadius: '0.5rem',
-                border: '1px solid rgba(245, 158, 11, 0.3)',
-                background: 'rgba(245, 158, 11, 0.08)',
-                color: '#d97706',
-                fontWeight: 600,
-                fontSize: '0.8125rem',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                transition: 'transform 0.1s ease',
-              }}
-            >
-              <span>Hard [2]</span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 400, opacity: 0.85 }}>1 day</span>
-            </button>
-
-            {/* Good (3) */}
-            <button
-              type="button"
-              onClick={() => handleRate(3)}
-              disabled={isPending}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.625rem 0.375rem',
-                borderRadius: '0.5rem',
-                border: '1px solid rgba(34, 197, 94, 0.3)',
-                background: 'rgba(34, 197, 94, 0.08)',
+                gap: '0.5rem',
+                padding: '0.875rem 1rem',
+                borderRadius: '0.625rem',
+                border: '1.5px solid rgba(34, 197, 94, 0.4)',
+                background: 'rgba(34, 197, 94, 0.1)',
                 color: '#16a34a',
-                fontWeight: 600,
-                fontSize: '0.8125rem',
+                fontWeight: 700,
+                fontSize: '0.9375rem',
                 cursor: isPending ? 'not-allowed' : 'pointer',
-                transition: 'transform 0.1s ease',
+                transition: 'all 0.15s ease',
               }}
             >
-              <span>Good [3]</span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 400, opacity: 0.85 }}>
-                {currentCard.review?.repetitions ? `${Math.round((currentCard.review.interval || 1) * (currentCard.review.ease || 2.5))}d` : '1-6d'}
-              </span>
-            </button>
-
-            {/* Easy (5) */}
-            <button
-              type="button"
-              onClick={() => handleRate(5)}
-              disabled={isPending}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '0.625rem 0.375rem',
-                borderRadius: '0.5rem',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                background: 'rgba(59, 130, 246, 0.08)',
-                color: '#2563eb',
-                fontWeight: 600,
-                fontSize: '0.8125rem',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                transition: 'transform 0.1s ease',
-              }}
-            >
-              <span>Easy [4]</span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 400, opacity: 0.85 }}>+ease</span>
+              <span>✅ Correct</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.8 }}>(Press 2 or C)</span>
             </button>
           </div>
+
+          {/* Toggle for Advanced Spaced Repetition (SM-2) */}
+          <div style={{ textAlign: 'center', marginTop: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => setShowAdvancedSm2((p) => !p)}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '0.75rem',
+                color: 'var(--muted-foreground)',
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              {showAdvancedSm2 ? 'Hide detailed SM-2 rating' : 'Advanced SM-2 intervals (Again, Hard, Good, Easy)'}
+            </button>
+          </div>
+
+          {showAdvancedSm2 && (
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(4, 1fr)',
+                gap: '0.5rem',
+                marginTop: '0.75rem',
+                padding: '0.75rem',
+                borderRadius: '0.5rem',
+                background: 'var(--muted, #f9fafb)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {/* Again (1) */}
+              <button
+                type="button"
+                onClick={() => handleRate(1)}
+                disabled={isPending}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.5rem 0.25rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  color: '#dc2626',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <span>Again [1]</span>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 400, opacity: 0.85 }}>1 day</span>
+              </button>
+
+              {/* Hard (2) */}
+              <button
+                type="button"
+                onClick={() => handleRate(2)}
+                disabled={isPending}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.5rem 0.25rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                  background: 'rgba(245, 158, 11, 0.08)',
+                  color: '#d97706',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <span>Hard [2]</span>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 400, opacity: 0.85 }}>1 day</span>
+              </button>
+
+              {/* Good (3) */}
+              <button
+                type="button"
+                onClick={() => handleRate(3)}
+                disabled={isPending}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.5rem 0.25rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid rgba(34, 197, 94, 0.3)',
+                  background: 'rgba(34, 197, 94, 0.08)',
+                  color: '#16a34a',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <span>Good [3]</span>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 400, opacity: 0.85 }}>
+                  {currentCard.review?.repetitions ? `${Math.round((currentCard.review.interval || 1) * (currentCard.review.ease || 2.5))}d` : '1-6d'}
+                </span>
+              </button>
+
+              {/* Easy (5) */}
+              <button
+                type="button"
+                onClick={() => handleRate(5)}
+                disabled={isPending}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '0.5rem 0.25rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  background: 'rgba(59, 130, 246, 0.08)',
+                  color: '#2563eb',
+                  fontWeight: 600,
+                  fontSize: '0.75rem',
+                  cursor: isPending ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <span>Easy [4]</span>
+                <span style={{ fontSize: '0.6875rem', fontWeight: 400, opacity: 0.85 }}>+ease</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

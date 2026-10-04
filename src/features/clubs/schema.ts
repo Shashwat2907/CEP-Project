@@ -104,3 +104,57 @@ export type PostClubNoticeInput = z.infer<typeof PostClubNoticeSchema>
 export const DeleteClubNoticeSchema = z.object({
   notice_id: z.string().uuid(),
 })
+
+export const InitiateClubPaymentSchema = z.object({
+  club_id: z.string().uuid('Invalid club ID'),
+})
+export type InitiateClubPaymentInput = z.infer<typeof InitiateClubPaymentSchema>
+
+export interface ClubPaymentOrder {
+  order_id: string
+  club_id: string
+  club_name: string
+  amount: number
+  currency: string
+  key_id?: string
+  notes?: Record<string, string>
+}
+
+export const RazorpayWebhookPayloadSchema = z.object({
+  entity: z.literal('event').optional(),
+  account_id: z.string().optional(),
+  event: z.string(),
+  contains: z.array(z.string()).optional(),
+  payload: z.object({
+    payment: z.object({
+      entity: z.object({
+        id: z.string(),
+        amount: z.number().optional(),
+        currency: z.string().optional(),
+        status: z.string().optional(),
+        order_id: z.string().optional(),
+        notes: z.record(z.string()).optional(),
+        error_code: z.string().nullable().optional(),
+        error_description: z.string().nullable().optional(),
+      }),
+    }).optional(),
+    order: z.object({
+      entity: z.object({
+        id: z.string(),
+        amount: z.number().optional(),
+        status: z.string().optional(),
+        notes: z.record(z.string()).optional(),
+      }),
+    }).optional(),
+    refund: z.object({
+      entity: z.object({
+        id: z.string(),
+        payment_id: z.string().optional(),
+        amount: z.number().optional(),
+        status: z.string().optional(),
+      }),
+    }).optional(),
+  }),
+  created_at: z.number().optional(),
+})
+export type RazorpayWebhookPayload = z.infer<typeof RazorpayWebhookPayloadSchema>

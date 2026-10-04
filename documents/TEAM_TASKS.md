@@ -270,14 +270,14 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Tags shown next to names in chat and on profiles
 
 ### `feat/clubs-core`
-- [ ] Migrations: `clubs`, `club_members`, `club_notices` with RLS
-- [ ] Clubs directory with preview of what each club offers; club page with notices, events list and community room
-- [ ] "My clubs" page; club lead tools for notices and member list
+- [x] Migrations: `clubs`, `club_members`, `club_notices` with RLS
+- [x] Clubs directory with preview of what each club offers; club page with notices, events list and community room
+- [x] "My clubs" page; club lead tools for notices and member list
 
 ### `feat/clubs-join-and-payments`
-- [ ] Join request flow; lead approval for free clubs
-- [ ] Payment for paid clubs through the payment provider; membership activates only after a verified server-side webhook, never from a client redirect
-- [ ] Status chips: requested, payment pending, member, rejected; refund or failed payment handling
+- [x] Join request flow; lead approval for free clubs
+- [x] Payment for paid clubs through the payment provider; membership activates only after a verified server-side webhook, never from a client redirect
+- [x] Status chips: requested, payment pending, member, rejected; refund or failed payment handling
 
 ---
 
