@@ -143,11 +143,11 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Abuse report button and daily posting limit
 
 ### `feat/events`
-- [ ] Migrations: `events`, `event_rsvps`
-- [ ] Event list with college and external tabs, detail page, RSVP
-- [ ] Create event form with approval step for college-wide visibility
-- [ ] Add to calendar through `addCalendarEntry`
-- [ ] Optional team formation and event chat (reuses Kedar's chat component when ready)
+- [x] Migrations: `events`, `event_rsvps`
+- [x] Event list with college and external tabs, detail page, RSVP
+- [x] Create event form with approval step for college-wide visibility
+- [x] Add to calendar through `addCalendarEntry`
+- [x] Optional team formation and event chat (reuses Kedar's chat component when ready)
 
 ### `feat/organizer-access`
 - [ ] Migration: `external_organizers` with RLS (organizer role can reach event tables only)
