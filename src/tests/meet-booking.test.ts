@@ -193,7 +193,7 @@ describe('Double-Booking Prevention & Simultaneous Collision', () => {
 
     const failedResult = !res1.ok ? res1 : res2
     expect(failedResult.ok).toBe(false)
-    if (!failedResult.ok) {
+    if (!failedResult.ok && 'error' in failedResult && failedResult.error) {
       expect(failedResult.error.code).toBe('SLOT_UNAVAILABLE')
       expect(failedResult.error.message).toBe('This slot was just taken. Please choose another.')
     }
@@ -201,16 +201,28 @@ describe('Double-Booking Prevention & Simultaneous Collision', () => {
 })
 
 describe('Student Mode Selection & Calendar Entry Logic', () => {
+  function resolveModeDetails(
+    mode: 'offline' | 'online',
+    teacherOfficeText: string,
+    sessionId: string
+  ) {
+    const location = mode === 'offline' ? teacherOfficeText : 'Online Video Call'
+    const roomId = mode === 'online' ? `meet-${sessionId.slice(0, 8)}` : null
+    const newStatus = mode === 'offline' ? 'offline_selected' : 'online_selected'
+    return { location, roomId, newStatus }
+  }
+
   it('generates offline meeting location from teacher office hours text', () => {
     const teacherProfile = {
       full_name: 'Dr. Sarah Smith',
       office_hours_text: 'Room 402, Block B (Wed 2-4 PM)',
     }
 
-    const mode = 'offline'
-    const location = mode === 'offline' ? teacherProfile.office_hours_text : 'Online Video Call'
-    const roomId = mode === 'online' ? 'meet-12345678' : null
-    const newStatus = mode === 'offline' ? 'offline_selected' : 'online_selected'
+    const { location, roomId, newStatus } = resolveModeDetails(
+      'offline',
+      teacherProfile.office_hours_text,
+      'abcdef12-3456-7890-abcd-ef1234567890'
+    )
 
     expect(location).toBe('Room 402, Block B (Wed 2-4 PM)')
     expect(roomId).toBeNull()
@@ -219,11 +231,12 @@ describe('Student Mode Selection & Calendar Entry Logic', () => {
 
   it('generates unique video room for online meeting mode', () => {
     const sessionId = 'abcdef12-3456-7890-abcd-ef1234567890'
-    const mode = 'online'
 
-    const location = mode === 'offline' ? 'Faculty Office' : 'Online Video Call'
-    const roomId = mode === 'online' ? `meet-${sessionId.slice(0, 8)}` : null
-    const newStatus = mode === 'offline' ? 'offline_selected' : 'online_selected'
+    const { location, roomId, newStatus } = resolveModeDetails(
+      'online',
+      'Faculty Office',
+      sessionId
+    )
 
     expect(location).toBe('Online Video Call')
     expect(roomId).toBe('meet-abcdef12')
