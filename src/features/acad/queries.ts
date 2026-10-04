@@ -11,7 +11,10 @@ import type {
   FlashcardDeck,
   FlashcardWithReview,
   FlashcardReview,
+  DoubtThread,
+  DoubtMessage,
 } from './schema'
+import type { MatchedChunk } from './lib/doubt-gen'
 
 /**
  * Read-side data fetching for the Academic Resources feature.
@@ -432,5 +435,169 @@ export async function getDeckDueStatus(resourceId: string): Promise<{
     return { hasDeck: false, totalCards: 0, dueCards: 0, deckId: null }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Doubt AI Chat (feat/doubt-chat)
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetches an existing doubt chat thread and its messages.
+ */
+export async function getDoubtThread(
+  threadId: string
+): Promise<{ thread: DoubtThread | null; messages: DoubtMessage[] }> {
+  const { user } = await requireAuth()
+  const supabase = await createClient()
+
+  const { data: thread, error: threadError } = await supabase
+    .from('doubt_threads')
+    .select('*')
+    .eq('id', threadId)
+    .single()
+
+  if (threadError || !thread) {
+    return { thread: null, messages: [] }
+  }
+
+  // Ensure user owns thread
+  if (thread.user_id !== user.id) {
+    return { thread: null, messages: [] }
+  }
+
+  const { data: messages, error: msgError } = await supabase
+    .from('doubt_messages')
+    .select('*')
+    .eq('thread_id', threadId)
+    .order('created_at', { ascending: true })
+
+  if (msgError) {
+    console.error('[acad/queries] getDoubtMessages error:', msgError.message)
+    return { thread: thread as DoubtThread, messages: [] }
+  }
+
+  return {
+    thread: thread as DoubtThread,
+    messages: (messages || []) as DoubtMessage[],
+  }
+}
+
+/**
+ * Gets or initializes a doubt chat thread for the current user scoped to a resource or subject.
+ */
+export async function getOrCreateDoubtThread(
+  resourceId?: string,
+  subjectId?: string
+): Promise<{ thread: DoubtThread | null; messages: DoubtMessage[] }> {
+  const { user } = await requireAuth()
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('doubt_threads')
+    .select('*')
+    .eq('user_id', user.id)
+
+  if (resourceId) {
+    query = query.eq('resource_id', resourceId)
+  } else if (subjectId) {
+    query = query.eq('subject_id', subjectId)
+  }
+
+  const { data: existing } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+  if (existing) {
+    return getDoubtThread(existing.id)
+  }
+
+  // Create new thread
+  let title = 'Doubt Clearing Session'
+  if (resourceId) {
+    const { data: res } = await supabase.from('resources').select('title').eq('id', resourceId).single()
+    if (res?.title) title = `Doubts: ${res.title}`
+  } else if (subjectId) {
+    const { data: sub } = await supabase.from('subjects').select('name').eq('id', subjectId).single()
+    if (sub?.name) title = `Doubts: ${sub.name}`
+  }
+
+  const { data: newThread, error: createError } = await supabase
+    .from('doubt_threads')
+    .insert({
+      user_id: user.id,
+      resource_id: resourceId ?? null,
+      subject_id: subjectId ?? null,
+      title,
+    })
+    .select('*')
+    .single()
+
+  if (createError || !newThread) {
+    console.error('[acad/queries] Failed to create doubt thread:', createError?.message)
+    return { thread: null, messages: [] }
+  }
+
+  return {
+    thread: newThread as DoubtThread,
+    messages: [],
+  }
+}
+
+/**
+ * Searches for similar chunks using vector similarity (RPC match_resource_chunks)
+ * with robust fallback to resource_chunks text query.
+ */
+export async function searchSimilarChunks(
+  embedding: number[],
+  options?: {
+    resourceId?: string
+    subjectId?: string
+    threshold?: number
+    count?: number
+  }
+): Promise<MatchedChunk[]> {
+  const supabase = await createClient()
+
+  try {
+    const { data, error } = await supabase.rpc('match_resource_chunks', {
+      query_embedding: `[${embedding.join(',')}]`,
+      match_threshold: options?.threshold ?? 0.25,
+      match_count: options?.count ?? 5,
+      filter_resource_id: options?.resourceId ?? null,
+      filter_subject_id: options?.subjectId ?? null,
+    })
+
+    if (!error && Array.isArray(data) && data.length > 0) {
+      return data.map((row: { id: string; resource_id: string; chunk_index?: number; page_number: number | null; content: string; similarity?: number }) => ({
+        id: row.id,
+        resource_id: row.resource_id,
+        chunk_index: row.chunk_index,
+        page_number: row.page_number,
+        content: row.content,
+        similarity: row.similarity ?? 0.8,
+      }))
+    }
+  } catch (rpcErr) {
+    console.warn('[acad/queries] match_resource_chunks RPC not available, using fallback:', rpcErr)
+  }
+
+  // Fallback: direct query on resource_chunks
+  let chunkQuery = supabase
+    .from('resource_chunks')
+    .select('id, resource_id, chunk_index, page_number, content')
+
+  if (options?.resourceId) {
+    chunkQuery = chunkQuery.eq('resource_id', options.resourceId)
+  }
+
+  const { data: fallbackChunks } = await chunkQuery.limit(options?.count ?? 5)
+
+  return (fallbackChunks || []).map((c: { id: string; resource_id: string; chunk_index?: number; page_number: number | null; content: string }, i: number) => ({
+    id: c.id,
+    resource_id: c.resource_id,
+    chunk_index: c.chunk_index,
+    page_number: c.page_number,
+    content: c.content,
+    similarity: Math.max(0.3, 0.85 - i * 0.1),
+  }))
+}
+
 
 

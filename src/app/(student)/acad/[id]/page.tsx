@@ -4,6 +4,7 @@ import {
   getResourceWithSignedUrl,
   getResourceChunkCount,
   getDeckDueStatus,
+  getOrCreateDoubtThread,
 } from '@/features/acad/queries'
 import { ResourceDetailView } from '@/features/acad/components/ResourceDetailView'
 import type { Metadata } from 'next'
@@ -30,10 +31,11 @@ export default async function ResourceDetailPage({ params }: ResourceDetailPageP
   await requireAuth()
   const { id } = await params
 
-  const [data, chunkCount, deckStatus] = await Promise.all([
+  const [data, chunkCount, deckStatus, doubtData] = await Promise.all([
     getResourceWithSignedUrl(id),
     getResourceChunkCount(id),
     getDeckDueStatus(id),
+    getOrCreateDoubtThread(id).catch(() => ({ thread: null, messages: [] })),
   ])
 
   if (!data || !data.resource) {
@@ -49,6 +51,8 @@ export default async function ResourceDetailPage({ params }: ResourceDetailPageP
         hasDeck={deckStatus.hasDeck}
         cardCount={deckStatus.totalCards}
         dueCount={deckStatus.dueCards}
+        doubtThreadId={doubtData?.thread?.id}
+        initialDoubtMessages={doubtData?.messages || []}
       />
     </main>
   )

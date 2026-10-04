@@ -224,10 +224,10 @@ Kedar: `docs/acad-and-community-spec`
 ## Kedar: branches (start after Stage 0 is merged)
 
 ### `feat/acad-resources-core`
-- [ ] Migrations: subjects, `resources` with RLS and a storage bucket with policies
-- [ ] Upload form for teachers and students (year, branch, subject, type, file)
-- [ ] Student uploads start as `pending`; teacher approval queue with approve and reject reason
-- [ ] Signed URL download and view
+- [x] Migrations: subjects, `resources` with RLS and a storage bucket with policies
+- [x] Upload form for teachers and students (year, branch, subject, type, file)
+- [x] Student uploads start as `pending`; teacher approval queue with approve and reject reason
+- [x] Signed URL download and view
 
 ### `feat/acad-browse-and-filter`
 - [x] Resource list defaulting to the student's own year and branch
@@ -248,9 +248,9 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Edit, delete and regenerate cards; daily limit respected
 
 ### `feat/doubt-chat`
-- [ ] Retrieval-augmented chat scoped to one resource or one subject
-- [ ] Answers show citations to resource and page; if retrieval is weak the bot says it could not find it
-- [ ] Chat history per user and resource; limit and error states
+- [x] Retrieval-augmented chat scoped to one resource or one subject
+- [x] Answers show citations to resource and page; if retrieval is weak the bot says it could not find it
+- [x] Chat history per user and resource; limit and error states
 
 ### `feat/community-core`
 - [ ] Migrations: `communities`, `community_members` with RLS

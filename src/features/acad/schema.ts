@@ -236,6 +236,60 @@ export const DeleteFlashcardSchema = z.object({
 export type DeleteFlashcardInput = z.infer<typeof DeleteFlashcardSchema>
 
 // ---------------------------------------------------------------------------
+// Doubt AI Chat (feat/doubt-chat)
+// Source of truth: documents/PLAN.md §5.6, TEAM_TASKS.md, CONTRACT.md
+// ---------------------------------------------------------------------------
+
+export const DoubtCitationSchema = z.object({
+  chunk_id:       z.string().uuid().nullable().optional(),
+  resource_id:    z.string().uuid(),
+  resource_title: z.string().optional(),
+  page_number:    z.number().int().positive().nullable().optional(),
+  similarity:     z.number().optional(),
+  excerpt:        z.string().min(1),
+})
+export type DoubtCitation = z.infer<typeof DoubtCitationSchema>
+
+export const ConfidenceStatusSchema = z.enum(['grounded', 'weak_retrieval', 'general_guidance'])
+export type ConfidenceStatus = z.infer<typeof ConfidenceStatusSchema>
+
+export const DoubtMessageSchema = z.object({
+  id:                z.string().uuid(),
+  thread_id:         z.string().uuid(),
+  sender_role:       z.enum(['user', 'assistant']),
+  content:           z.string().min(1),
+  citations:         z.array(DoubtCitationSchema).default([]),
+  confidence_status: ConfidenceStatusSchema.default('grounded'),
+  created_at:        z.string().optional(),
+})
+export type DoubtMessage = z.infer<typeof DoubtMessageSchema>
+
+export const DoubtThreadSchema = z.object({
+  id:          z.string().uuid(),
+  user_id:     z.string().uuid(),
+  resource_id: z.string().uuid().nullable().optional(),
+  subject_id:  z.string().uuid().nullable().optional(),
+  title:       z.string().min(1).default('Doubt Clearing Session'),
+  created_at:  z.string().optional(),
+  updated_at:  z.string().optional(),
+  messages:    z.array(DoubtMessageSchema).optional(),
+})
+export type DoubtThread = z.infer<typeof DoubtThreadSchema>
+
+export const AskDoubtSchema = z.object({
+  question:    z.string().min(2, 'Question must be at least 2 characters').max(1000).trim(),
+  resource_id: z.string().uuid().optional(),
+  subject_id:  z.string().uuid().optional(),
+  thread_id:   z.string().uuid().optional(),
+})
+export type AskDoubtInput = z.infer<typeof AskDoubtSchema>
+
+export const ClearDoubtThreadSchema = z.object({
+  thread_id: z.string().uuid(),
+})
+export type ClearDoubtThreadInput = z.infer<typeof ClearDoubtThreadSchema>
+
+// ---------------------------------------------------------------------------
 // Server action response shape (CONTRACT.md §5.5)
 // ---------------------------------------------------------------------------
 

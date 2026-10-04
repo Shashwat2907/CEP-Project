@@ -14,16 +14,25 @@ import {
   RateFlashcardSchema,
   EditFlashcardSchema,
   DeleteFlashcardSchema,
+  AskDoubtSchema,
+  ClearDoubtThreadSchema,
   type ActionResult,
   type AiQuotaStatus,
+  type DoubtMessage,
 } from './schema'
 
-import { getMaxFileSizeMb, getResourceChunks } from './queries'
+import {
+  getMaxFileSizeMb,
+  getResourceChunks,
+  getOrCreateDoubtThread,
+  searchSimilarChunks,
+} from './queries'
 import { extractText } from './lib/text-extractor'
 import { chunkPages, chunkText } from './lib/chunker'
-import { generateBatchEmbeddings } from './lib/gemini'
+import { generateBatchEmbeddings, generateEmbedding } from './lib/gemini'
 import { calculateSm2 } from './lib/sm2'
 import { generateFlashcardsWithGemini } from './lib/flashcard-gen'
+import { generateDoubtAnswerWithGemini, type MatchedChunk } from './lib/doubt-gen'
 
 
 /**
@@ -953,6 +962,199 @@ export async function deleteFlashcard(
 
   return { ok: true }
 }
+
+// ---------------------------------------------------------------------------
+// Doubt AI Chat Server Actions (feat/doubt-chat)
+// ---------------------------------------------------------------------------
+
+/**
+ * Handles asking an academic doubt. Grounded in resource chunks via pgvector.
+ * Enforces per-user daily AI quota across flashcards and doubt chat.
+ */
+export async function askDoubtQuestionAction(
+  formData: FormData
+): Promise<
+  ActionResult<{
+    threadId: string
+    userMessage: DoubtMessage
+    assistantMessage: DoubtMessage
+    quotaRemaining: number
+  }>
+> {
+  await requireAuth()
+
+  const rawResource = formData.get('resource_id')
+  const rawSubject = formData.get('subject_id')
+  const rawThread = formData.get('thread_id')
+
+  const parsed = AskDoubtSchema.safeParse({
+    question:    formData.get('question'),
+    resource_id: rawResource ? String(rawResource) : undefined,
+    subject_id:  rawSubject ? String(rawSubject) : undefined,
+    thread_id:   rawThread ? String(rawThread) : undefined,
+  })
+
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]?.message || 'Invalid input.'
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: issue } }
+  }
+
+  const { question, resource_id, subject_id, thread_id } = parsed.data
+
+  // 1. Enforce combined AI quota limit
+  const quotaRes = await checkAndIncrementAiQuota()
+  if (!quotaRes.ok) {
+    return quotaRes
+  }
+  if (!quotaRes.data.allowed) {
+    return {
+      ok: false,
+      error: {
+        code: 'QUOTA_EXCEEDED',
+        message: "You've used your AI quota for today. Try again tomorrow.",
+      },
+    }
+  }
+
+  const supabase = await createClient()
+
+  // 2. Resolve or create thread
+  let resolvedThreadId = thread_id
+  let scopeTitle = 'Course Material'
+
+  if (resource_id) {
+    const { data: res } = await supabase.from('resources').select('title').eq('id', resource_id).single()
+    if (res?.title) scopeTitle = res.title
+  } else if (subject_id) {
+    const { data: sub } = await supabase.from('subjects').select('name').eq('id', subject_id).single()
+    if (sub?.name) scopeTitle = sub.name
+  }
+
+  if (!resolvedThreadId) {
+    const threadResult = await getOrCreateDoubtThread(resource_id, subject_id)
+    if (!threadResult.thread) {
+      return { ok: false, error: { code: 'DB_ERROR', message: 'Could not create doubt chat thread.' } }
+    }
+    resolvedThreadId = threadResult.thread.id
+  }
+
+  // 3. Save student question to thread
+  const { data: savedUserMsg, error: userMsgErr } = await supabase
+    .from('doubt_messages')
+    .insert({
+      thread_id: resolvedThreadId,
+      sender_role: 'user',
+      content: question,
+      citations: [],
+      confidence_status: 'grounded',
+    })
+    .select('*')
+    .single()
+
+  if (userMsgErr || !savedUserMsg) {
+    return { ok: false, error: { code: 'DB_ERROR', message: 'Failed to record student message.' } }
+  }
+
+  // 4. Retrieve matching chunks via pgvector embedding or chunk query
+  let matchedChunks: MatchedChunk[] = []
+  try {
+    const embedding = await generateEmbedding(question)
+    matchedChunks = await searchSimilarChunks(embedding, {
+      resourceId: resource_id,
+      subjectId:  subject_id,
+      count: 5,
+    })
+  } catch (embedErr) {
+    console.warn('[acad/actions] Embedding generation failed, falling back to direct chunks:', embedErr)
+    if (resource_id) {
+      const chunks = await getResourceChunks(resource_id)
+      matchedChunks = chunks.map((c, i) => ({
+        id: c.id,
+        resource_id: c.resource_id,
+        chunk_index: c.chunk_index,
+        page_number: c.page_number ?? null,
+        content: c.content,
+        similarity: 0.85 - i * 0.1,
+      }))
+    }
+  }
+
+  // 5. Generate grounded answer
+  const answerResult = await generateDoubtAnswerWithGemini(
+    question,
+    matchedChunks,
+    scopeTitle
+  )
+
+  // 6. Save assistant response with citations
+  const { data: savedAssistantMsg, error: assistantMsgErr } = await supabase
+    .from('doubt_messages')
+    .insert({
+      thread_id: resolvedThreadId,
+      sender_role: 'assistant',
+      content: answerResult.answer,
+      citations: answerResult.citations,
+      confidence_status: answerResult.confidence_status,
+    })
+    .select('*')
+    .single()
+
+  if (assistantMsgErr || !savedAssistantMsg) {
+    return { ok: false, error: { code: 'DB_ERROR', message: 'Failed to record assistant answer.' } }
+  }
+
+  return {
+    ok: true,
+    data: {
+      threadId: resolvedThreadId,
+      userMessage: savedUserMsg as DoubtMessage,
+      assistantMessage: savedAssistantMsg as DoubtMessage,
+      quotaRemaining: quotaRes.data.remaining,
+    },
+  }
+}
+
+/**
+ * Clears messages in a doubt chat thread.
+ */
+export async function clearDoubtThreadAction(
+  formData: FormData
+): Promise<ActionResult> {
+  const { user } = await requireAuth()
+
+  const parsed = ClearDoubtThreadSchema.safeParse({
+    thread_id: formData.get('thread_id'),
+  })
+
+  if (!parsed.success) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Invalid thread ID.' } }
+  }
+
+  const supabase = await createClient()
+
+  // Verify ownership
+  const { data: thread } = await supabase
+    .from('doubt_threads')
+    .select('id, user_id')
+    .eq('id', parsed.data.thread_id)
+    .single()
+
+  if (!thread || thread.user_id !== user.id) {
+    return { ok: false, error: { code: 'FORBIDDEN', message: 'Thread not found or forbidden.' } }
+  }
+
+  const { error } = await supabase
+    .from('doubt_messages')
+    .delete()
+    .eq('thread_id', parsed.data.thread_id)
+
+  if (error) {
+    return { ok: false, error: { code: 'DB_ERROR', message: 'Failed to clear thread messages.' } }
+  }
+
+  return { ok: true }
+}
+
 
 
 

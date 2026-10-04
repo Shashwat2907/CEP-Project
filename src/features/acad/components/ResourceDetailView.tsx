@@ -6,7 +6,6 @@ import {
   Calendar,
   User,
   GraduationCap,
-  Bot,
   AlertCircle,
   CheckCircle2,
   Clock,
@@ -14,7 +13,8 @@ import {
 import { SaveBookmarkButton } from './SaveBookmarkButton'
 import { ProcessingStatusBadge } from './ProcessingStatusBadge'
 import { FlashcardDeckButton } from './FlashcardDeckButton'
-import type { Resource } from '../schema'
+import { DoubtChatButton } from './DoubtChatButton'
+import type { Resource, DoubtMessage } from '../schema'
 
 interface ResourceDetailViewProps {
   resource: Resource
@@ -23,6 +23,8 @@ interface ResourceDetailViewProps {
   hasDeck?: boolean
   cardCount?: number
   dueCount?: number
+  doubtThreadId?: string
+  initialDoubtMessages?: DoubtMessage[]
 }
 
 
@@ -66,6 +68,8 @@ export function ResourceDetailView({
   hasDeck = false,
   cardCount = 0,
   dueCount = 0,
+  doubtThreadId,
+  initialDoubtMessages = [],
 }: ResourceDetailViewProps) {
   const statusInfo =
     PROCESSING_STATUS_INFO[resource.processing_status] ?? PROCESSING_STATUS_INFO.not_started
@@ -283,20 +287,13 @@ export function ResourceDetailView({
             processingStatus={resource.processing_status}
           />
 
-          <div
-            style={{
-              padding: '0.75rem',
-              borderRadius: '0.5rem',
-              border: '1px dashed var(--border)',
-              textAlign: 'center',
-              color: 'var(--muted-foreground)',
-              fontSize: '0.8125rem',
-            }}
-          >
-            <Bot size={16} style={{ marginBottom: '0.25rem', margin: '0 auto' }} />
-            <div>Doubt AI Chat</div>
-            <div style={{ fontSize: '0.7rem' }}>Available in Phase 2</div>
-          </div>
+          <DoubtChatButton
+            resourceId={resource.id}
+            resourceTitle={resource.title}
+            processingStatus={resource.processing_status}
+            initialMessages={initialDoubtMessages}
+            initialThreadId={doubtThreadId}
+          />
         </div>
       </article>
     </div>
