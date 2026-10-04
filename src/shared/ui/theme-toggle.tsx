@@ -55,9 +55,70 @@ function applyTheme(nextTheme: 'light' | 'dark') {
 export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeToggleProps) {
   const theme = React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
-  const toggleTheme = () => {
+  const toggleTheme = (event: React.MouseEvent<HTMLButtonElement>) => {
     const nextTheme = theme === 'light' ? 'dark' : 'light'
-    applyTheme(nextTheme)
+
+    // Check if View Transitions API is supported and motion is not reduced
+    const isTransitionSupported =
+      typeof document !== 'undefined' &&
+      'startViewTransition' in document &&
+      typeof (document as Document & { startViewTransition?: unknown }).startViewTransition === 'function'
+
+    const prefersReducedMotion =
+      typeof window !== 'undefined' &&
+      window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+    if (!isTransitionSupported || prefersReducedMotion) {
+      applyTheme(nextTheme)
+      return
+    }
+
+    // Circular clip-path transition originating from the clicked coordinates
+    const target = event.currentTarget
+    const rect = target?.getBoundingClientRect?.() || { left: 0, top: 0, width: 0, height: 0 }
+    const x = event.clientX || (rect.left + rect.width / 2)
+    const y = event.clientY || (rect.top + rect.height / 2)
+
+    const endRadius = Math.hypot(
+      Math.max(x, window.innerWidth - x),
+      Math.max(y, window.innerHeight - y)
+    )
+
+    const docWithTransition = document as Document & {
+      startViewTransition: (callback: () => void) => {
+        ready: Promise<void>
+        finished: Promise<void>
+      }
+    }
+
+    try {
+      const transition = docWithTransition.startViewTransition(() => {
+        applyTheme(nextTheme)
+      })
+
+      transition.ready
+        .then(() => {
+          document.documentElement.animate(
+            {
+              clipPath: [
+                `circle(0px at ${x}px ${y}px)`,
+                `circle(${endRadius}px at ${x}px ${y}px)`,
+              ],
+            },
+            {
+              duration: 450,
+              easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+              pseudoElement: '::view-transition-new(root)',
+            }
+          )
+        })
+        .catch(() => {
+          applyTheme(nextTheme)
+        })
+    } catch {
+      applyTheme(nextTheme)
+    }
   }
 
   // Sidebar variant: full-width bar with smooth sliding switch above profile
