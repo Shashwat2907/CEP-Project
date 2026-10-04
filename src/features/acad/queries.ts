@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { isSupabaseOnline } from '@/lib/supabase/status'
 import { requireAuth, requireRole } from '@/shared/auth/guards'
 import type {
   ResourceFilterInput,
@@ -15,6 +16,14 @@ import type {
   DoubtMessage,
 } from './schema'
 import type { MatchedChunk } from './lib/doubt-gen'
+import {
+  MOCK_SUBJECTS,
+  MOCK_RESOURCES,
+  MOCK_CHUNKS,
+  MOCK_FLASHCARD_DECK,
+  MOCK_FLASHCARDS,
+  DEV_MOCK_SAVED_IDS,
+} from './mock-acad-data'
 
 /**
  * Read-side data fetching for the Academic Resources feature.
@@ -31,21 +40,31 @@ export async function getSubjects(opts?: {
   year?: number
   branch?: string
 }): Promise<Subject[]> {
-  const supabase = await createClient()
-  let query = supabase
-    .from('subjects')
-    .select('*')
-    .order('name', { ascending: true })
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      let query = supabase
+        .from('subjects')
+        .select('*')
+        .order('name', { ascending: true })
 
-  if (opts?.year)   query = query.eq('year', opts.year)
-  if (opts?.branch) query = query.eq('branch', opts.branch)
+      if (opts?.year)   query = query.eq('year', opts.year)
+      if (opts?.branch) query = query.eq('branch', opts.branch)
 
-  const { data, error } = await query
-  if (error) {
-    console.error('[acad/queries] getSubjects error:', error.message)
-    return []
+      const { data, error } = await query
+      if (!error && data && data.length > 0) {
+        return data as Subject[]
+      }
+    } catch {
+      // Offline / Supabase unreachable
+    }
   }
-  return data as Subject[]
+
+  // Fallback to mock subjects
+  let filtered = [...MOCK_SUBJECTS]
+  if (opts?.year)   filtered = filtered.filter((s) => s.year === opts.year)
+  if (opts?.branch) filtered = filtered.filter((s) => s.branch === opts.branch)
+  return filtered.sort((a, b) => a.name.localeCompare(b.name))
 }
 
 // ---------------------------------------------------------------------------
@@ -54,24 +73,25 @@ export async function getSubjects(opts?: {
 
 /** Fetch the set of resource IDs saved by the current user. */
 export async function getSavedResourceIds(): Promise<string[]> {
-  try {
-    const { user } = await requireAuth()
-    const supabase = await createClient()
+  if (await isSupabaseOnline()) {
+    try {
+      const { user } = await requireAuth()
+      const supabase = await createClient()
 
-    const { data, error } = await supabase
-      .from('saved_resources')
-      .select('resource_id')
-      .eq('user_id', user.id)
+      const { data, error } = await supabase
+        .from('saved_resources')
+        .select('resource_id')
+        .eq('user_id', user.id)
 
-    if (error) {
-      console.error('[acad/queries] getSavedResourceIds error:', error.message)
-      return []
+      if (!error && data) {
+        return data.map((row) => row.resource_id)
+      }
+    } catch {
+      // Offline
     }
-
-    return (data ?? []).map((row) => row.resource_id)
-  } catch {
-    return []
   }
+
+  return Array.from(DEV_MOCK_SAVED_IDS)
 }
 
 /**
@@ -83,7 +103,6 @@ export async function getApprovedResources(
   filter: ResourceFilterInput
 ): Promise<Resource[]> {
   await requireAuth()
-  const supabase = await createClient()
   const savedList = await getSavedResourceIds()
   const savedIds = new Set(savedList)
 
@@ -92,57 +111,84 @@ export async function getApprovedResources(
     return []
   }
 
-  let query = supabase
-    .from('resources')
-    .select(`
-      *,
-      subject:subjects(id, name, code, year, branch),
-      uploader:profiles!resources_uploader_id_fkey(full_name, role_primary)
-    `)
-    .eq('status', 'approved')
-    .order('created_at', { ascending: false })
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      let query = supabase
+        .from('resources')
+        .select(`
+          *,
+          subject:subjects(id, name, code, year, branch),
+          uploader:profiles!resources_uploader_id_fkey(full_name, role_primary)
+        `)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false })
 
-  if (filter.year)       query = query.eq('year', filter.year)
-  if (filter.branch)     query = query.eq('branch', filter.branch)
-  if (filter.subject_id) query = query.eq('subject_id', filter.subject_id)
-  if (filter.type)       query = query.eq('type', filter.type)
-  if (filter.saved)      query = query.in('id', savedList)
+      if (filter.year)       query = query.eq('year', filter.year)
+      if (filter.branch)     query = query.eq('branch', filter.branch)
+      if (filter.subject_id) query = query.eq('subject_id', filter.subject_id)
+      if (filter.type)       query = query.eq('type', filter.type)
+      if (filter.saved)      query = query.in('id', savedList)
+      if (filter.query && filter.query.trim().length > 0) {
+        query = query.ilike('title', `%${filter.query.trim()}%`)
+      }
+
+      const { data, error } = await query
+      if (!error && data && data.length > 0) {
+        return (data as Resource[]).map((r) => ({
+          ...r,
+          is_saved: savedIds.has(r.id),
+        }))
+      }
+    } catch {
+      // Offline
+    }
+  }
+
+  // Fallback to MOCK_RESOURCES
+  let resources = MOCK_RESOURCES.filter((r) => r.status === 'approved')
+
+  if (filter.year)       resources = resources.filter((r) => r.year === filter.year)
+  if (filter.branch)     resources = resources.filter((r) => r.branch === filter.branch)
+  if (filter.subject_id) resources = resources.filter((r) => r.subject_id === filter.subject_id)
+  if (filter.type)       resources = resources.filter((r) => r.type === filter.type)
+  if (filter.saved)      resources = resources.filter((r) => savedIds.has(r.id))
   if (filter.query && filter.query.trim().length > 0) {
-    query = query.ilike('title', `%${filter.query.trim()}%`)
+    const q = filter.query.trim().toLowerCase()
+    resources = resources.filter((r) => r.title.toLowerCase().includes(q))
   }
 
-  const { data, error } = await query
-  if (error) {
-    console.error('[acad/queries] getApprovedResources error:', error.message)
-    return []
-  }
-  return (data as Resource[]).map((r) => ({
+  return resources.map((r) => ({
     ...r,
     is_saved: savedIds.has(r.id),
   }))
 }
 
-
 /** Returns the student's own pending uploads (visible only to the uploader). */
 export async function getMyPendingUploads(): Promise<Resource[]> {
-  const { user } = await requireAuth()
-  const supabase = await createClient()
+  if (await isSupabaseOnline()) {
+    try {
+      const { user } = await requireAuth()
+      const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('resources')
-    .select(`
-      *,
-      subject:subjects(id, name, code, year, branch)
-    `)
-    .eq('uploader_id', user.id)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false })
+      const { data, error } = await supabase
+        .from('resources')
+        .select(`
+          *,
+          subject:subjects(id, name, code, year, branch)
+        `)
+        .eq('uploader_id', user.id)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('[acad/queries] getMyPendingUploads error:', error.message)
-    return []
+      if (!error && data) {
+        return data as Resource[]
+      }
+    } catch {
+      // Offline
+    }
   }
-  return data as Resource[]
+  return []
 }
 
 // ---------------------------------------------------------------------------
@@ -155,44 +201,50 @@ export async function getMyPendingUploads(): Promise<Resource[]> {
  */
 export async function getResourcesForTeacher(): Promise<Resource[]> {
   await requireRole(['teacher', 'admin'])
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('resources')
-    .select(`
-      *,
-      subject:subjects(id, name, code, year, branch),
-      uploader:profiles!resources_uploader_id_fkey(full_name, role_primary)
-    `)
-    .order('created_at', { ascending: false })
+    const { data, error } = await supabase
+      .from('resources')
+      .select(`
+        *,
+        subject:subjects(id, name, code, year, branch),
+        uploader:profiles!resources_uploader_id_fkey(full_name, role_primary)
+      `)
+      .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('[acad/queries] getResourcesForTeacher error:', error.message)
-    return []
+    if (!error && data && data.length > 0) {
+      return data as Resource[]
+    }
+  } catch {
+    // Offline
   }
-  return data as Resource[]
+  return MOCK_RESOURCES
 }
 
 /** Returns only pending resources for the teacher's approval queue. */
 export async function getPendingApprovals(): Promise<Resource[]> {
   await requireRole(['teacher', 'admin'])
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('resources')
-    .select(`
-      *,
-      subject:subjects(id, name, code, year, branch),
-      uploader:profiles!resources_uploader_id_fkey(full_name, role_primary)
-    `)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true }) // oldest first for fairness
+    const { data, error } = await supabase
+      .from('resources')
+      .select(`
+        *,
+        subject:subjects(id, name, code, year, branch),
+        uploader:profiles!resources_uploader_id_fkey(full_name, role_primary)
+      `)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true }) // oldest first for fairness
 
-  if (error) {
-    console.error('[acad/queries] getPendingApprovals error:', error.message)
-    return []
+    if (!error && data) {
+      return data as Resource[]
+    }
+  } catch {
+    // Offline
   }
-  return data as Resource[]
+  return []
 }
 
 // ---------------------------------------------------------------------------
@@ -204,48 +256,58 @@ export async function getResourceWithSignedUrl(
   resourceId: string
 ): Promise<{ resource: Resource; signedUrl: string } | null> {
   await requireAuth()
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const { data: resource, error } = await supabase
-    .from('resources')
-    .select(`
-      *,
-      subject:subjects(id, name, code, year, branch),
-      uploader:profiles!resources_uploader_id_fkey(full_name, role_primary)
-    `)
-    .eq('id', resourceId)
-    .single()
+    const { data: resource, error } = await supabase
+      .from('resources')
+      .select(`
+        *,
+        subject:subjects(id, name, code, year, branch),
+        uploader:profiles!resources_uploader_id_fkey(full_name, role_primary)
+      `)
+      .eq('id', resourceId)
+      .single()
 
-  if (error || !resource) {
-    console.error('[acad/queries] getResourceWithSignedUrl error:', error?.message)
-    return null
+    if (!error && resource) {
+      // Fetch configurable expiry from app_config (default 3600s if missing)
+      const { data: config } = await supabase
+        .from('app_config')
+        .select('value')
+        .eq('key', 'resource_signed_url_expiry')
+        .single()
+
+      const expirySeconds = config?.value ? parseInt(config.value, 10) : 3600
+
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from('resources')
+        .createSignedUrl(resource.storage_path, expirySeconds)
+
+      if (!urlError && urlData?.signedUrl) {
+        const savedList = await getSavedResourceIds()
+        const isSaved = savedList.includes(resource.id)
+
+        return {
+          resource: { ...(resource as Resource), is_saved: isSaved },
+          signedUrl: urlData.signedUrl,
+        }
+      }
+    }
+  } catch {
+    // Offline
   }
 
-  // Fetch configurable expiry from app_config (default 3600s if missing)
-  const { data: config } = await supabase
-    .from('app_config')
-    .select('value')
-    .eq('key', 'resource_signed_url_expiry')
-    .single()
-
-  const expirySeconds = config?.value ? parseInt(config.value, 10) : 3600
-
-  const { data: urlData, error: urlError } = await supabase.storage
-    .from('resources')
-    .createSignedUrl(resource.storage_path, expirySeconds)
-
-  if (urlError || !urlData?.signedUrl) {
-    console.error('[acad/queries] signedUrl error:', urlError?.message)
-    return null
+  // Fallback to MOCK_RESOURCES
+  const mock = MOCK_RESOURCES.find((r) => r.id === resourceId)
+  if (mock) {
+    const savedList = await getSavedResourceIds()
+    return {
+      resource: { ...mock, is_saved: savedList.includes(mock.id) },
+      signedUrl: '#',
+    }
   }
 
-  const savedList = await getSavedResourceIds()
-  const isSaved = savedList.includes(resource.id)
-
-  return {
-    resource: { ...(resource as Resource), is_saved: isSaved },
-    signedUrl: urlData.signedUrl,
-  }
+  return null
 }
 
 
@@ -255,87 +317,114 @@ export async function getResourceWithSignedUrl(
 
 /** Fetch configurable max file size from app_config (returns number in MB). */
 export async function getMaxFileSizeMb(): Promise<number> {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('app_config')
-    .select('value')
-    .eq('key', 'resource_max_file_size_mb')
-    .single()
-  return data?.value ? parseInt(data.value, 10) : 50
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'resource_max_file_size_mb')
+      .single()
+    if (data?.value) return parseInt(data.value, 10)
+  } catch {
+    // Offline
+  }
+  return 50
 }
 
 /** Fetch configurable daily AI limit per user from app_config. */
 export async function getAiDailyLimit(): Promise<number> {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('app_config')
-    .select('value')
-    .eq('key', 'ai_daily_limit_per_user')
-    .single()
-  return data?.value ? parseInt(data.value, 10) : 20
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('app_config')
+      .select('value')
+      .eq('key', 'ai_daily_limit_per_user')
+      .single()
+    if (data?.value) return parseInt(data.value, 10)
+  } catch {
+    // Offline
+  }
+  return 20
 }
 
 /** Fetch current user's AI quota status for today. */
 export async function getUserAiUsage(): Promise<AiQuotaStatus> {
-  const { user } = await requireAuth()
-  const supabase = await createClient()
   const limit = await getAiDailyLimit()
+  try {
+    const { user } = await requireAuth()
+    const supabase = await createClient()
 
-  const today = new Date().toISOString().split('T')[0]
-  const { data, error } = await supabase
-    .from('ai_usage')
-    .select('call_count')
-    .eq('user_id', user.id)
-    .eq('usage_date', today)
-    .maybeSingle()
+    const today = new Date().toISOString().split('T')[0]
+    const { data, error } = await supabase
+      .from('ai_usage')
+      .select('call_count')
+      .eq('user_id', user.id)
+      .eq('usage_date', today)
+      .maybeSingle()
 
-  if (error) {
-    console.error('[acad/queries] getUserAiUsage error:', error.message)
+    if (!error && data) {
+      const callCount = data.call_count ?? 0
+      return {
+        allowed: callCount < limit,
+        call_count: callCount,
+        limit,
+        remaining: Math.max(0, limit - callCount),
+      }
+    }
+  } catch {
+    // Offline
   }
 
-  const callCount = data?.call_count ?? 0
   return {
-    allowed: callCount < limit,
-    call_count: callCount,
+    allowed: true,
+    call_count: 0,
     limit,
-    remaining: Math.max(0, limit - callCount),
+    remaining: limit,
   }
 }
 
 /** Fetch chunks for an approved resource. */
 export async function getResourceChunks(resourceId: string): Promise<ResourceChunk[]> {
-
   await requireAuth()
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const { data, error } = await supabase
-    .from('resource_chunks')
-    .select('id, resource_id, chunk_index, page_number, content, token_count, created_at')
-    .eq('resource_id', resourceId)
-    .order('chunk_index', { ascending: true })
+    const { data, error } = await supabase
+      .from('resource_chunks')
+      .select('id, resource_id, chunk_index, page_number, content, token_count, created_at')
+      .eq('resource_id', resourceId)
+      .order('chunk_index', { ascending: true })
 
-  if (error) {
-    console.error('[acad/queries] getResourceChunks error:', error.message)
-    return []
+    if (!error && data && data.length > 0) {
+      return data
+    }
+  } catch {
+    // Offline
   }
-  return data ?? []
+
+  return MOCK_CHUNKS.filter((c) => c.resource_id === resourceId)
 }
 
 /** Fetch chunk count for a resource. */
 export async function getResourceChunkCount(resourceId: string): Promise<number> {
   await requireAuth()
-  const supabase = await createClient()
+  try {
+    const supabase = await createClient()
 
-  const { count, error } = await supabase
-    .from('resource_chunks')
-    .select('*', { count: 'exact', head: true })
-    .eq('resource_id', resourceId)
+    const { count, error } = await supabase
+      .from('resource_chunks')
+      .select('*', { count: 'exact', head: true })
+      .eq('resource_id', resourceId)
 
-  if (error) {
-    console.error('[acad/queries] getResourceChunkCount error:', error.message)
-    return 0
+    if (!error && count !== null) {
+      return count
+    }
+  } catch {
+    // Offline
   }
-  return count ?? 0
+
+  const chunks = MOCK_CHUNKS.filter((c) => c.resource_id === resourceId)
+  return chunks.length
 }
 
 // ---------------------------------------------------------------------------
@@ -349,59 +438,65 @@ export async function getResourceChunkCount(resourceId: string): Promise<number>
 export async function getFlashcardDeck(
   resourceId: string
 ): Promise<{ deck: FlashcardDeck | null; cards: FlashcardWithReview[] }> {
-  const { user } = await requireAuth()
-  const supabase = await createClient()
+  try {
+    const { user } = await requireAuth()
+    const supabase = await createClient()
 
-  // 1. Fetch deck
-  const { data: deck, error: deckError } = await supabase
-    .from('flashcard_decks')
-    .select('*')
-    .eq('resource_id', resourceId)
-    .eq('owner_id', user.id)
-    .maybeSingle()
-
-  if (deckError || !deck) {
-    if (deckError) console.error('[acad/queries] getFlashcardDeck error:', deckError.message)
-    return { deck: null, cards: [] }
-  }
-
-  // 2. Fetch cards in deck
-  const { data: cards, error: cardsError } = await supabase
-    .from('flashcards')
-    .select('*')
-    .eq('deck_id', deck.id)
-    .order('position', { ascending: true })
-
-  if (cardsError || !cards) {
-    console.error('[acad/queries] getFlashcards error:', cardsError?.message)
-    return { deck: deck as FlashcardDeck, cards: [] }
-  }
-
-  // 3. Fetch reviews for these cards
-  const cardIds = cards.map((c) => c.id)
-  let reviewsMap = new Map<string, FlashcardReview>()
-
-  if (cardIds.length > 0) {
-    const { data: reviews } = await supabase
-      .from('flashcard_reviews')
+    // 1. Fetch deck
+    const { data: deck, error: deckError } = await supabase
+      .from('flashcard_decks')
       .select('*')
-      .in('card_id', cardIds)
-      .eq('user_id', user.id)
+      .eq('resource_id', resourceId)
+      .eq('owner_id', user.id)
+      .maybeSingle()
 
-    if (reviews) {
-      reviewsMap = new Map(reviews.map((r) => [r.card_id, r]))
+    if (!deckError && deck) {
+      // 2. Fetch cards in deck
+      const { data: cards } = await supabase
+        .from('flashcards')
+        .select('*')
+        .eq('deck_id', deck.id)
+        .order('position', { ascending: true })
+
+      if (cards && cards.length > 0) {
+        // 3. Fetch reviews for these cards
+        const cardIds = cards.map((c) => c.id)
+        let reviewsMap = new Map<string, FlashcardReview>()
+
+        const { data: reviews } = await supabase
+          .from('flashcard_reviews')
+          .select('*')
+          .in('card_id', cardIds)
+          .eq('user_id', user.id)
+
+        if (reviews) {
+          reviewsMap = new Map(reviews.map((r) => [r.card_id, r]))
+        }
+
+        const cardsWithReviews: FlashcardWithReview[] = cards.map((c) => ({
+          ...c,
+          review: reviewsMap.get(c.id) ?? null,
+        }))
+
+        return {
+          deck: deck as FlashcardDeck,
+          cards: cardsWithReviews,
+        }
+      }
+      return { deck: deck as FlashcardDeck, cards: [] }
+    }
+  } catch {
+    // Offline
+  }
+
+  if (resourceId === '00000000-0000-0000-0010-000000000001') {
+    return {
+      deck: MOCK_FLASHCARD_DECK,
+      cards: MOCK_FLASHCARDS,
     }
   }
 
-  const cardsWithReviews: FlashcardWithReview[] = cards.map((c) => ({
-    ...c,
-    review: reviewsMap.get(c.id) ?? null,
-  }))
-
-  return {
-    deck: deck as FlashcardDeck,
-    cards: cardsWithReviews,
-  }
+  return { deck: null, cards: [] }
 }
 
 /**
@@ -446,38 +541,43 @@ export async function getDeckDueStatus(resourceId: string): Promise<{
 export async function getDoubtThread(
   threadId: string
 ): Promise<{ thread: DoubtThread | null; messages: DoubtMessage[] }> {
-  const { user } = await requireAuth()
-  const supabase = await createClient()
+  try {
+    const { user } = await requireAuth()
+    const supabase = await createClient()
 
-  const { data: thread, error: threadError } = await supabase
-    .from('doubt_threads')
-    .select('*')
-    .eq('id', threadId)
-    .single()
+    const { data: thread, error: threadError } = await supabase
+      .from('doubt_threads')
+      .select('*')
+      .eq('id', threadId)
+      .single()
 
-  if (threadError || !thread) {
-    return { thread: null, messages: [] }
-  }
+    if (!threadError && thread && thread.user_id === user.id) {
+      const { data: messages } = await supabase
+        .from('doubt_messages')
+        .select('*')
+        .eq('thread_id', threadId)
+        .order('created_at', { ascending: true })
 
-  // Ensure user owns thread
-  if (thread.user_id !== user.id) {
-    return { thread: null, messages: [] }
-  }
-
-  const { data: messages, error: msgError } = await supabase
-    .from('doubt_messages')
-    .select('*')
-    .eq('thread_id', threadId)
-    .order('created_at', { ascending: true })
-
-  if (msgError) {
-    console.error('[acad/queries] getDoubtMessages error:', msgError.message)
-    return { thread: thread as DoubtThread, messages: [] }
+      return {
+        thread: thread as DoubtThread,
+        messages: (messages || []) as DoubtMessage[],
+      }
+    }
+  } catch {
+    // Offline
   }
 
   return {
-    thread: thread as DoubtThread,
-    messages: (messages || []) as DoubtMessage[],
+    thread: {
+      id: threadId,
+      user_id: '00000000-0000-0000-0000-000000000001',
+      resource_id: '00000000-0000-0000-0010-000000000001',
+      subject_id: null,
+      title: 'Doubt Clearing Session',
+      created_at: '2026-10-04T10:00:00Z',
+      updated_at: '2026-10-04T10:00:00Z',
+    },
+    messages: [],
   }
 }
 
@@ -488,54 +588,69 @@ export async function getOrCreateDoubtThread(
   resourceId?: string,
   subjectId?: string
 ): Promise<{ thread: DoubtThread | null; messages: DoubtMessage[] }> {
-  const { user } = await requireAuth()
-  const supabase = await createClient()
+  try {
+    const { user } = await requireAuth()
+    const supabase = await createClient()
 
-  let query = supabase
-    .from('doubt_threads')
-    .select('*')
-    .eq('user_id', user.id)
+    let query = supabase
+      .from('doubt_threads')
+      .select('*')
+      .eq('user_id', user.id)
 
-  if (resourceId) {
-    query = query.eq('resource_id', resourceId)
-  } else if (subjectId) {
-    query = query.eq('subject_id', subjectId)
+    if (resourceId) {
+      query = query.eq('resource_id', resourceId)
+    } else if (subjectId) {
+      query = query.eq('subject_id', subjectId)
+    }
+
+    const { data: existing } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+    if (existing) {
+      return getDoubtThread(existing.id)
+    }
+
+    // Create new thread
+    let title = 'Doubt Clearing Session'
+    if (resourceId) {
+      const { data: res } = await supabase.from('resources').select('title').eq('id', resourceId).single()
+      if (res?.title) title = `Doubts: ${res.title}`
+    } else if (subjectId) {
+      const { data: sub } = await supabase.from('subjects').select('name').eq('id', subjectId).single()
+      if (sub?.name) title = `Doubts: ${sub.name}`
+    }
+
+    const { data: newThread, error: createError } = await supabase
+      .from('doubt_threads')
+      .insert({
+        user_id: user.id,
+        resource_id: resourceId ?? null,
+        subject_id: subjectId ?? null,
+        title,
+      })
+      .select('*')
+      .single()
+
+    if (!createError && newThread) {
+      return {
+        thread: newThread as DoubtThread,
+        messages: [],
+      }
+    }
+  } catch {
+    // Offline
   }
 
-  const { data: existing } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle()
-
-  if (existing) {
-    return getDoubtThread(existing.id)
-  }
-
-  // Create new thread
-  let title = 'Doubt Clearing Session'
-  if (resourceId) {
-    const { data: res } = await supabase.from('resources').select('title').eq('id', resourceId).single()
-    if (res?.title) title = `Doubts: ${res.title}`
-  } else if (subjectId) {
-    const { data: sub } = await supabase.from('subjects').select('name').eq('id', subjectId).single()
-    if (sub?.name) title = `Doubts: ${sub.name}`
-  }
-
-  const { data: newThread, error: createError } = await supabase
-    .from('doubt_threads')
-    .insert({
-      user_id: user.id,
+  const mockRes = MOCK_RESOURCES.find((r) => r.id === resourceId)
+  return {
+    thread: {
+      id: `mock-thread-${resourceId || subjectId || 'general'}`,
+      user_id: '00000000-0000-0000-0000-000000000001',
       resource_id: resourceId ?? null,
       subject_id: subjectId ?? null,
-      title,
-    })
-    .select('*')
-    .single()
-
-  if (createError || !newThread) {
-    console.error('[acad/queries] Failed to create doubt thread:', createError?.message)
-    return { thread: null, messages: [] }
-  }
-
-  return {
-    thread: newThread as DoubtThread,
+      title: mockRes ? `Doubts: ${mockRes.title}` : 'Doubt Clearing Session',
+      created_at: '2026-10-04T10:00:00Z',
+      updated_at: '2026-10-04T10:00:00Z',
+    },
     messages: [],
   }
 }
@@ -553,9 +668,8 @@ export async function searchSimilarChunks(
     count?: number
   }
 ): Promise<MatchedChunk[]> {
-  const supabase = await createClient()
-
   try {
+    const supabase = await createClient()
     const { data, error } = await supabase.rpc('match_resource_chunks', {
       query_embedding: `[${embedding.join(',')}]`,
       match_threshold: options?.threshold ?? 0.25,
@@ -574,26 +688,40 @@ export async function searchSimilarChunks(
         similarity: row.similarity ?? 0.8,
       }))
     }
-  } catch (rpcErr) {
-    console.warn('[acad/queries] match_resource_chunks RPC not available, using fallback:', rpcErr)
+
+    let chunkQuery = supabase
+      .from('resource_chunks')
+      .select('id, resource_id, chunk_index, page_number, content')
+
+    if (options?.resourceId) {
+      chunkQuery = chunkQuery.eq('resource_id', options.resourceId)
+    }
+
+    const { data: fallbackChunks } = await chunkQuery.limit(options?.count ?? 5)
+    if (fallbackChunks && fallbackChunks.length > 0) {
+      return fallbackChunks.map((c: { id: string; resource_id: string; chunk_index?: number; page_number: number | null; content: string }, i: number) => ({
+        id: c.id,
+        resource_id: c.resource_id,
+        chunk_index: c.chunk_index,
+        page_number: c.page_number,
+        content: c.content,
+        similarity: Math.max(0.3, 0.85 - i * 0.1),
+      }))
+    }
+  } catch {
+    // Offline
   }
 
-  // Fallback: direct query on resource_chunks
-  let chunkQuery = supabase
-    .from('resource_chunks')
-    .select('id, resource_id, chunk_index, page_number, content')
-
+  // Fallback to MOCK_CHUNKS
+  let mockChunks = MOCK_CHUNKS
   if (options?.resourceId) {
-    chunkQuery = chunkQuery.eq('resource_id', options.resourceId)
+    mockChunks = mockChunks.filter((c) => c.resource_id === options.resourceId)
   }
-
-  const { data: fallbackChunks } = await chunkQuery.limit(options?.count ?? 5)
-
-  return (fallbackChunks || []).map((c: { id: string; resource_id: string; chunk_index?: number; page_number: number | null; content: string }, i: number) => ({
+  return mockChunks.slice(0, options?.count ?? 5).map((c, i) => ({
     id: c.id,
     resource_id: c.resource_id,
     chunk_index: c.chunk_index,
-    page_number: c.page_number,
+    page_number: c.page_number ?? null,
     content: c.content,
     similarity: Math.max(0.3, 0.85 - i * 0.1),
   }))

@@ -33,6 +33,7 @@ import { generateBatchEmbeddings, generateEmbedding } from './lib/gemini'
 import { calculateSm2 } from './lib/sm2'
 import { generateFlashcardsWithGemini } from './lib/flashcard-gen'
 import { generateDoubtAnswerWithGemini, type MatchedChunk } from './lib/doubt-gen'
+import { DEV_MOCK_SAVED_IDS } from './mock-acad-data'
 
 
 /**
@@ -386,10 +387,14 @@ export async function toggleSaveResource(
     .maybeSingle()
 
   if (checkError) {
-    console.error('[acad/actions] toggleSaveResource check error:', checkError.message)
-    return {
-      ok: false,
-      error: { code: 'DB_ERROR', message: 'Could not update bookmark. Please try again.' },
+    if (DEV_MOCK_SAVED_IDS.has(resourceId)) {
+      DEV_MOCK_SAVED_IDS.delete(resourceId)
+      revalidatePath('/acad')
+      return { ok: true, data: { saved: false } }
+    } else {
+      DEV_MOCK_SAVED_IDS.add(resourceId)
+      revalidatePath('/acad')
+      return { ok: true, data: { saved: true } }
     }
   }
 

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { redirect } from 'next/navigation'
 import { requireAuth } from '@/shared/auth/guards'
 import { getCurrentProfile } from '@/shared/auth/session'
@@ -94,7 +95,9 @@ export default async function StudentAcadPage({ searchParams }: StudentAcadPageP
       </div>
 
       {/* Filter and Search Bar */}
-      <ResourceFilterBar subjects={allSubjects} />
+      <Suspense fallback={<div style={{ height: '3.5rem', marginBottom: '1.5rem' }} />}>
+        <ResourceFilterBar subjects={allSubjects} />
+      </Suspense>
 
       {/* Upload Collapsible Section */}
       <details

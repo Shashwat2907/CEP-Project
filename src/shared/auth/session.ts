@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { isSupabaseOnline } from '@/lib/supabase/status'
 import { cookies } from 'next/headers'
 import { MOCK_ROSTER } from './mock-roster'
 import type { UserProfile, UserRole, UserRoleType } from './schema'
@@ -10,27 +11,31 @@ import type { User } from '@supabase/supabase-js'
  */
 
 export async function getSession() {
-  try {
-    const supabase = await createClient()
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    if (session) return session
-  } catch {
-    // Offline / Supabase unreachable
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      if (session) return session
+    } catch {
+      // Offline / Supabase unreachable
+    }
   }
   return null
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-    if (user) return user
-  } catch {
-    // Offline / Supabase unreachable
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) return user
+    } catch {
+      // Offline / Supabase unreachable
+    }
   }
 
   // Dev mock session fallback
@@ -70,17 +75,19 @@ export async function getCurrentProfile(): Promise<UserProfile | null> {
   const user = await getCurrentUser()
   if (!user) return null
 
-  try {
-    const supabase = await createClient()
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single()
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
 
-    if (profile) return profile as UserProfile
-  } catch {
-    // Offline / Supabase unreachable
+      if (profile) return profile as UserProfile
+    } catch {
+      // Offline / Supabase unreachable
+    }
   }
 
   // Dev mock profile fallback
@@ -116,16 +123,18 @@ export async function getCurrentRoles(): Promise<UserRole[]> {
   const user = await getCurrentUser()
   if (!user) return []
 
-  try {
-    const supabase = await createClient()
-    const { data: roles } = await supabase
-      .from('user_roles')
-      .select('*')
-      .eq('user_id', user.id)
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data: roles } = await supabase
+        .from('user_roles')
+        .select('*')
+        .eq('user_id', user.id)
 
-    if (roles && roles.length > 0) return roles as UserRole[]
-  } catch {
-    // Offline / Supabase unreachable
+      if (roles && roles.length > 0) return roles as UserRole[]
+    } catch {
+      // Offline / Supabase unreachable
+    }
   }
 
   // Dev mock roles fallback

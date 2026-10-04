@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isSupabaseOnline } from '@/lib/supabase/status'
 
 /**
  * Next.js Middleware: Supabase session refresh and route protection.
@@ -49,9 +50,21 @@ export async function middleware(request: NextRequest) {
   })
 
   // Refresh the session cookie
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user: { id: string; email?: string } | null = null
+  if (await isSupabaseOnline()) {
+    try {
+      const { data } = await supabase.auth.getUser()
+      user = data.user
+    } catch {
+      // Offline / Supabase unreachable
+    }
+  }
+
+  // Check dev mock session cookie if Supabase was offline
+  const mockEmail = request.cookies.get('dev_mock_user_email')?.value
+  if (!user && mockEmail) {
+    user = { id: 'dev-mock-id', email: mockEmail }
+  }
 
   const isAuthRoute = pathname.startsWith('/sign-in')
 

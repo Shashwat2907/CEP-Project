@@ -59,6 +59,18 @@ export const MOCK_ROSTER: MockRosterEntry[] = [
   // Students (Active)
   {
     id: '00000000-0000-0000-0000-000000000010',
+    college_email: 'student@campus.edu',
+    college_id: '23BCE1001',
+    full_name: 'Aarav Mehta',
+    branch: 'Computer Science',
+    year: 2,
+    division: 'A',
+    batch: 'A1',
+    role: 'student',
+    status: 'active',
+  },
+  {
+    id: '00000000-0000-0000-0000-000000000010',
     college_email: 'student1@campus.edu',
     college_id: '23BCE1001',
     full_name: 'Aarav Mehta',
