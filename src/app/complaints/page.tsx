@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 }
 
 export default async function ComplaintsPage() {
-  const { user } = await requireAuth()
+  await requireAuth()
   const profile = await getCurrentProfile()
 
   const [domains, myComplaints] = await Promise.all([

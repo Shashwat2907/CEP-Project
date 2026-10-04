@@ -3,7 +3,6 @@ import {
   CreateComplaintSchema,
   ResolveComplaintSchema,
   ReopenComplaintSchema,
-  UpdateStatusSchema,
   ComplaintStatusSchema,
 } from '@/features/complaints/schema'
 import { NotifyInputSchema } from '@/shared/notifications/notify'

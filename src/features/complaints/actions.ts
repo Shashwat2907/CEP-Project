@@ -14,6 +14,7 @@ import {
   type ReopenComplaintInput,
   type UpdateStatusInput,
   type ActionResult,
+  type EscalationResult,
 } from './schema'
 
 /**
@@ -400,4 +401,219 @@ export async function updateComplaintStatus(
   revalidatePath('/complaints')
   revalidatePath(`/complaints/${complaint_id}`)
   return { ok: true, data: undefined }
+}
+
+// ---------------------------------------------------------------------------
+// 6. Automated Escalation Action (Cron / Scheduled Job / Admin manual run)
+// ---------------------------------------------------------------------------
+
+export async function escalateOverdueComplaintsAction(): Promise<
+  ActionResult<EscalationResult>
+> {
+  const supabase = await createClient()
+
+  // 1. Try to invoke the PostgreSQL stored procedure check_and_escalate_overdue_complaints()
+  const { data: rpcResult, error: rpcError } = await supabase.rpc(
+    'check_and_escalate_overdue_complaints'
+  )
+
+  let escalatedCount = 0
+  let flaggedCount = 0
+  let escalatedIds: string[] = []
+  let flaggedIds: string[] = []
+
+  if (!rpcError && rpcResult) {
+    escalatedCount = rpcResult.escalated_count ?? 0
+    flaggedCount = rpcResult.flagged_admin_count ?? 0
+    escalatedIds = rpcResult.escalated_complaint_ids ?? []
+    flaggedIds = rpcResult.flagged_complaint_ids ?? []
+  } else {
+    // Fallback: Pure TypeScript implementation for environments without RPC or for mock clients
+    const nowIso = new Date().toISOString()
+    const { data: overdueComplaints, error: fetchErr } = await supabase
+      .from('complaints')
+      .select('id, domain_id, current_level, assigned_to, author_id, title, needs_admin_attention')
+      .not('status', 'in', '("resolved","closed")')
+      .not('due_at', 'is', null)
+      .lt('due_at', nowIso)
+
+    if (fetchErr) {
+      console.error('[complaints/actions] Failed to fetch overdue complaints:', fetchErr.message)
+      return {
+        ok: false,
+        error: { code: 'DB_FETCH_FAILED', message: fetchErr.message },
+      }
+    }
+
+    for (const complaint of overdueComplaints ?? []) {
+      const nextLevel = complaint.current_level + 1
+      const { data: nextAssignee } = await supabase
+        .from('domain_assignees')
+        .select('level, role_name, assignee_id, sla_hours')
+        .eq('domain_id', complaint.domain_id)
+        .eq('level', nextLevel)
+        .maybeSingle()
+
+      if (nextAssignee) {
+        // Attempt to insert escalation event (idempotency check)
+        const { data: eventData, error: eventErr } = await supabase
+          .from('complaint_events')
+          .insert({
+            complaint_id: complaint.id,
+            type: 'escalated',
+            from_level: complaint.current_level,
+            to_level: nextAssignee.level,
+            from_status: 'in_progress',
+            to_status: 'escalated',
+            actor_id: null,
+            note: `Automated escalation: SLA breached at Level ${complaint.current_level} (${nextAssignee.role_name})`,
+          })
+          .select('id')
+          .single()
+
+        if (!eventErr && eventData) {
+          const nextDueAt = new Date(Date.now() + (nextAssignee.sla_hours || 24) * 3600000).toISOString()
+          await supabase
+            .from('complaints')
+            .update({
+              current_level: nextAssignee.level,
+              assigned_to: nextAssignee.assignee_id,
+              status: 'escalated',
+              due_at: nextDueAt,
+            })
+            .eq('id', complaint.id)
+
+          escalatedCount++
+          escalatedIds.push(complaint.id)
+
+          // Notify new assignee
+          if (nextAssignee.assignee_id) {
+            await notify({
+              userId: nextAssignee.assignee_id,
+              type: 'complaint.escalated',
+              title: `Complaint Escalated to Level ${nextAssignee.level} (${nextAssignee.role_name})`,
+              body: `Ticket "${complaint.title}" has breached SLA and was escalated to you.`,
+              link: `/complaints/${complaint.id}`,
+              payload: { complaintId: complaint.id, level: nextAssignee.level },
+            })
+          }
+
+          // Notify author
+          await notify({
+            userId: complaint.author_id,
+            type: 'complaint.escalated',
+            title: `Your Complaint Has Escalated to Level ${nextAssignee.level}`,
+            body: `Due to resolution time limit, your grievance has escalated to ${nextAssignee.role_name}.`,
+            link: `/complaints/${complaint.id}`,
+            payload: { complaintId: complaint.id, level: nextAssignee.level },
+          })
+        }
+      } else {
+        // Top-level reached without further assignees
+        if (!complaint.needs_admin_attention) {
+          await supabase
+            .from('complaints')
+            .update({ needs_admin_attention: true })
+            .eq('id', complaint.id)
+
+          await supabase.from('complaint_events').insert({
+            complaint_id: complaint.id,
+            type: 'status_changed',
+            from_level: complaint.current_level,
+            to_level: complaint.current_level,
+            note: 'Top-level authority SLA breached. Ticket flagged as Needs Admin Attention.',
+          })
+
+          flaggedCount++
+          flaggedIds.push(complaint.id)
+
+          // Notify admins
+          const { data: admins } = await supabase
+            .from('user_roles')
+            .select('user_id')
+            .eq('role', 'admin')
+
+          for (const admin of admins ?? []) {
+            await notify({
+              userId: admin.user_id,
+              type: 'complaint.escalated',
+              title: '⚠️ Urgent: Complaint Needs Admin Attention',
+              body: `Complaint "${complaint.title}" breached top-level authority SLA without resolution.`,
+              link: `/complaints/${complaint.id}`,
+              payload: { complaintId: complaint.id, flagged: true },
+            })
+          }
+        }
+      }
+    }
+  }
+
+  // If RPC was used, also trigger notifications for any escalated or flagged tickets
+  if (!rpcError && (escalatedIds.length > 0 || flaggedIds.length > 0)) {
+    for (const id of escalatedIds) {
+      const { data: c } = await supabase
+        .from('complaints')
+        .select('id, title, author_id, assigned_to, current_level')
+        .eq('id', id)
+        .single()
+      if (c) {
+        if (c.assigned_to) {
+          await notify({
+            userId: c.assigned_to,
+            type: 'complaint.escalated',
+            title: `Complaint Escalated to Level ${c.current_level}`,
+            body: `Ticket "${c.title}" has breached SLA and has been escalated to you.`,
+            link: `/complaints/${c.id}`,
+            payload: { complaintId: c.id, level: c.current_level },
+          })
+        }
+        await notify({
+          userId: c.author_id,
+          type: 'complaint.escalated',
+          title: `Your Complaint Has Escalated to Level ${c.current_level}`,
+          body: `Due to resolution time limit, your grievance has escalated to Level ${c.current_level}.`,
+          link: `/complaints/${c.id}`,
+          payload: { complaintId: c.id, level: c.current_level },
+        })
+      }
+    }
+
+    if (flaggedIds.length > 0) {
+      const { data: admins } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'admin')
+
+      for (const id of flaggedIds) {
+        const { data: c } = await supabase
+          .from('complaints')
+          .select('id, title')
+          .eq('id', id)
+          .single()
+        for (const admin of admins ?? []) {
+          await notify({
+            userId: admin.user_id,
+            type: 'complaint.escalated',
+            title: '⚠️ Urgent: Complaint Needs Admin Attention',
+            body: `Complaint "${c?.title ?? id}" breached top-level authority SLA without resolution.`,
+            link: `/complaints/${id}`,
+            payload: { complaintId: id, flagged: true },
+          })
+        }
+      }
+    }
+  }
+
+  revalidatePath('/complaints')
+  return {
+    ok: true,
+    data: {
+      success: true,
+      escalated_count: escalatedCount,
+      flagged_admin_count: flaggedCount,
+      escalated_complaint_ids: escalatedIds,
+      flagged_complaint_ids: flaggedIds,
+      timestamp: new Date().toISOString(),
+    },
+  }
 }

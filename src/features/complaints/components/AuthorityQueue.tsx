@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/button'
 import { Chip } from '@/shared/ui/chip'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog'
-import { Clock, CheckCircle2, Play, AlertTriangle, Shield, User, ArrowRight } from 'lucide-react'
+import { Clock, CheckCircle2, Play, User } from 'lucide-react'
 import { resolveComplaint, updateComplaintStatus } from '../actions'
 import type { Complaint } from '../schema'
 
@@ -69,21 +69,21 @@ export function AuthorityQueue({ complaints }: AuthorityQueueProps) {
       <div className="flex gap-2 border-b border-border pb-2">
         <Button
           size="sm"
-          variant={filter === 'active' ? 'default' : 'ghost'}
+          variant={filter === 'active' ? 'primary' : 'ghost'}
           onClick={() => setFilter('active')}
         >
           Active Queue ({complaints.filter(c => c.status !== 'resolved' && c.status !== 'closed').length})
         </Button>
         <Button
           size="sm"
-          variant={filter === 'resolved' ? 'default' : 'ghost'}
+          variant={filter === 'resolved' ? 'primary' : 'ghost'}
           onClick={() => setFilter('resolved')}
         >
           Resolved / Closed
         </Button>
         <Button
           size="sm"
-          variant={filter === 'all' ? 'default' : 'ghost'}
+          variant={filter === 'all' ? 'primary' : 'ghost'}
           onClick={() => setFilter('all')}
         >
           All ({complaints.length})

@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
-import { Chip } from '@/shared/ui/chip'
 import { AlertCircle, Shield, CheckCircle2, Lock } from 'lucide-react'
 import { submitComplaint } from '../actions'
 import type { ComplaintDomain } from '../schema'
@@ -27,13 +26,6 @@ export function RaiseComplaintForm({ domains }: RaiseComplaintFormProps) {
 
   const selectedDomain = domains.find((d) => d.id === domainId)
   const isSensitive = selectedDomain?.sensitive ?? false
-
-  // If a sensitive domain like Harassment is selected, force anonymity & private notice
-  React.useEffect(() => {
-    if (isSensitive) {
-      setAnonymous(true)
-    }
-  }, [isSensitive])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -136,8 +128,13 @@ export function RaiseComplaintForm({ domains }: RaiseComplaintFormProps) {
             <select
               value={domainId}
               onChange={(e) => {
-                setDomainId(e.target.value)
+                const val = e.target.value
+                setDomainId(val)
                 setSubcategoryId('')
+                const target = domains.find((d) => d.id === val)
+                if (target?.sensitive) {
+                  setAnonymous(true)
+                }
               }}
               className="w-full rounded-md border border-border bg-surface px-3 py-2 text-small text-ink focus:border-ink focus:outline-none"
               required

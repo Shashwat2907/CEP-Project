@@ -7,7 +7,7 @@ import { Button } from '@/shared/ui/button'
 import { Chip } from '@/shared/ui/chip'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog'
-import { Clock, CheckCircle2, RotateCcw, AlertTriangle, Shield, ArrowRight } from 'lucide-react'
+import { Clock, CheckCircle2, RotateCcw, Shield, ArrowRight } from 'lucide-react'
 import { confirmResolution, reopenComplaint } from '../actions'
 import type { Complaint, ComplaintStatus } from '../schema'
 

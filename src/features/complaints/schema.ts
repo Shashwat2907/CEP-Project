@@ -10,18 +10,31 @@ import { z } from 'zod'
 // 1. Complaint Domains & Assignees
 // ---------------------------------------------------------------------------
 
-export const ComplaintDomainSchema = z.object({
-  id:           z.string().uuid(),
-  name:         z.string().min(1),
-  description:  z.string().nullable().optional(),
-  parent_id:    z.string().uuid().nullable().optional(),
-  sensitive:    z.boolean().default(false),
-  routing_mode: z.enum(['chain', 'direct']).default('chain'),
-  visibility:   z.enum(['public', 'private']).default('public'),
-  created_at:   z.string().optional(),
-  subcategories: z.array(z.lazy(() => ComplaintDomainSchema)).optional(),
-})
-export type ComplaintDomain = z.infer<typeof ComplaintDomainSchema>
+export type ComplaintDomain = {
+  id: string
+  name: string
+  description?: string | null
+  parent_id?: string | null
+  sensitive?: boolean
+  routing_mode?: 'chain' | 'direct'
+  visibility?: 'public' | 'private'
+  created_at?: string
+  subcategories?: ComplaintDomain[]
+}
+
+export const ComplaintDomainSchema: z.ZodType<ComplaintDomain, z.ZodTypeDef, unknown> = z.lazy(() =>
+  z.object({
+    id:           z.string().uuid(),
+    name:         z.string().min(1),
+    description:  z.string().nullable().optional(),
+    parent_id:    z.string().uuid().nullable().optional(),
+    sensitive:    z.boolean().default(false),
+    routing_mode: z.enum(['chain', 'direct']).default('chain'),
+    visibility:   z.enum(['public', 'private']).default('public'),
+    created_at:   z.string().optional(),
+    subcategories: z.array(z.lazy(() => ComplaintDomainSchema)).optional(),
+  })
+)
 
 export const DomainAssigneeSchema = z.object({
   id:                   z.string().uuid(),
@@ -88,22 +101,23 @@ export const ComplaintAttachmentSchema = z.object({
 export type ComplaintAttachment = z.infer<typeof ComplaintAttachmentSchema>
 
 export const ComplaintSchema = z.object({
-  id:              z.string().uuid(),
-  author_id:       z.string().uuid(),
-  domain_id:       z.string().uuid(),
-  subcategory_id:  z.string().uuid().nullable().optional(),
-  title:           z.string().min(5, 'Title must be at least 5 characters').max(120),
-  body:            z.string().min(10, 'Description must be at least 10 characters').max(2000),
-  status:          ComplaintStatusSchema,
-  current_level:   z.number().int().min(1).max(3).default(1),
-  assigned_to:     z.string().uuid().nullable().optional(),
-  anonymous:       z.boolean().default(false),
-  due_at:          z.string().nullable().optional(),
-  resolved_at:     z.string().nullable().optional(),
-  resolution_note: z.string().nullable().optional(),
-  reopen_note:     z.string().nullable().optional(),
-  created_at:      z.string(),
-  updated_at:      z.string(),
+  id:                    z.string().uuid(),
+  author_id:             z.string().uuid(),
+  domain_id:             z.string().uuid(),
+  subcategory_id:        z.string().uuid().nullable().optional(),
+  title:                 z.string().min(5, 'Title must be at least 5 characters').max(120),
+  body:                  z.string().min(10, 'Description must be at least 10 characters').max(2000),
+  status:                ComplaintStatusSchema,
+  current_level:         z.number().int().min(1).max(3).default(1),
+  assigned_to:           z.string().uuid().nullable().optional(),
+  anonymous:             z.boolean().default(false),
+  needs_admin_attention: z.boolean().default(false),
+  due_at:                z.string().nullable().optional(),
+  resolved_at:           z.string().nullable().optional(),
+  resolution_note:       z.string().nullable().optional(),
+  reopen_note:           z.string().nullable().optional(),
+  created_at:            z.string(),
+  updated_at:            z.string(),
   // Joined relational data
   domain:          ComplaintDomainSchema.optional(),
   author:          z.object({ full_name: z.string(), role_primary: z.string() }).nullable().optional(),
@@ -112,6 +126,16 @@ export const ComplaintSchema = z.object({
   attachments:     z.array(ComplaintAttachmentSchema).optional(),
 })
 export type Complaint = z.infer<typeof ComplaintSchema>
+
+export const EscalationResultSchema = z.object({
+  success:                 z.boolean(),
+  escalated_count:         z.number(),
+  flagged_admin_count:     z.number(),
+  escalated_complaint_ids: z.array(z.string().uuid()),
+  flagged_complaint_ids:   z.array(z.string().uuid()),
+  timestamp:               z.string(),
+})
+export type EscalationResult = z.infer<typeof EscalationResultSchema>
 
 // ---------------------------------------------------------------------------
 // 3. Form Validation Inputs

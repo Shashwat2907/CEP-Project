@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Chip } from '@/shared/ui/chip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog'
-import { Clock, CheckCircle2, RotateCcw, Shield, ArrowLeft, User, AlertCircle } from 'lucide-react'
+import { Clock, CheckCircle2, RotateCcw, Shield, ArrowLeft, User, AlertTriangle } from 'lucide-react'
 import { confirmResolution, reopenComplaint, resolveComplaint } from '../actions'
 import { ComplaintTimeline } from './ComplaintTimeline'
 import type { Complaint } from '../schema'
@@ -104,6 +104,11 @@ export function ComplaintDetail({
                 {complaint.domain?.name}
               </span>
               <span className="text-meta text-ink-muted">• Level {complaint.current_level}</span>
+              {complaint.needs_admin_attention && (
+                <Chip variant="danger" className="text-meta">
+                  NEEDS ADMIN ATTENTION
+                </Chip>
+              )}
             </div>
 
             {complaint.due_at && !isResolved && !isClosed && (
@@ -140,6 +145,19 @@ export function ComplaintDetail({
         </CardHeader>
 
         <CardContent className="pt-4 space-y-6">
+          {/* Needs Admin Attention Banner */}
+          {complaint.needs_admin_attention && (
+            <div className="rounded-md border border-danger/40 bg-danger/10 p-4">
+              <div className="flex items-center gap-2 text-danger font-semibold">
+                <AlertTriangle className="h-5 w-5" />
+                <span>Needs Admin Attention</span>
+              </div>
+              <p className="mt-1 text-small text-ink">
+                This grievance has breached the highest escalation level SLA without resolution and has been flagged for college administration intervention.
+              </p>
+            </div>
+          )}
+
           {/* Body Description */}
           <div>
             <h4 className="text-meta uppercase font-semibold text-ink-muted tracking-wider">

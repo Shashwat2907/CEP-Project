@@ -214,3 +214,33 @@ export async function getPublicTrackerComplaints(): Promise<Complaint[]> {
     return c
   })
 }
+
+// ---------------------------------------------------------------------------
+// 6. Admin Attention Complaints
+// ---------------------------------------------------------------------------
+
+/** Fetch complaints flagged as "Needs Admin Attention" (accessible by admins). */
+export async function getNeedsAdminAttentionComplaints(): Promise<Complaint[]> {
+  const { profile } = await requireAuth()
+  if (profile.role_primary !== 'admin') {
+    return []
+  }
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('complaints')
+    .select(`
+      *,
+      domain:complaint_domains(id, name, sensitive, visibility),
+      author:profiles!complaints_author_id_fkey(full_name, role_primary),
+      assignee:profiles!complaints_assigned_to_fkey(full_name, role_primary),
+      attachments:complaint_attachments(*)
+    `)
+    .eq('needs_admin_attention', true)
+    .order('updated_at', { ascending: false })
+
+  if (error) {
+    console.error('[complaints/queries] getNeedsAdminAttentionComplaints error:', error.message)
+    return []
+  }
+  return data as Complaint[]
+}

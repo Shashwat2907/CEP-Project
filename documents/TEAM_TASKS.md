@@ -183,11 +183,11 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Notifications on every state change using `notify()`
 
 ### `feat/complaints-escalation`
-- [ ] Edge Function plus scheduled job that escalates overdue complaints to the next level (idempotent: running twice never escalates twice)
-- [ ] Complaint timeline component showing every level and time
-- [ ] Top-level behaviour: flag "needs admin attention" and notify admin
-- [ ] Sensitive domains (ragging, harassment) route directly to the committee and never appear on the public tracker
-- [ ] Tests with shortened SLAs covering each level, resolved before due, and double-run safety
+- [x] Edge Function plus scheduled job that escalates overdue complaints to the next level (idempotent: running twice never escalates twice)
+- [x] Complaint timeline component showing every level and time
+- [x] Top-level behaviour: flag "needs admin attention" and notify admin
+- [x] Sensitive domains (ragging, harassment) route directly to the committee and never appear on the public tracker
+- [x] Tests with shortened SLAs covering each level, resolved before due, and double-run safety
 
 ### `feat/complaints-tracker-and-upvotes`
 - [ ] Migration: `complaint_upvotes` with unique constraint per user and complaint
