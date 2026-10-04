@@ -78,7 +78,7 @@ export async function createCommunityAction(rawInput: CreateCommunityInput) {
       })
 
       if (commError) {
-        return { success: false, error: commError.message }
+        throw new Error(commError.message)
       }
 
       await supabase.from('community_members').insert({
@@ -154,7 +154,7 @@ export async function joinCommunityAction(rawInput: { community_id: string }) {
         if (error.code === '23505') {
           return { success: true, message: 'Already a member' }
         }
-        return { success: false, error: error.message }
+        throw new Error(error.message)
       }
 
       // Update count
@@ -231,7 +231,11 @@ export async function leaveCommunityAction(rawInput: { community_id: string }) {
         .eq('id', community_id)
         .single()
 
-      if (comm?.official) {
+      if (!comm) {
+        throw new Error('Community not found in DB')
+      }
+
+      if (comm.official) {
         return { success: false, error: 'Cannot leave official academic communities.' }
       }
 
@@ -337,13 +341,16 @@ export async function sendMessageAction(rawInput: SendMessageInput) {
         .select()
         .single()
 
-      if (error) {
-        return { success: false, error: error.message }
+      if (!error && data) {
+        revalidatePath(`/community/${community_id}`)
+        return { success: true, message: data as CommunityMessage }
       }
 
-      revalidatePath(`/community/${community_id}`)
-      return { success: true, message: data as CommunityMessage }
-    } catch {
+      if (error) {
+        console.warn('[community/actions] DB insert error on message send, using mock store:', error.message)
+      }
+    } catch (err) {
+      console.warn('[community/actions] DB exception on message send, using mock store:', err)
       // Offline fallback
     }
   }
@@ -391,7 +398,7 @@ export async function voteReplyAction(rawInput: { message_id: string }) {
         .single()
 
       if (msgErr || !msg) {
-        return { success: false, error: 'Message not found' }
+        throw new Error(msgErr?.message || 'Message not found in DB')
       }
 
       if (!msg.parent_id) {

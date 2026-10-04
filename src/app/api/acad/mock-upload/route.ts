@@ -1,17 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MOCK_CHUNKS, MOCK_RESOURCES } from '@/features/acad/mock-acad-data'
 
+export interface UploadedFileStore {
+  buffer: Buffer
+  fileName: string
+  contentType: string
+}
+
+// In-memory cache for files uploaded via mock-upload during development
+export const UPLOADED_FILES_MAP = new Map<string, UploadedFileStore>()
+
 export async function PUT(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const resourceId = searchParams.get('id')
 
     // Read the incoming file binary to ensure complete stream receipt
-    const buffer = await request.arrayBuffer()
+    const arrayBuffer = await request.arrayBuffer()
+    const buffer = Buffer.from(arrayBuffer)
 
     if (resourceId) {
       const res = MOCK_RESOURCES.find((r) => r.id === resourceId)
       if (res) {
+        // Store buffer in cache
+        const fileName = `${res.title.replace(/[^a-zA-Z0-9_\-\.]/g, '_')}.${res.file_ext || 'pdf'}`
+        const contentType = res.file_ext === 'pdf' ? 'application/pdf' : 'application/octet-stream'
+        UPLOADED_FILES_MAP.set(resourceId, {
+          buffer,
+          fileName,
+          contentType,
+        })
+
         // Automatically create initial chunks for the newly uploaded document
         // so Doubt AI and Flashcard generator have context immediately
         const exists = MOCK_CHUNKS.some((c) => c.resource_id === resourceId)
@@ -42,3 +61,4 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ ok: false, error: 'Upload failed' }, { status: 500 })
   }
 }
+

@@ -320,3 +320,14 @@ export const MOCK_FLASHCARDS: FlashcardWithReview[] = [
     review: null,
   },
 ]
+
+// In-memory store for decks keyed by resource_id (persists within server runtime)
+export const MOCK_DECKS_STORE = new Map<string, FlashcardDeck>([
+  ['00000000-0000-0000-0010-000000000001', MOCK_FLASHCARD_DECK],
+])
+
+// In-memory store for cards keyed by deck_id
+export const MOCK_CARDS_STORE = new Map<string, FlashcardWithReview[]>([
+  ['00000000-0000-0000-0030-000000000001', MOCK_FLASHCARDS],
+])
+

@@ -251,10 +251,10 @@ export function ResourceDetailView({
         {/* Primary Download Button */}
         <div>
           <a
-            href={signedUrl}
+            href={signedUrl && signedUrl !== '#' ? signedUrl : `/api/acad/download?id=${encodeURIComponent(resource.id)}`}
             target="_blank"
             rel="noopener noreferrer"
-            download
+            download={`${resource.title.replace(/[^a-zA-Z0-9_\-\.]/g, '_')}.${resource.file_ext || 'pdf'}`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',

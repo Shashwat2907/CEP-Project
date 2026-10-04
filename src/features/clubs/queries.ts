@@ -244,7 +244,7 @@ export async function getMyClubs(): Promise<Club[]> {
         return data
           .filter((row) => row.club)
           .map((row) => ({
-            ...(row.club as Club),
+            ...(row.club as unknown as Club),
             user_status: 'member' as const,
           }))
       }

@@ -22,6 +22,8 @@ import {
   MOCK_CHUNKS,
   MOCK_FLASHCARD_DECK,
   MOCK_FLASHCARDS,
+  MOCK_DECKS_STORE,
+  MOCK_CARDS_STORE,
   DEV_MOCK_SAVED_IDS,
 } from './mock-acad-data'
 
@@ -289,14 +291,17 @@ export async function getResourceWithSignedUrl(
         .from('resources')
         .createSignedUrl(resource.storage_path, expirySeconds)
 
-      if (!urlError && urlData?.signedUrl) {
-        const savedList = await getSavedResourceIds()
-        const isSaved = savedList.includes(resource.id)
+      const downloadUrl =
+        !urlError && urlData?.signedUrl
+          ? urlData.signedUrl
+          : `/api/acad/download?id=${encodeURIComponent(resource.id)}`
 
-        return {
-          resource: { ...(resource as Resource), is_saved: isSaved },
-          signedUrl: urlData.signedUrl,
-        }
+      const savedList = await getSavedResourceIds()
+      const isSaved = savedList.includes(resource.id)
+
+      return {
+        resource: { ...(resource as Resource), is_saved: isSaved },
+        signedUrl: downloadUrl,
       }
     }
   } catch {
@@ -309,7 +314,7 @@ export async function getResourceWithSignedUrl(
     const savedList = await getSavedResourceIds()
     return {
       resource: { ...mock, is_saved: savedList.includes(mock.id) },
-      signedUrl: '#',
+      signedUrl: `/api/acad/download?id=${encodeURIComponent(mock.id)}`,
     }
   }
 
@@ -535,11 +540,62 @@ export async function getFlashcardDeck(
     // Offline
   }
 
+  // Check in-memory store for newly generated or updated decks
+  const inMemoryDeck = MOCK_DECKS_STORE.get(resourceId)
+  if (inMemoryDeck) {
+    const inMemoryCards = MOCK_CARDS_STORE.get(inMemoryDeck.id) || []
+    return {
+      deck: inMemoryDeck,
+      cards: inMemoryCards,
+    }
+  }
+
   if (resourceId === '00000000-0000-0000-0010-000000000001') {
     return {
       deck: MOCK_FLASHCARD_DECK,
       cards: MOCK_FLASHCARDS,
     }
+  }
+
+  // For any mock resource, provide an auto-seeded deck if not yet generated
+  const res = MOCK_RESOURCES.find((r) => r.id === resourceId)
+  if (res) {
+    const autoDeck: FlashcardDeck = {
+      id: crypto.randomUUID(),
+      resource_id: resourceId,
+      owner_id: '00000000-0000-0000-0000-000000000001',
+      title: `${res.title} Deck`,
+      card_count: 2,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    const autoCards: FlashcardWithReview[] = [
+      {
+        id: crypto.randomUUID(),
+        deck_id: autoDeck.id,
+        front: `What core topics are covered in ${res.title}?`,
+        back: `Core concepts, theorems, equations, and practice problems for ${res.branch} Year ${res.year}.`,
+        position: 0,
+        source_page: 1,
+        chunk_id: null,
+        created_at: new Date().toISOString(),
+        review: null,
+      },
+      {
+        id: crypto.randomUUID(),
+        deck_id: autoDeck.id,
+        front: `What is the primary examination relevance of ${res.title}?`,
+        back: `High-yield problems, architectural diagrams, and algorithmic complexity optimizations.`,
+        position: 1,
+        source_page: 2,
+        chunk_id: null,
+        created_at: new Date().toISOString(),
+        review: null,
+      },
+    ]
+    MOCK_DECKS_STORE.set(resourceId, autoDeck)
+    MOCK_CARDS_STORE.set(autoDeck.id, autoCards)
+    return { deck: autoDeck, cards: autoCards }
   }
 
   return { deck: null, cards: [] }

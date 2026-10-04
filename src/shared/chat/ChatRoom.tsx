@@ -36,7 +36,7 @@ export interface ChatRoomProps {
   userRole?: string
   currentUserId: string
   initialMessages: ChatMessageItem[]
-  onSendMessage: (body: string, parentId?: string) => Promise<{ success: boolean; error?: string }>
+  onSendMessage: (body: string, parentId?: string) => Promise<{ success: boolean; message?: CommunityMessage; error?: string }>
   onVoteReply?: (messageId: string) => Promise<{ success: boolean; upvoted?: boolean; upvote_count?: number; error?: string }>
   onAddReaction?: (messageId: string, emoji: string) => Promise<{ success: boolean; error?: string }>
   onDeleteMessage?: (messageId: string) => Promise<{ success: boolean; error?: string }>
@@ -107,6 +107,13 @@ export function ChatRoom({
       if (res.success) {
         setInputText('')
         setActiveReplyParent(null)
+        if (res.message) {
+          const sent = res.message as ChatMessageItem
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === sent.id)) return prev
+            return [...prev, sent]
+          })
+        }
       } else {
         setFeedbackMsg({ type: 'error', text: res.error || 'Failed to send message' })
       }

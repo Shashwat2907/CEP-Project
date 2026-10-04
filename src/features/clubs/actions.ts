@@ -183,7 +183,11 @@ export async function leaveClubAction(rawInput: { club_id: string }): Promise<Ac
         .eq('user_id', user.id)
 
       // Decrement member count
-      await supabase.rpc('decrement_club_member_count', { _club_id: club_id }).catch(() => {})
+      try {
+        await supabase.rpc('decrement_club_member_count', { _club_id: club_id })
+      } catch {
+        // Non-fatal
+      }
 
       revalidatePath('/clubs')
       revalidatePath(`/clubs/${club_id}`)
@@ -230,7 +234,10 @@ export async function approveClubMemberAction(rawInput: { club_id: string; user_
         .eq('id', club_id)
         .single()
 
-      if (!club || club.lead_id !== user.id) {
+      if (!club) {
+        throw new Error('Club not found in DB')
+      }
+      if (club.lead_id !== user.id) {
         return { success: false, error: 'Only the club lead can approve members.' }
       }
 
@@ -289,7 +296,10 @@ export async function rejectClubMemberAction(rawInput: { club_id: string; user_i
         .eq('id', club_id)
         .single()
 
-      if (!club || club.lead_id !== user.id) {
+      if (!club) {
+        throw new Error('Club not found in DB')
+      }
+      if (club.lead_id !== user.id) {
         return { success: false, error: 'Only the club lead can reject members.' }
       }
 
@@ -345,7 +355,10 @@ export async function postClubNoticeAction(rawInput: { club_id: string; body: st
         .eq('id', club_id)
         .single()
 
-      if (!club || club.lead_id !== user.id) {
+      if (!club) {
+        throw new Error('Club not found in DB')
+      }
+      if (club.lead_id !== user.id) {
         return { success: false, error: 'Only the club lead can post notices.' }
       }
 
@@ -409,7 +422,7 @@ export async function deleteClubNoticeAction(rawInput: { notice_id: string }): P
 
       if (!notice) return { success: false, error: 'Notice not found.' }
 
-      const lead_id = (notice.club as { lead_id: string } | null)?.lead_id
+      const lead_id = (notice.club as unknown as { lead_id: string } | null)?.lead_id
       if (lead_id !== user.id) {
         return { success: false, error: 'Only the club lead can delete notices.' }
       }

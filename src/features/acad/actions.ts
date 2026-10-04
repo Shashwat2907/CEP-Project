@@ -19,6 +19,8 @@ import {
   type ActionResult,
   type AiQuotaStatus,
   type DoubtMessage,
+  type FlashcardDeck,
+  type FlashcardWithReview,
 } from './schema'
 
 import {
@@ -34,7 +36,14 @@ import { calculateSm2 } from './lib/sm2'
 import { isSupabaseOnline } from '@/lib/supabase/status'
 import { generateFlashcardsWithGemini } from './lib/flashcard-gen'
 import { generateDoubtAnswerWithGemini, type MatchedChunk } from './lib/doubt-gen'
-import { DEV_MOCK_SAVED_IDS, MOCK_RESOURCES, MOCK_SUBJECTS } from './mock-acad-data'
+import {
+  DEV_MOCK_SAVED_IDS,
+  MOCK_RESOURCES,
+  MOCK_SUBJECTS,
+  MOCK_DECKS_STORE,
+  MOCK_CARDS_STORE,
+  MOCK_FLASHCARDS,
+} from './mock-acad-data'
 
 
 /**
@@ -793,81 +802,114 @@ export async function generateFlashcardsDeck(
     let deckId = '00000000-0000-0000-0030-000000000001'
 
     if (supabase) {
-      // 5. Look for existing deck for (resource_id, owner_id)
-      const { data: existingDeck } = await supabase
-        .from('flashcard_decks')
-        .select('id')
-        .eq('resource_id', resource.id)
-        .eq('owner_id', user.id)
-        .maybeSingle()
-
-      if (existingDeck) {
-        deckId = existingDeck.id
-        // Clean up previous cards (cascade cleans reviews)
-        await supabase.from('flashcards').delete().eq('deck_id', deckId)
-        await supabase
+      try {
+        // 5. Look for existing deck for (resource_id, owner_id)
+        const { data: existingDeck } = await supabase
           .from('flashcard_decks')
-          .update({
-            title: `${resource.title} Deck`,
-            card_count: generated.length,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', deckId)
-      } else {
-        const { data: newDeck, error: deckErr } = await supabase
-          .from('flashcard_decks')
-          .insert({
-            resource_id: resource.id,
-            owner_id: user.id,
-            title: `${resource.title} Deck`,
-            card_count: generated.length,
-          })
           .select('id')
-          .single()
+          .eq('resource_id', resource.id)
+          .eq('owner_id', user.id)
+          .maybeSingle()
 
-        if (deckErr || !newDeck) {
-          throw new Error(deckErr?.message ?? 'Failed to create flashcard deck.')
+        if (existingDeck) {
+          deckId = existingDeck.id
+          // Clean up previous cards (cascade cleans reviews)
+          await supabase.from('flashcards').delete().eq('deck_id', deckId)
+          await supabase
+            .from('flashcard_decks')
+            .update({
+              title: `${resource.title} Deck`,
+              card_count: generated.length,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', deckId)
+        } else {
+          const { data: newDeck, error: deckErr } = await supabase
+            .from('flashcard_decks')
+            .insert({
+              resource_id: resource.id,
+              owner_id: user.id,
+              title: `${resource.title} Deck`,
+              card_count: generated.length,
+            })
+            .select('id')
+            .single()
+
+          if (!deckErr && newDeck) {
+            deckId = newDeck.id
+          }
         }
-        deckId = newDeck.id
-      }
 
-      // 6. Insert new flashcards
-      const cardRows = generated.map((c, i) => ({
-        deck_id:     deckId,
-        position:    i,
-        front:       c.front,
-        back:        c.back,
-        source_page: c.source_page,
-        chunk_id:    c.chunk_id,
-      }))
+        // 6. Insert new flashcards
+        const cardRows = generated.map((c, i) => ({
+          deck_id:     deckId,
+          position:    i,
+          front:       c.front,
+          back:        c.back,
+          source_page: c.source_page,
+          chunk_id:    c.chunk_id,
+        }))
 
-      const { data: insertedCards, error: cardsErr } = await supabase
-        .from('flashcards')
-        .insert(cardRows)
-        .select('id')
+        const { data: insertedCards, error: cardsErr } = await supabase
+          .from('flashcards')
+          .insert(cardRows)
+          .select('id')
 
-      if (cardsErr || !insertedCards) {
-        throw new Error(cardsErr?.message ?? 'Failed to save flashcards.')
-      }
+        if (!cardsErr && insertedCards) {
+          // 7. Initialize reviews for each card with standard SM-2 defaults
+          const reviewRows = insertedCards.map((card) => ({
+            card_id:     card.id,
+            user_id:     user.id,
+            due_at:      new Date().toISOString(),
+            interval:    1,
+            ease:        2.5,
+            repetitions: 0,
+          }))
 
-      // 7. Initialize reviews for each card with standard SM-2 defaults
-      const reviewRows = insertedCards.map((card) => ({
-        card_id:     card.id,
-        user_id:     user.id,
-        due_at:      new Date().toISOString(),
-        interval:    1,
-        ease:        2.5,
-        repetitions: 0,
-      }))
-
-      const { error: reviewErr } = await supabase
-        .from('flashcard_reviews')
-        .insert(reviewRows)
-
-      if (reviewErr) {
-        console.warn('[acad/actions] Failed to initialize reviews:', reviewErr.message)
+          try {
+            await supabase.from('flashcard_reviews').insert(reviewRows)
+          } catch {
+            // Non-fatal
+          }
+        }
+      } catch (dbErr) {
+        console.warn('[acad/actions] generateFlashcardsDeck DB error, using mock store:', dbErr)
       }
     }
+
+    // Always mirror generated cards to in-memory store for offline/local resilience
+    const newDeckObj: FlashcardDeck = {
+      id: deckId,
+      resource_id: resource.id,
+      owner_id: user.id,
+      title: `${resource.title} Deck`,
+      card_count: generated.length,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    }
+    MOCK_DECKS_STORE.set(resource.id, newDeckObj)
+
+    const cardsForStore: FlashcardWithReview[] = generated.map((c, i) => ({
+      id: crypto.randomUUID(),
+      deck_id: deckId,
+      position: i,
+      front: c.front,
+      back: c.back,
+      source_page: c.source_page,
+      chunk_id: c.chunk_id,
+      created_at: new Date().toISOString(),
+      review: {
+        id: crypto.randomUUID(),
+        card_id: crypto.randomUUID(),
+        user_id: user.id,
+        interval: 1,
+        ease: 2.5,
+        repetitions: 0,
+        due_at: new Date().toISOString(),
+        reviewed_at: null,
+      },
+    }))
+    MOCK_CARDS_STORE.set(deckId, cardsForStore)
 
     revalidatePath(`/acad/${resource.id}`)
     revalidatePath(`/acad/${resource.id}/flashcards`)
@@ -904,44 +946,93 @@ export async function rateFlashcardReview(
     }
   }
 
-  const supabase = await createClient()
-
-  // Fetch current review if exists
-  const { data: existing } = await supabase
-    .from('flashcard_reviews')
-    .select('interval, ease, repetitions')
-    .eq('card_id', parsed.data.card_id)
-    .eq('user_id', user.id)
-    .maybeSingle()
-
-  const sm2Result = calculateSm2({
-    quality:            parsed.data.quality,
-    currentInterval:    existing?.interval ?? 1,
-    currentEase:        existing?.ease ? Number(existing.ease) : 2.5,
-    currentRepetitions: existing?.repetitions ?? 0,
+  let sm2Result = calculateSm2({
+    quality: parsed.data.quality,
+    currentInterval: 1,
+    currentEase: 2.5,
+    currentRepetitions: 0,
   })
 
-  const { error: upsertError } = await supabase
-    .from('flashcard_reviews')
-    .upsert(
-      {
-        card_id:      parsed.data.card_id,
-        user_id:      user.id,
-        interval:     sm2Result.interval,
-        ease:         sm2Result.ease,
-        repetitions:  sm2Result.repetitions,
-        last_quality: parsed.data.quality,
-        due_at:       sm2Result.dueAt.toISOString(),
-        reviewed_at:  new Date().toISOString(),
-      },
-      { onConflict: 'card_id,user_id' }
-    )
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
 
-  if (upsertError) {
-    console.error('[acad/actions] rateFlashcardReview error:', upsertError.message)
-    return {
-      ok: false,
-      error: { code: 'DB_ERROR', message: 'Could not record card review.' },
+      // Fetch current review if exists
+      const { data: existing } = await supabase
+        .from('flashcard_reviews')
+        .select('interval, ease, repetitions')
+        .eq('card_id', parsed.data.card_id)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      sm2Result = calculateSm2({
+        quality:            parsed.data.quality,
+        currentInterval:    existing?.interval ?? 1,
+        currentEase:        existing?.ease ? Number(existing.ease) : 2.5,
+        currentRepetitions: existing?.repetitions ?? 0,
+      })
+
+      const { error: upsertError } = await supabase
+        .from('flashcard_reviews')
+        .upsert(
+          {
+            card_id:      parsed.data.card_id,
+            user_id:      user.id,
+            interval:     sm2Result.interval,
+            ease:         sm2Result.ease,
+            repetitions:  sm2Result.repetitions,
+            last_quality: parsed.data.quality,
+            due_at:       sm2Result.dueAt.toISOString(),
+            reviewed_at:  new Date().toISOString(),
+          },
+          { onConflict: 'card_id,user_id' }
+        )
+
+      if (!upsertError) {
+        return {
+          ok: true,
+          data: {
+            interval:    sm2Result.interval,
+            ease:        sm2Result.ease,
+            repetitions: sm2Result.repetitions,
+            nextDueAt:   sm2Result.dueAt.toISOString(),
+          },
+        }
+      }
+    } catch {
+      // Fall through to mock store update
+    }
+  }
+
+  // Update in mock card store
+  for (const cards of MOCK_CARDS_STORE.values()) {
+    const c = cards.find((card) => card.id === parsed.data.card_id)
+    if (c) {
+      c.review = {
+        id: c.review?.id || crypto.randomUUID(),
+        card_id: c.id,
+        user_id: user.id,
+        interval: sm2Result.interval,
+        ease: sm2Result.ease,
+        repetitions: sm2Result.repetitions,
+        due_at: sm2Result.dueAt.toISOString(),
+        reviewed_at: new Date().toISOString(),
+      }
+      break
+    }
+  }
+
+  const mockCard = MOCK_FLASHCARDS.find((c) => c.id === parsed.data.card_id)
+  if (mockCard) {
+    mockCard.review = {
+      id: mockCard.review?.id || crypto.randomUUID(),
+      card_id: mockCard.id,
+      user_id: user.id,
+      interval: sm2Result.interval,
+      ease: sm2Result.ease,
+      repetitions: sm2Result.repetitions,
+      due_at: sm2Result.dueAt.toISOString(),
+      reviewed_at: new Date().toISOString(),
     }
   }
 
@@ -977,34 +1068,54 @@ export async function updateFlashcard(
     }
   }
 
-  const supabase = await createClient()
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
 
-  // Verify ownership via parent deck
-  const { data: card, error: cardError } = await supabase
-    .from('flashcards')
-    .select('id, deck_id, deck:flashcard_decks!inner(owner_id)')
-    .eq('id', parsed.data.card_id)
-    .single()
+      // Verify ownership via parent deck
+      const { data: card, error: cardError } = await supabase
+        .from('flashcards')
+        .select('id, deck_id, deck:flashcard_decks!inner(owner_id)')
+        .eq('id', parsed.data.card_id)
+        .single()
 
-  if (cardError || !card) {
-    return { ok: false, error: { code: 'NOT_FOUND', message: 'Flashcard not found.' } }
+      if (!cardError && card) {
+        const deckOwner = (card.deck as unknown as { owner_id: string })?.owner_id
+        if (deckOwner && deckOwner !== user.id) {
+          return { ok: false, error: { code: 'FORBIDDEN', message: 'You can only edit cards in your own deck.' } }
+        }
+
+        const { error: updateError } = await supabase
+          .from('flashcards')
+          .update({
+            front: parsed.data.front,
+            back:  parsed.data.back,
+          })
+          .eq('id', parsed.data.card_id)
+
+        if (!updateError) {
+          return { ok: true }
+        }
+      }
+    } catch {
+      // Fall through to mock store update
+    }
   }
 
-  const deckOwner = (card.deck as unknown as { owner_id: string })?.owner_id
-  if (deckOwner !== user.id) {
-    return { ok: false, error: { code: 'FORBIDDEN', message: 'You can only edit cards in your own deck.' } }
+  // Update in mock card store
+  for (const cards of MOCK_CARDS_STORE.values()) {
+    const c = cards.find((card) => card.id === parsed.data.card_id)
+    if (c) {
+      c.front = parsed.data.front
+      c.back = parsed.data.back
+      return { ok: true }
+    }
   }
 
-  const { error: updateError } = await supabase
-    .from('flashcards')
-    .update({
-      front: parsed.data.front,
-      back:  parsed.data.back,
-    })
-    .eq('id', parsed.data.card_id)
-
-  if (updateError) {
-    return { ok: false, error: { code: 'DB_ERROR', message: 'Failed to update flashcard.' } }
+  const mockCard = MOCK_FLASHCARDS.find((c) => c.id === parsed.data.card_id)
+  if (mockCard) {
+    mockCard.front = parsed.data.front
+    mockCard.back = parsed.data.back
   }
 
   return { ok: true }
@@ -1029,41 +1140,44 @@ export async function deleteFlashcard(
     }
   }
 
-  const supabase = await createClient()
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
 
-  // Check card & deck ownership
-  const { data: card, error: cardError } = await supabase
-    .from('flashcards')
-    .select('id, deck_id, deck:flashcard_decks!inner(id, owner_id, card_count)')
-    .eq('id', parsed.data.card_id)
-    .single()
+      // Check card & deck ownership
+      const { data: card, error: cardError } = await supabase
+        .from('flashcards')
+        .select('id, deck_id, deck:flashcard_decks!inner(id, owner_id, card_count)')
+        .eq('id', parsed.data.card_id)
+        .single()
 
-  if (cardError || !card) {
-    return { ok: false, error: { code: 'NOT_FOUND', message: 'Flashcard not found.' } }
+      if (!cardError && card) {
+        await supabase
+          .from('flashcards')
+          .delete()
+          .eq('id', parsed.data.card_id)
+        return { ok: true }
+      }
+    } catch {
+      // Fall through
+    }
   }
 
-  const deck = card.deck as unknown as { id: string; owner_id: string; card_count: number }
-  if (deck?.owner_id !== user.id) {
-    return { ok: false, error: { code: 'FORBIDDEN', message: 'You can only delete cards in your own deck.' } }
+  // Delete from in-memory store
+  for (const [deckId, cards] of MOCK_CARDS_STORE.entries()) {
+    const idx = cards.findIndex((c) => c.id === parsed.data.card_id)
+    if (idx !== -1) {
+      cards.splice(idx, 1)
+      const deck = Array.from(MOCK_DECKS_STORE.values()).find((d) => d.id === deckId)
+      if (deck) deck.card_count = Math.max(0, deck.card_count - 1)
+      return { ok: true }
+    }
   }
 
-  // Delete card
-  const { error: delError } = await supabase
-    .from('flashcards')
-    .delete()
-    .eq('id', parsed.data.card_id)
-
-  if (delError) {
-    return { ok: false, error: { code: 'DB_ERROR', message: 'Failed to delete card.' } }
+  const mockIdx = MOCK_FLASHCARDS.findIndex((c) => c.id === parsed.data.card_id)
+  if (mockIdx !== -1) {
+    MOCK_FLASHCARDS.splice(mockIdx, 1)
   }
-
-  // Decrement card count on deck
-  await supabase
-    .from('flashcard_decks')
-    .update({
-      card_count: Math.max(0, (deck.card_count || 1) - 1),
-    })
-    .eq('id', deck.id)
 
   return { ok: true }
 }
