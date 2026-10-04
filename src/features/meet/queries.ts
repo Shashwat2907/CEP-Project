@@ -1,11 +1,13 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { requireAuth } from '@/shared/auth/guards'
 import type {
   AvailabilityRule,
   AvailabilityException,
   GeneratedSlot,
   TeacherSummary,
+  SessionRequest,
 } from './schema'
 
 /**
@@ -165,9 +167,22 @@ export async function generateTeacherSlots(
     (e) => e.kind === 'blocked' && (!e.start_time || !e.end_time)
   )
 
+  // 3. Fetch active accepted session requests for this date to exclude booked slots
+  const startOfDay = `${dateStr}T00:00:00.000Z`
+  const endOfDay = `${dateStr}T23:59:59.999Z`
+  const { data: bookedData } = await supabase
+    .from('session_requests')
+    .select('starts_at, ends_at')
+    .eq('teacher_id', teacherId)
+    .gte('starts_at', startOfDay)
+    .lte('starts_at', endOfDay)
+    .in('status', ['accepted', 'offline_selected', 'online_selected'])
+
+  const bookedSessions: Array<{ starts_at: string; ends_at: string }> = bookedData ?? []
+
   const slots: GeneratedSlot[] = []
 
-  // 3. Generate recurring slots if day is not fully blocked
+  // 4. Generate recurring slots if day is not fully blocked
   if (!fullDayBlocked) {
     for (const rule of rules) {
       const startMin = timeToMinutes(rule.start_time)
@@ -187,7 +202,16 @@ export async function generateTeacherSlots(
           return curr < bEnd && curr + step > bStart
         })
 
-        if (!isBlocked) {
+        // Check if already booked by an accepted session
+        const isBooked = bookedSessions.some((b) => {
+          const bStart = new Date(b.starts_at).getTime()
+          const bEnd = new Date(b.ends_at).getTime()
+          const slotStart = new Date(`${dateStr}T${slotStartStr}:00Z`).getTime()
+          const slotEnd = new Date(`${dateStr}T${slotEndStr}:00Z`).getTime()
+          return slotStart < bEnd && slotEnd > bStart
+        })
+
+        if (!isBlocked && !isBooked) {
           slots.push({
             id: `${teacherId}-${dateStr}-${slotStartStr}`,
             teacher_id: teacherId,
@@ -203,7 +227,7 @@ export async function generateTeacherSlots(
     }
   }
 
-  // 4. Add extra slots from exceptions
+  // 5. Add extra slots from exceptions
   const extraExceptions = exceptions.filter(
     (e) => e.kind === 'extra' && e.start_time && e.end_time
   )
@@ -217,8 +241,16 @@ export async function generateTeacherSlots(
       const slotStartStr = minutesToTime(curr)
       const slotEndStr = minutesToTime(curr + step)
 
+      const isBooked = bookedSessions.some((b) => {
+        const bStart = new Date(b.starts_at).getTime()
+        const bEnd = new Date(b.ends_at).getTime()
+        const slotStart = new Date(`${dateStr}T${slotStartStr}:00Z`).getTime()
+        const slotEnd = new Date(`${dateStr}T${slotEndStr}:00Z`).getTime()
+        return slotStart < bEnd && slotEnd > bStart
+      })
+
       // Avoid duplicates if already generated
-      if (!slots.some((s) => s.start_time === slotStartStr)) {
+      if (!isBooked && !slots.some((s) => s.start_time === slotStartStr)) {
         slots.push({
           id: `${teacherId}-${dateStr}-${slotStartStr}`,
           teacher_id: teacherId,
@@ -233,6 +265,79 @@ export async function generateTeacherSlots(
     }
   }
 
-  // 5. Sort by start_time ASC
+  // 6. Sort by start_time ASC
   return slots.sort((a, b) => timeToMinutes(a.start_time) - timeToMinutes(b.start_time))
 }
+
+// ---------------------------------------------------------------------------
+// 4. Session Requests Queries
+// ---------------------------------------------------------------------------
+
+/** Fetch session requests for the currently logged-in student. */
+export async function getMySessionRequests(): Promise<SessionRequest[]> {
+  const { user } = await requireAuth()
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from('session_requests')
+    .select(`
+      *,
+      teacher:profiles!session_requests_teacher_id_fkey(full_name, department, office_hours_text)
+    `)
+    .eq('student_id', user.id)
+    .order('starts_at', { ascending: false })
+
+  if (error) {
+    console.error('[meet/queries] getMySessionRequests error:', error.message)
+    return []
+  }
+
+  return (data as unknown as SessionRequest[]) ?? []
+}
+
+/** Fetch incoming session requests for the currently logged-in teacher. */
+export async function getTeacherSessionRequests(): Promise<SessionRequest[]> {
+  const { user, profile } = await requireAuth()
+  if (profile.role_primary !== 'teacher' && profile.role_primary !== 'admin') {
+    return []
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('session_requests')
+    .select(`
+      *,
+      student:profiles!session_requests_student_id_fkey(full_name, email)
+    `)
+    .eq('teacher_id', user.id)
+    .order('starts_at', { ascending: true })
+
+  if (error) {
+    console.error('[meet/queries] getTeacherSessionRequests error:', error.message)
+    return []
+  }
+
+  return (data as unknown as SessionRequest[]) ?? []
+}
+
+/** Fetch specific session request by ID. */
+export async function getSessionRequestById(id: string): Promise<SessionRequest | null> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('session_requests')
+    .select(`
+      *,
+      student:profiles!session_requests_student_id_fkey(full_name, email),
+      teacher:profiles!session_requests_teacher_id_fkey(full_name, department, office_hours_text)
+    `)
+    .eq('id', id)
+    .single()
+
+  if (error || !data) {
+    console.error('[meet/queries] getSessionRequestById error:', error?.message)
+    return null
+  }
+
+  return data as unknown as SessionRequest
+}
+

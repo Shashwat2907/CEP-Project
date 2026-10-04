@@ -129,9 +129,81 @@ export const DeleteExceptionSchema = z.object({
 export type DeleteExceptionInput = z.infer<typeof DeleteExceptionSchema>
 
 // ---------------------------------------------------------------------------
-// 5. Action Result Container
+// 5. Booking & Session Requests Models
+// ---------------------------------------------------------------------------
+
+export const SessionStatusSchema = z.enum([
+  'pending',
+  'accepted',
+  'declined',
+  'offline_selected',
+  'online_selected',
+  'completed',
+  'cancelled',
+  'expired',
+])
+export type SessionStatus = z.infer<typeof SessionStatusSchema>
+
+export const SessionModeSchema = z.enum(['offline', 'online'])
+export type SessionMode = z.infer<typeof SessionModeSchema>
+
+export const SessionRequestSchema = z.object({
+  id:             z.string().uuid(),
+  student_id:     z.string().uuid(),
+  teacher_id:     z.string().uuid(),
+  starts_at:      z.string(),
+  ends_at:        z.string(),
+  reason:         z.string().min(20, 'Reason must be at least 20 characters'),
+  status:         SessionStatusSchema,
+  decline_reason: z.string().nullable().optional(),
+  mode:           SessionModeSchema.nullable().optional(),
+  location:       z.string().nullable().optional(),
+  room_id:        z.string().nullable().optional(),
+  created_at:     z.string(),
+  updated_at:     z.string(),
+  // Joined relational data
+  student:        z.object({ full_name: z.string(), email: z.string().optional() }).optional(),
+  teacher:        z.object({ full_name: z.string(), department: z.string().nullable().optional(), office_hours_text: z.string().nullable().optional() }).optional(),
+})
+export type SessionRequest = z.infer<typeof SessionRequestSchema>
+
+export const CreateSessionRequestSchema = z
+  .object({
+    teacher_id: z.string().uuid(),
+    starts_at:  z.string(),
+    ends_at:    z.string(),
+    reason:     z.string().min(20, 'Reason must be at least 20 characters').max(1000, 'Reason too long'),
+  })
+  .refine((data) => new Date(data.ends_at) > new Date(data.starts_at), {
+    message: 'Session end time must be after start time',
+    path: ['ends_at'],
+  })
+export type CreateSessionRequestInput = z.infer<typeof CreateSessionRequestSchema>
+
+export const RespondSessionRequestSchema = z.object({
+  session_id:     z.string().uuid(),
+  action:         z.enum(['accept', 'decline']),
+  decline_reason: z.string().max(500, 'Decline reason too long').optional(),
+})
+export type RespondSessionRequestInput = z.infer<typeof RespondSessionRequestSchema>
+
+export const SelectSessionModeSchema = z.object({
+  session_id: z.string().uuid(),
+  mode:       SessionModeSchema,
+})
+export type SelectSessionModeInput = z.infer<typeof SelectSessionModeSchema>
+
+export const CancelSessionRequestSchema = z.object({
+  session_id:    z.string().uuid(),
+  cancel_reason: z.string().max(500).optional(),
+})
+export type CancelSessionRequestInput = z.infer<typeof CancelSessionRequestSchema>
+
+// ---------------------------------------------------------------------------
+// 6. Action Result Container
 // ---------------------------------------------------------------------------
 
 export type ActionResult<T = void> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string } }
+

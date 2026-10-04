@@ -5,9 +5,10 @@ import { Card, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
 import { EmptyState } from '@/shared/ui/empty-state'
-import { Search, MapPin, Calendar } from 'lucide-react'
-import type { TeacherSummary } from '../schema'
+import { Search, MapPin, Calendar, CheckCircle2 } from 'lucide-react'
+import type { TeacherSummary, GeneratedSlot } from '../schema'
 import { SlotGrid } from './SlotGrid'
+import { RequestSessionModal } from './RequestSessionModal'
 
 interface TeacherDirectoryProps {
   teachers: TeacherSummary[]
@@ -16,6 +17,8 @@ interface TeacherDirectoryProps {
 export function TeacherDirectory({ teachers }: TeacherDirectoryProps) {
   const [search, setSearch] = React.useState('')
   const [selectedTeacher, setSelectedTeacher] = React.useState<TeacherSummary | null>(null)
+  const [bookingSlot, setBookingSlot] = React.useState<GeneratedSlot | null>(null)
+  const [bookingSuccessNotice, setBookingSuccessNotice] = React.useState<string | null>(null)
 
   const filtered = teachers.filter((t) => {
     const q = search.toLowerCase()
@@ -27,6 +30,24 @@ export function TeacherDirectory({ teachers }: TeacherDirectoryProps) {
 
   return (
     <div className="space-y-6">
+      {/* Booking Success Notice */}
+      {bookingSuccessNotice && (
+        <div className="flex items-center justify-between bg-success/10 border border-success/30 text-success p-4 rounded-lg">
+          <div className="flex items-center gap-2 text-small font-medium">
+            <CheckCircle2 className="h-5 w-5 shrink-0" />
+            <span>{bookingSuccessNotice}</span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-success border-success/40 hover:bg-success/15"
+            onClick={() => setBookingSuccessNotice(null)}
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
+
       {/* Search Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div className="relative flex-1 max-w-md">
@@ -64,6 +85,21 @@ export function TeacherDirectory({ teachers }: TeacherDirectoryProps) {
           <SlotGrid
             teacherId={selectedTeacher.id}
             teacherName={selectedTeacher.full_name}
+            selectedSlotId={bookingSlot?.id}
+            onSelectSlot={(slot) => setBookingSlot(slot)}
+          />
+
+          <RequestSessionModal
+            teacher={selectedTeacher}
+            slot={bookingSlot}
+            isOpen={Boolean(bookingSlot)}
+            onClose={() => setBookingSlot(null)}
+            onSuccess={() => {
+              setBookingSuccessNotice(
+                `Your appointment request with ${selectedTeacher.full_name} has been sent! Check 'My Appointments' for status updates.`
+              )
+              setSelectedTeacher(null)
+            }}
           />
         </div>
       )}

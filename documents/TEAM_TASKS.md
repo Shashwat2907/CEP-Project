@@ -174,27 +174,27 @@ Kedar: `docs/acad-and-community-spec`
 ## Kushal: branches (start after Stage 0 is merged)
 
 ### `feat/complaints-core`
-- [ ] Migrations: `complaint_domains`, `domain_assignees`, `complaints`, `complaint_events`, `complaint_attachments` with RLS
-- [ ] Seed domains and an example chain per domain (clearly labelled seed values)
-- [ ] Raise complaint form: domain picker (nested), problem description, attachments, anonymous option
-- [ ] "My complaints" list with status chips
-- [ ] Handler view for complaints assigned to the logged-in authority
-- [ ] Resolve flow with note; student confirm or reopen; auto-close after the confirmation window
-- [ ] Notifications on every state change using `notify()`
+- [x] Migrations: `complaint_domains`, `domain_assignees`, `complaints`, `complaint_events`, `complaint_attachments` with RLS
+- [x] Seed domains and an example chain per domain (clearly labelled seed values)
+- [x] Raise complaint form: domain picker (nested), problem description, attachments, anonymous option
+- [x] "My complaints" list with status chips
+- [x] Handler view for complaints assigned to the logged-in authority
+- [x] Resolve flow with note; student confirm or reopen; auto-close after the confirmation window
+- [x] Notifications on every state change using `notify()`
 
 ### `feat/complaints-escalation`
-- [ ] Edge Function plus scheduled job that escalates overdue complaints to the next level (idempotent: running twice never escalates twice)
-- [ ] Complaint timeline component showing every level and time
-- [ ] Top-level behaviour: flag "needs admin attention" and notify admin
-- [ ] Sensitive domains (ragging, harassment) route directly to the committee and never appear on the public tracker
-- [ ] Tests with shortened SLAs covering each level, resolved before due, and double-run safety
+- [x] Edge Function plus scheduled job that escalates overdue complaints to the next level (idempotent: running twice never escalates twice)
+- [x] Complaint timeline component showing every level and time
+- [x] Top-level behaviour: flag "needs admin attention" and notify admin
+- [x] Sensitive domains (ragging, harassment) route directly to the committee and never appear on the public tracker
+- [x] Tests with shortened SLAs covering each level, resolved before due, and double-run safety
 
 ### `feat/complaints-tracker-and-upvotes`
-- [ ] Migration: `complaint_upvotes` with unique constraint per user and complaint
-- [ ] Similar-complaint suggestions while typing (full text search and similarity)
-- [ ] Upvote button; upvotes raise priority and shorten the next SLA slightly
-- [ ] Public tracker: sorted by longest pending by default, filters by domain and status
-- [ ] Duplicate handling: handler can mark "closed as duplicate" and merge upvotes
+- [x] Migration: `complaint_upvotes` with unique constraint per user and complaint
+- [x] Similar-complaint suggestions while typing (full text search and similarity)
+- [x] Upvote button; upvotes raise priority and shorten the next SLA slightly
+- [x] Public tracker: sorted by longest pending by default, filters by domain and status
+- [x] Duplicate handling: handler can mark "closed as duplicate" and merge upvotes
 
 ### `feat/meet-availability`
 - [x] Migrations: `availability_rules`, `availability_exceptions`
@@ -203,11 +203,11 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Student view: browse teachers and open slots
 
 ### `feat/meet-booking`
-- [ ] Migration: `session_requests` with an exclusion constraint preventing overlapping accepted sessions per teacher
-- [ ] Student request with reason; teacher accept or decline; student chooses offline (location) or online after acceptance
-- [ ] Calendar entries for both and notifications through shared helpers
-- [ ] Reminders job; cancel and reschedule rules from the spec
-- [ ] Test: two simultaneous requests for one slot, exactly one succeeds and the other gets a clear message
+- [x] Migration: `session_requests` with an exclusion constraint preventing overlapping accepted sessions per teacher
+- [x] Student request with reason; teacher accept or decline; student chooses offline (location) or online after acceptance
+- [x] Calendar entries for both and notifications through shared helpers
+- [x] Reminders job; cancel and reschedule rules from the spec
+- [x] Test: two simultaneous requests for one slot, exactly one succeeds and the other gets a clear message
 
 ### `feat/meet-online-call`
 - [ ] LiveKit room created on accept; join page restricted to the two participants within the time window

@@ -1,7 +1,11 @@
 import { requireAuth } from '@/shared/auth/guards'
 import { getCurrentProfile } from '@/shared/auth/session'
-import { getTeachersList } from '@/features/meet/queries'
-import { TeacherDirectory } from '@/features/meet/components/TeacherDirectory'
+import {
+  getTeachersList,
+  getMySessionRequests,
+  getTeacherSessionRequests,
+} from '@/features/meet/queries'
+import { MeetDashboard } from '@/features/meet/components/MeetDashboard'
 import { Button } from '@/shared/ui/button'
 import Link from 'next/link'
 import { Clock } from 'lucide-react'
@@ -18,6 +22,11 @@ export default async function MeetPage() {
   const teachers = await getTeachersList()
 
   const isTeacher = profile?.role_primary === 'teacher' || profile?.role_primary === 'admin'
+
+  const [mySessions, teacherRequests] = await Promise.all([
+    getMySessionRequests(),
+    isTeacher ? getTeacherSessionRequests() : Promise.resolve([]),
+  ])
 
   return (
     <main className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
@@ -38,8 +47,13 @@ export default async function MeetPage() {
         )}
       </div>
 
-      {/* Teacher Directory Section */}
-      <TeacherDirectory teachers={teachers} />
+      {/* Main Meet Dashboard */}
+      <MeetDashboard
+        isTeacher={Boolean(isTeacher)}
+        teachers={teachers}
+        mySessions={mySessions}
+        teacherRequests={teacherRequests}
+      />
     </main>
   )
 }
