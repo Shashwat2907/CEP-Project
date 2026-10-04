@@ -93,81 +93,81 @@ Kedar: `docs/acad-and-community-spec`
 ## You: remaining branches (after Stage 0)
 
 ### `feat/presence-toggle`
-- [ ] Migration: `campus_zones` (campus zone first), `presence_consent` with RLS
-- [ ] Admin screen to draw the campus polygon (named zones come in the monitoring branch)
-- [ ] Consent screen in plain language; pause and revoke controls in the pill popover
-- [ ] Server-side boundary check (point in polygon) using browser location
-- [ ] IN/OUT pill with checking, permission denied and offline states, plus "last verified" popover
-- [ ] Privacy setting for who can see your status (nobody, friends, everyone; friends part wired later)
-- [ ] No data stored until consent is recorded
-- [ ] Tests for inside, outside, low accuracy and denied cases
+- [x] Migration: `campus_zones` (campus zone first), `presence_consent` with RLS
+- [x] Admin screen to draw the campus polygon (named zones come in the monitoring branch)
+- [x] Consent screen in plain language; pause and revoke controls in the pill popover
+- [x] Server-side boundary check (point in polygon) using browser location
+- [x] IN/OUT pill with checking, permission denied and offline states, plus "last verified" popover
+- [x] Privacy setting for who can see your status (nobody, friends, everyone; friends part wired later)
+- [x] No data stored until consent is recorded
+- [x] Tests for inside, outside, low accuracy and denied cases
 
 ### `feat/presence-monitoring`
-- [ ] Migrations: `presence_heartbeats`, `presence_sessions`, `presence_daily` with RLS and retention settings in a config table
-- [ ] Heartbeat endpoint: server evaluates position against zones, stores state, zone, accuracy and confidence; never stores coordinates; never records location when outside campus
-- [ ] Campus network check: compare request IP with admin-managed campus IP ranges and raise confidence
-- [ ] Client heartbeat while the app is visible, configurable interval, backs off on battery saver and offline
-- [ ] Session logic: open on verified IN, extend on heartbeat, close on verified OUT or timeout (marked "signal lost"); idempotent and safe on duplicate heartbeats
-- [ ] Three states in the pill and popover: inside, outside, unknown ("Last seen on campus 40 min ago")
-- [ ] Scheduled jobs: nightly rollup into `presence_daily`; delete raw heartbeats past retention; delete or anonymize old sessions after the term
-- [ ] "My time on campus" page: sessions and daily summary, and an export of everything stored about me
-- [ ] Admin: manage named zones (hostel, library, classrooms) and campus IP ranges; aggregate dashboard only; individual lookup requires a reason and writes `audit_log`
-- [ ] Teacher view: aggregate attendance for their own classes, within class time only (hook for later attendance feature)
-- [ ] Tests: consent required, revoke stops collection, timeout closes session, missing heartbeats show as unknown, teacher cannot see outside class window, denied lookups without a reason
+- [x] Migrations: `presence_heartbeats`, `presence_sessions`, `presence_daily` with RLS and retention settings in a config table
+- [x] Heartbeat endpoint: server evaluates position against zones, stores state, zone, accuracy and confidence; never stores coordinates; never records location when outside campus
+- [x] Campus network check: compare request IP with admin-managed campus IP ranges and raise confidence
+- [x] Client heartbeat while the app is visible, configurable interval, backs off on battery saver and offline
+- [x] Session logic: open on verified IN, extend on heartbeat, close on verified OUT or timeout (marked "signal lost"); idempotent and safe on duplicate heartbeats
+- [x] Three states in the pill and popover: inside, outside, unknown ("Last seen on campus 40 min ago")
+- [x] Scheduled jobs: nightly rollup into `presence_daily`; delete raw heartbeats past retention; delete or anonymize old sessions after the term
+- [x] "My time on campus" page: sessions and daily summary, and an export of everything stored about me
+- [x] Admin: manage named zones (hostel, library, classrooms) and campus IP ranges; aggregate dashboard only; individual lookup requires a reason and writes `audit_log`
+- [x] Teacher view: aggregate attendance for their own classes, within class time only (hook for later attendance feature)
+- [x] Tests: consent required, revoke stops collection, timeout closes session, missing heartbeats show as unknown, teacher cannot see outside class window, denied lookups without a reason
 - [ ] Later (separate branch): native app sends OS geofence enter and exit events through the same endpoint with `source = native`
 
 ### `feat/profile-and-roster-import`
-- [ ] Admin page to upload roster CSV with validation and error report; matches on college email, carries enrollment number or staff ID, rejects duplicate emails or IDs, sets status `invited` for new rows and `inactive` for people removed
-- [ ] Profile page (view and limited edit), photo upload
-- [ ] Teacher profile fields (department, subjects, office hours text)
+- [x] Admin page to upload roster CSV with validation and error report; matches on college email, carries enrollment number or staff ID, rejects duplicate emails or IDs, sets status `invited` for new rows and `inactive` for people removed
+- [x] Profile page (view and limited edit), photo upload
+- [x] Teacher profile fields (department, subjects, office hours text)
 
 ### `feat/digital-id`
-- [ ] Short-lived signed token endpoint (30 second expiry)
-- [ ] ID card component with rotating QR, countdown, verified-at line
-- [ ] `/verify` page for guards and desks: scan, show name, photo, status
-- [ ] Verifier role and admin revoke or suspend
-- [ ] Tests: expired token fails, revoked ID fails, tampered token fails
+- [x] Short-lived signed token endpoint (30 second expiry)
+- [x] ID card component with rotating QR, countdown, verified-at line
+- [x] `/verify` page for guards and desks: scan, show name, photo, status
+- [x] Verifier role and admin revoke or suspend
+- [x] Tests: expired token fails, revoked ID fails, tampered token fails
 
 ### `feat/calendar`
-- [ ] Day, week, agenda views reading `calendar_entries`
-- [ ] Source filters, source colors from `DESIGN.md`, personal items create and edit
-- [ ] Home page "today" block reusing the calendar query
+- [x] Day, week, agenda views reading `calendar_entries`
+- [x] Source filters, source colors from `DESIGN.md`, personal items create and edit
+- [x] Home page "today" block reusing the calendar query
 
 ### `feat/lost-and-found`
-- [ ] Migrations: `lost_found_items`, `lost_found_claims`, `lost_found_events` with RLS (hidden verification detail never returned by general queries)
-- [ ] Report lost and report found forms (category, photos, location list, time window)
-- [ ] Drop-off point flow with handover code for finders
-- [ ] Match suggestions (category, location, time, text similarity) and notifications to both sides
-- [ ] Claim with verification question, desk review, pickup confirmed using the claimant's digital ID
-- [ ] State machine with every transition logged; auto-expiry job; admin disposal list
-- [ ] Abuse report button and daily posting limit
+- [x] Migrations: `lost_found_items`, `lost_found_claims`, `lost_found_events` with RLS (hidden verification detail never returned by general queries)
+- [x] Report lost and report found forms (category, photos, location list, time window)
+- [x] Drop-off point flow with handover code for finders
+- [x] Match suggestions (category, location, time, text similarity) and notifications to both sides
+- [x] Claim with verification question, desk review, pickup confirmed using the claimant's digital ID
+- [x] State machine with every transition logged; auto-expiry job; admin disposal list
+- [x] Abuse report button and daily posting limit
 
 ### `feat/events`
-- [ ] Migrations: `events`, `event_rsvps`
-- [ ] Event list with college and external tabs, detail page, RSVP
-- [ ] Create event form with approval step for college-wide visibility
-- [ ] Add to calendar through `addCalendarEntry`
-- [ ] Optional team formation and event chat (reuses Kedar's chat component when ready)
+- [x] Migrations: `events`, `event_rsvps`
+- [x] Event list with college and external tabs, detail page, RSVP
+- [x] Create event form with approval step for college-wide visibility
+- [x] Add to calendar through `addCalendarEntry`
+- [x] Optional team formation and event chat (reuses Kedar's chat component when ready)
 
 ### `feat/organizer-access`
-- [ ] Migration: `external_organizers` with RLS (organizer role can reach event tables only)
-- [ ] Separate `/organizer/sign-in` and registration page (organization details, email one-time code), linked from the Events page; reject emails that are on the college roster
-- [ ] Admin approval queue: approve, reject, suspend, mark trusted
-- [ ] Organizer dashboard: create, edit and cancel own events, post updates, see RSVP counts and RSVP list
-- [ ] New events from non-trusted organizers go to the approval queue; label "External organizer: <organization>" on every external event
-- [ ] "Report event" button for students; rate limit on event creation; link and image checks
-- [ ] Tests: organizer cannot read complaints, resources, communities, presence or profiles; suspended organizer is blocked immediately; unapproved organizer cannot post
+- [x] Migration: `external_organizers` with RLS (organizer role can reach event tables only)
+- [x] Separate `/organizer/sign-in` and registration page (organization details, email one-time code), linked from the Events page; reject emails that are on the college roster
+- [x] Admin approval queue: approve, reject, suspend, mark trusted
+- [x] Organizer dashboard: create, edit and cancel own events, post updates, see RSVP counts and RSVP list
+- [x] New events from non-trusted organizers go to the approval queue; label "External organizer: <organization>" on every external event
+- [x] "Report event" button for students; rate limit on event creation; link and image checks
+- [x] Tests: organizer cannot read complaints, resources, communities, presence or profiles; suspended organizer is blocked immediately; unapproved organizer cannot post
 
 ### `feat/friends`
-- [ ] Migration: `friendships` with RLS
-- [ ] Search, send and accept requests, friends list, remove
-- [ ] Wire presence visibility to friends
-- [ ] Profile view for friends and public profile for others
+- [x] Migration: `friendships` with RLS
+- [x] Search, send and accept requests, friends list, remove
+- [x] Wire presence visibility to friends
+- [x] Profile view for friends and public profile for others
 
 ### `chore/pwa-and-performance`
-- [ ] Installable PWA, push notifications through the notifications table
-- [ ] Accessibility audit against `DESIGN.md` section 11
-- [ ] Load test with simulated concurrent users; fix slow queries and add indexes
+- [x] Installable PWA, push notifications through the notifications table
+- [x] Accessibility audit against `DESIGN.md` section 11
+- [x] Load test with simulated concurrent users; fix slow queries and add indexes
 
 ---
 

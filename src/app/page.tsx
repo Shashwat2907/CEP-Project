@@ -1,6 +1,11 @@
 import { AppShell } from '@/shared/ui/app-shell'
+import { AdminCampusBoundary } from '@/features/presence'
+import { TodayScheduleBlock } from '@/features/calendar/components/today-schedule-block'
+import { getTodayCalendarEntriesAction } from '@/features/calendar/actions'
 
-export default function Home() {
+export default async function Home() {
+  const todayEntries = await getTodayCalendarEntriesAction()
+
   return (
     <AppShell
       initialRole="student"
@@ -11,6 +16,9 @@ export default function Home() {
       activePath="/"
     >
       <div className="max-w-[1200px] space-y-10">
+        {/* First block: Today on Campus Schedule (PLAN.MD §5.11: "'Today' is the home page's first block.") */}
+        <TodayScheduleBlock initialEntries={todayEntries} />
+
         {/* Page header (Page title in content body per DESIGN.MD §6) */}
         <div>
           <h1 className="font-display text-display font-bold text-ink">
@@ -123,6 +131,19 @@ export default function Home() {
               </p>
             </div>
           </div>
+        </section>
+
+        {/* Section 5: Campus Geofence Boundary & Presence Verification */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-h2 font-semibold text-ink">
+              5. Campus Boundary Polygon & Geofence Tester
+            </h2>
+            <span className="font-mono text-meta px-2 py-0.5 rounded-sm bg-in-campus/10 text-in-campus border border-in-campus/20">
+              feat/presence-toggle
+            </span>
+          </div>
+          <AdminCampusBoundary />
         </section>
       </div>
     </AppShell>

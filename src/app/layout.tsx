@@ -5,6 +5,7 @@ import {
   JetBrains_Mono,
 } from 'next/font/google'
 import './globals.css'
+import { PwaRegister } from '@/shared/ui/pwa-register'
 
 /**
  * Display / heading font — Bricolage Grotesque (weights 600, 700)
@@ -60,8 +61,12 @@ export default function RootLayout({
       lang="en"
       // dark class toggled here by theme switcher (next-themes, added in app-shell slice)
       className={`${display.variable} ${body.variable} ${mono.variable} h-full`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full" suppressHydrationWarning>
+        <PwaRegister />
+        {children}
+      </body>
     </html>
   )
 }
