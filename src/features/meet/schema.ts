@@ -207,3 +207,36 @@ export type ActionResult<T = void> =
   | { ok: true; data: T }
   | { ok: false; error: { code: string; message: string } }
 
+// ---------------------------------------------------------------------------
+// 7. Video Call & LiveKit Room Types
+// ---------------------------------------------------------------------------
+
+export type CallAccessErrorCode =
+  | 'UNAUTHORIZED'
+  | 'NOT_ONLINE_SESSION'
+  | 'TOO_EARLY'
+  | 'EXPIRED'
+  | 'NOT_FOUND'
+
+export type CallAccessResult =
+  | {
+      ok: true
+      session: SessionRequest
+      currentUserId: string
+      userRole: 'teacher' | 'student' | 'admin'
+      otherParticipantName: string
+      otherParticipantRole: string
+      roomName: string
+      token: string
+      serverUrl?: string
+      isWindowActive: boolean
+    }
+  | {
+      ok: false
+      code: CallAccessErrorCode
+      message: string
+      startsAt?: string
+      endsAt?: string
+      session?: SessionRequest
+    }
+

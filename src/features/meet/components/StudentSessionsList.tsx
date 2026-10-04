@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { Card, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Chip } from '@/shared/ui/chip'
@@ -347,16 +348,27 @@ export function StudentSessionsList({ initialSessions }: StudentSessionsListProp
                       Created on {new Date(s.created_at).toLocaleDateString()}
                     </div>
 
-                    {canCancel && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="text-danger hover:bg-danger/10 hover:border-danger/40"
-                        onClick={() => setCancellingSession(s)}
-                      >
-                        Cancel Appointment
-                      </Button>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {(s.mode === 'online' || s.status === 'online_selected') && (
+                        <Link href={`/meet/${s.id}`}>
+                          <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium">
+                            <Video className="h-3.5 w-3.5" />
+                            <span>Join Video Call</span>
+                          </Button>
+                        </Link>
+                      )}
+
+                      {canCancel && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-danger hover:bg-danger/10 hover:border-danger/40"
+                          onClick={() => setCancellingSession(s)}
+                        >
+                          Cancel Appointment
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>

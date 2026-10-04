@@ -8,6 +8,7 @@ import type {
   GeneratedSlot,
   TeacherSummary,
   SessionRequest,
+  CallAccessResult,
 } from './schema'
 
 /**
@@ -339,5 +340,117 @@ export async function getSessionRequestById(id: string): Promise<SessionRequest 
   }
 
   return data as unknown as SessionRequest
+}
+
+// ---------------------------------------------------------------------------
+// 5. Video Call Room Access
+// ---------------------------------------------------------------------------
+
+/**
+ * Verifies participant access and time window for a live video call.
+ * Source of truth: src/features/meet/README.md & documents/CONTRACT.md
+ */
+export async function getSessionCallAccess(
+  sessionId: string,
+  currentTimeMs: number = Date.now()
+): Promise<CallAccessResult> {
+  const { user, profile } = await requireAuth()
+  const session = await getSessionRequestById(sessionId)
+
+  if (!session) {
+    return {
+      ok: false,
+      code: 'NOT_FOUND',
+      message: 'Meeting session not found.',
+    }
+  }
+
+  // 1. Participant check: user must be student, teacher, or admin
+  const isStudent = session.student_id === user.id
+  const isTeacher = session.teacher_id === user.id
+  const isAdmin = profile.role_primary === 'admin'
+
+  if (!isStudent && !isTeacher && !isAdmin) {
+    return {
+      ok: false,
+      code: 'UNAUTHORIZED',
+      message: 'You are not a participant in this scheduled meeting.',
+      session,
+    }
+  }
+
+  // 2. Mode check: session must be online
+  const isOnline = session.mode === 'online' || session.status === 'online_selected'
+  if (!isOnline && session.status !== 'completed') {
+    return {
+      ok: false,
+      code: 'NOT_ONLINE_SESSION',
+      message: 'This meeting was scheduled for an in-person office hour, not an online call.',
+      session,
+    }
+  }
+
+  // 3. Time window check:
+  // Allowed from 10 minutes prior to starts_at until ends_at
+  const startsAtMs = new Date(session.starts_at).getTime()
+  const endsAtMs = new Date(session.ends_at).getTime()
+  const BUFFER_BEFORE_MS = 10 * 60 * 1000 // 10 minutes
+
+  if (currentTimeMs < startsAtMs - BUFFER_BEFORE_MS) {
+    return {
+      ok: false,
+      code: 'TOO_EARLY',
+      message: 'The meeting room has not opened yet. It will open 10 minutes before the scheduled start time.',
+      startsAt: session.starts_at,
+      endsAt: session.ends_at,
+      session,
+    }
+  }
+
+  if (currentTimeMs > endsAtMs) {
+    return {
+      ok: false,
+      code: 'EXPIRED',
+      message: 'This scheduled meeting session has concluded.',
+      startsAt: session.starts_at,
+      endsAt: session.ends_at,
+      session,
+    }
+  }
+
+  const userRole: 'teacher' | 'student' | 'admin' = isTeacher
+    ? 'teacher'
+    : isStudent
+    ? 'student'
+    : 'admin'
+
+  const studentName = session.student?.full_name || 'Student'
+  const teacherName = session.teacher?.full_name || 'Faculty Member'
+  const otherParticipantName = isStudent ? teacherName : studentName
+  const otherParticipantRole = isStudent ? 'Faculty Member' : 'Student'
+
+  const roomName = session.room_id || `meet-${session.id.slice(0, 8)}`
+  const token = Buffer.from(
+    JSON.stringify({
+      room: roomName,
+      userId: user.id,
+      userName: profile.full_name,
+      role: userRole,
+      exp: Math.floor(endsAtMs / 1000),
+    })
+  ).toString('base64')
+
+  return {
+    ok: true,
+    session,
+    currentUserId: user.id,
+    userRole,
+    otherParticipantName,
+    otherParticipantRole,
+    roomName,
+    token,
+    serverUrl: process.env.LIVEKIT_URL,
+    isWindowActive: true,
+  }
 }
 

@@ -210,9 +210,9 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Test: two simultaneous requests for one slot, exactly one succeeds and the other gets a clear message
 
 ### `feat/meet-online-call`
-- [ ] LiveKit room created on accept; join page restricted to the two participants within the time window
-- [ ] Call UI (camera, mic, leave) following `DESIGN.md`
-- [ ] Early version may use an embedded room link; replace with LiveKit components
+- [x] LiveKit room created on accept; join page restricted to the two participants within the time window
+- [x] Call UI (camera, mic, leave) following `DESIGN.md`
+- [x] Early version may use an embedded room link; replace with LiveKit components
 
 ### `feat/meet-whiteboard`
 - [ ] tldraw room per booking with multiplayer sync

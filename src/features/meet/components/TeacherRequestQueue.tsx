@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { Card, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Chip } from '@/shared/ui/chip'
@@ -386,6 +387,15 @@ export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProp
                             {actingId === r.id ? 'Accepting...' : 'Accept Appointment'}
                           </Button>
                         </>
+                      )}
+
+                      {isConfirmed && (r.mode === 'online' || r.status === 'online_selected') && (
+                        <Link href={`/meet/${r.id}`}>
+                          <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium">
+                            <Video className="h-3.5 w-3.5" />
+                            <span>Join Video Call</span>
+                          </Button>
+                        </Link>
                       )}
 
                       {isConfirmed && (
