@@ -150,13 +150,13 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Optional team formation and event chat (reuses Kedar's chat component when ready)
 
 ### `feat/organizer-access`
-- [ ] Migration: `external_organizers` with RLS (organizer role can reach event tables only)
-- [ ] Separate `/organizer/sign-in` and registration page (organization details, email one-time code), linked from the Events page; reject emails that are on the college roster
-- [ ] Admin approval queue: approve, reject, suspend, mark trusted
-- [ ] Organizer dashboard: create, edit and cancel own events, post updates, see RSVP counts and RSVP list
-- [ ] New events from non-trusted organizers go to the approval queue; label "External organizer: <organization>" on every external event
-- [ ] "Report event" button for students; rate limit on event creation; link and image checks
-- [ ] Tests: organizer cannot read complaints, resources, communities, presence or profiles; suspended organizer is blocked immediately; unapproved organizer cannot post
+- [x] Migration: `external_organizers` with RLS (organizer role can reach event tables only)
+- [x] Separate `/organizer/sign-in` and registration page (organization details, email one-time code), linked from the Events page; reject emails that are on the college roster
+- [x] Admin approval queue: approve, reject, suspend, mark trusted
+- [x] Organizer dashboard: create, edit and cancel own events, post updates, see RSVP counts and RSVP list
+- [x] New events from non-trusted organizers go to the approval queue; label "External organizer: <organization>" on every external event
+- [x] "Report event" button for students; rate limit on event creation; link and image checks
+- [x] Tests: organizer cannot read complaints, resources, communities, presence or profiles; suspended organizer is blocked immediately; unapproved organizer cannot post
 
 ### `feat/friends`
 - [ ] Migration: `friendships` with RLS

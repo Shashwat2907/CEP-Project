@@ -137,14 +137,24 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setIsCreateOpen(true)}
-          className="px-4 py-2.5 rounded-xl bg-[var(--primary)] text-white text-xs font-bold hover:opacity-90 active:scale-95 shadow-sm flex items-center gap-2 transition-all self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Propose Event</span>
-        </button>
+        <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
+          <a
+            href="/organizer/sign-in"
+            className="px-3.5 py-2.5 rounded-xl border border-purple-500/30 bg-purple-500/10 text-purple-700 dark:text-purple-300 text-xs font-semibold hover:bg-purple-500/20 transition-all flex items-center gap-1.5"
+          >
+            <span>Hosting an event? Organizer access</span>
+            <ExternalLink className="w-3.5 h-3.5" />
+          </a>
+
+          <button
+            type="button"
+            onClick={() => setIsCreateOpen(true)}
+            className="px-4 py-2.5 rounded-xl bg-[var(--primary)] text-white text-xs font-bold hover:opacity-90 active:scale-95 shadow-sm flex items-center gap-2 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Propose Event</span>
+          </button>
+        </div>
       </div>
 
       {/* Kind Tabs */}

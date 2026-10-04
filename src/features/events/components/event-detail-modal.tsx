@@ -15,6 +15,7 @@ import {
   Send,
   Plus,
   AlertCircle,
+  Flag,
 } from 'lucide-react'
 import type { EventItem, EventTeamItem, EventMessageItem } from '../schema'
 import {
@@ -25,6 +26,7 @@ import {
   approveEventAction,
   rejectEventAction,
 } from '../actions'
+import { reportEventAction } from '@/features/organizer/actions'
 
 interface EventDetailModalProps {
   event: EventItem | null
@@ -58,6 +60,35 @@ export function EventDetailModal({
 
   // Message posting state
   const [messageContent, setMessageContent] = useState('')
+
+  // Report event state
+  const [showReportForm, setShowReportForm] = useState(false)
+  const [reportReason, setReportReason] = useState('Misleading or inaccurate information')
+  const [reportDetails, setReportDetails] = useState('')
+
+  const handleReportEvent = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!event) return
+    setIsProcessing(true)
+    try {
+      const res = await reportEventAction({
+        eventId: event.id,
+        reason: reportReason,
+        details: reportDetails.trim() || undefined,
+      })
+      if (res.ok) {
+        setShowReportForm(false)
+        setReportDetails('')
+        setFeedback(res.message || 'Report submitted to campus administrators.')
+      } else {
+        setFeedback(res.error || 'Failed to submit report')
+      }
+    } catch {
+      setFeedback('Error submitting report')
+    } finally {
+      setIsProcessing(false)
+    }
+  }
 
   if (!isOpen || !event) return null
 
@@ -446,6 +477,86 @@ export function EventDetailModal({
                   )}
                 </div>
               </div>
+
+              {/* Report Event Link */}
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowReportForm(true)}
+                  className="text-xs text-[var(--text-secondary)] hover:text-rose-500 flex items-center gap-1.5 transition-colors"
+                >
+                  <Flag className="w-3.5 h-3.5" />
+                  <span>Report this event</span>
+                </button>
+              </div>
+
+              {/* Report Event Modal Form */}
+              {showReportForm && (
+                <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/5 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-rose-700 dark:text-rose-300 flex items-center gap-1.5">
+                      <Flag className="w-3.5 h-3.5" />
+                      <span>Report Event to Campus Administration</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={() => setShowReportForm(false)}
+                      className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleReportEvent} className="space-y-3">
+                    <div>
+                      <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
+                        Reason for Report *
+                      </label>
+                      <select
+                        value={reportReason}
+                        onChange={(e) => setReportReason(e.target.value)}
+                        className="w-full text-xs px-3 py-2 rounded-lg bg-[var(--surface-paper)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden"
+                      >
+                        <option value="Misleading or inaccurate information">Misleading or inaccurate information</option>
+                        <option value="Spam or unauthorized commercial advertising">Spam or unauthorized commercial advertising</option>
+                        <option value="Inappropriate or offensive content">Inappropriate or offensive content</option>
+                        <option value="Safety or campus policy violation">Safety or campus policy violation</option>
+                        <option value="Impersonating an official club/department">Impersonating an official club/department</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-medium text-[var(--text-secondary)] mb-1">
+                        Additional Context (Optional)
+                      </label>
+                      <textarea
+                        rows={2}
+                        placeholder="Provide any relevant details to assist campus administration review..."
+                        value={reportDetails}
+                        onChange={(e) => setReportDetails(e.target.value)}
+                        className="w-full text-xs px-3 py-2 rounded-lg bg-[var(--surface-paper)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden"
+                      />
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowReportForm(false)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)]"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={isProcessing}
+                        className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white"
+                      >
+                        Submit Report
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
 
               {/* Admin Moderation controls */}
               {isAdmin && event.status === 'pending' && (
