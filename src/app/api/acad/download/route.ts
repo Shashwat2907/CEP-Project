@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MOCK_RESOURCES } from '@/features/acad/mock-acad-data'
-import { UPLOADED_FILES_MAP } from '../mock-upload/route'
+import { UPLOADED_FILES_MAP } from '@/features/acad/upload-store'
 import { isSupabaseOnline } from '@/lib/supabase/status'
 import { createClient } from '@/lib/supabase/server'
 
