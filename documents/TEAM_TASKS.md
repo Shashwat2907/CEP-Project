@@ -215,9 +215,9 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Early version may use an embedded room link; replace with LiveKit components
 
 ### `feat/meet-whiteboard`
-- [ ] tldraw room per booking with multiplayer sync
-- [ ] Save snapshot when the session ends; view past whiteboards from the booking
-- [ ] Permission check: only participants can open the room
+- [x] tldraw room per booking with multiplayer sync
+- [x] Save snapshot when the session ends; view past whiteboards from the booking
+- [x] Permission check: only participants can open the room
 
 ---
 

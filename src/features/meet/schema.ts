@@ -240,3 +240,67 @@ export type CallAccessResult =
       session?: SessionRequest
     }
 
+// ---------------------------------------------------------------------------
+// 8. Whiteboard & Collaborative Canvas Types
+// ---------------------------------------------------------------------------
+
+export const WhiteboardPointSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+})
+export type WhiteboardPoint = z.infer<typeof WhiteboardPointSchema>
+
+export const WhiteboardToolSchema = z.enum([
+  'pen',
+  'brush',
+  'line',
+  'rectangle',
+  'circle',
+  'arrow',
+  'text',
+  'eraser',
+])
+export type WhiteboardTool = z.infer<typeof WhiteboardToolSchema>
+
+export const WhiteboardStrokeSchema = z.object({
+  id: z.string(),
+  tool: WhiteboardToolSchema,
+  color: z.string(),
+  strokeWidth: z.number(),
+  points: z.array(WhiteboardPointSchema),
+  text: z.string().optional(),
+  userId: z.string().optional(),
+  userName: z.string().optional(),
+  timestamp: z.number(),
+})
+export type WhiteboardStroke = z.infer<typeof WhiteboardStrokeSchema>
+
+export const WhiteboardSnapshotDataSchema = z.object({
+  strokes: z.array(WhiteboardStrokeSchema).default([]),
+  backgroundColor: z.string().default('#FFFFFF'),
+  lastModified: z.number().default(() => Date.now()),
+  clientVersion: z.number().default(1),
+})
+export type WhiteboardSnapshotData = z.infer<typeof WhiteboardSnapshotDataSchema>
+
+export const SaveWhiteboardSnapshotSchema = z.object({
+  session_id: z.string().uuid(),
+  snapshot_data: WhiteboardSnapshotDataSchema,
+  thumbnail_url: z.string().optional().nullable(),
+})
+export type SaveWhiteboardSnapshotInput = z.infer<typeof SaveWhiteboardSnapshotSchema>
+
+export const WhiteboardRecordSchema = z.object({
+  id: z.string().uuid(),
+  session_id: z.string().uuid(),
+  room_id: z.string(),
+  snapshot_data: WhiteboardSnapshotDataSchema,
+  thumbnail_url: z.string().nullable().optional(),
+  version: z.number().int().positive(),
+  saved_by: z.string().uuid().nullable().optional(),
+  created_at: z.string(),
+  updated_at: z.string(),
+})
+export type WhiteboardRecord = z.infer<typeof WhiteboardRecordSchema>
+
+

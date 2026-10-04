@@ -26,7 +26,9 @@ import {
   Maximize2,
   Minimize2,
   AlertTriangle,
+  PenTool,
 } from 'lucide-react'
+import { WhiteboardCanvas } from './WhiteboardCanvas'
 
 interface CallInterfaceProps {
   access: Extract<CallAccessResult, { ok: true }>
@@ -34,7 +36,11 @@ interface CallInterfaceProps {
 
 export function CallInterface({ access }: CallInterfaceProps) {
   const router = useRouter()
-  const { session, userRole, otherParticipantName, otherParticipantRole, roomName } = access
+  const { session, userRole, otherParticipantName, otherParticipantRole, roomName, currentUserId } = access
+
+  // View state: video, whiteboard, or split
+  const [viewMode, setViewMode] = useState<'video' | 'whiteboard' | 'split'>('video')
+  const [lastSavedWbVersion, setLastSavedWbVersion] = useState<number | null>(null)
 
   // Media state
   const [isMicOn, setIsMicOn] = useState(true)
@@ -236,7 +242,45 @@ export function CallInterface({ access }: CallInterfaceProps) {
           </div>
         </div>
 
-        {/* Center / Right Status & Timer */}
+        {/* Center View Mode Switcher */}
+        <div className="flex items-center bg-slate-900/90 rounded-lg p-0.5 border border-slate-700/80 text-xs shadow-inner">
+          <button
+            type="button"
+            onClick={() => setViewMode('video')}
+            className={`px-3 py-1 rounded transition-colors ${
+              viewMode === 'video'
+                ? 'bg-blue-600 text-white font-semibold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Video
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('whiteboard')}
+            className={`px-3 py-1 rounded transition-colors flex items-center gap-1.5 ${
+              viewMode === 'whiteboard'
+                ? 'bg-amber-500 text-slate-950 font-semibold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <PenTool className="h-3 w-3" />
+            <span>Whiteboard</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('split')}
+            className={`hidden md:inline-block px-3 py-1 rounded transition-colors ${
+              viewMode === 'split'
+                ? 'bg-indigo-600 text-white font-semibold'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Split View
+          </button>
+        </div>
+
+        {/* Right Status & Timer */}
         <div className="flex items-center gap-3">
           {/* Connection status */}
           <div className="flex items-center gap-1.5 text-xs">
@@ -274,8 +318,8 @@ export function CallInterface({ access }: CallInterfaceProps) {
         </div>
       </header>
 
-      {/* ── Main Video Area ── */}
-      <main className="relative flex-1 bg-[#0F1420] p-4 flex items-center justify-center overflow-hidden">
+      {/* ── Main Canvas / Video Area ── */}
+      <main className="relative flex-1 bg-[#0F1420] p-3 sm:p-4 flex items-center justify-center overflow-hidden">
         {mediaError && (
           <div className="absolute top-4 left-1/2 -translate-x-1/2 z-30 bg-amber-950/80 border border-amber-700/60 text-amber-200 px-4 py-2 rounded-lg text-xs flex items-center gap-2 max-w-md shadow-lg">
             <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400" />
@@ -283,104 +327,201 @@ export function CallInterface({ access }: CallInterfaceProps) {
           </div>
         )}
 
-        {/* Speaker / Screen Share Stage */}
-        <div className="relative w-full h-full max-w-5xl rounded-2xl bg-[#171D2B] border border-slate-800/80 overflow-hidden flex items-center justify-center shadow-2xl">
-          {isScreenSharing ? (
-            <div className="relative w-full h-full bg-black flex items-center justify-center">
-              <video
-                ref={screenShareVideoRef}
-                autoPlay
-                playsInline
-                className="w-full h-full object-contain"
-              />
-              <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-full flex items-center gap-2">
-                <ScreenShare className="h-3.5 w-3.5 text-blue-400" />
-                <span>You are sharing your screen</span>
-              </div>
-            </div>
-          ) : (
-            /* Remote Participant View */
-            <div className="flex flex-col items-center justify-center space-y-4 text-center p-6">
-              <div className="relative">
-                <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-100 text-3xl font-bold shadow-inner">
-                  {otherParticipantName
-                    .split(' ')
-                    .map((n) => n[0])
-                    .join('')
-                    .slice(0, 2)
-                    .toUpperCase()}
-                </div>
-                <div className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-1.5 border-2 border-[#171D2B] text-slate-950">
-                  <Volume2 className="h-4 w-4" />
-                </div>
-              </div>
-
-              <div>
-                <h2 className="text-xl font-semibold text-slate-100">{otherParticipantName}</h2>
-                <p className="text-slate-400 text-sm mt-0.5">{otherParticipantRole}</p>
-              </div>
-
-              <div className="flex items-center gap-2 bg-slate-900/60 px-3 py-1 rounded-full border border-slate-800 text-xs text-slate-400">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>Connected & Ready</span>
-              </div>
-            </div>
-          )}
-
-          {/* Self View Floating PiP (Bottom-right) */}
-          <div
-            className={`absolute bottom-4 right-4 rounded-xl border border-slate-700/80 bg-slate-900/90 backdrop-blur-md overflow-hidden shadow-2xl transition-all duration-300 z-10 ${
-              isPipExpanded ? 'w-44 sm:w-56 h-32 sm:h-40' : 'w-24 h-16'
-            }`}
-          >
-            <div className="relative w-full h-full flex items-center justify-center bg-black/40">
-              {isCamOn ? (
+        {/* MODE 1: Full Video Mode */}
+        {viewMode === 'video' && (
+          <div className="relative w-full h-full max-w-5xl rounded-2xl bg-[#171D2B] border border-slate-800/80 overflow-hidden flex items-center justify-center shadow-2xl">
+            {isScreenSharing ? (
+              <div className="relative w-full h-full bg-black flex items-center justify-center">
                 <video
-                  ref={localVideoRef}
+                  ref={screenShareVideoRef}
                   autoPlay
                   playsInline
-                  muted
-                  className="w-full h-full object-cover scale-x-[-1]"
+                  className="w-full h-full object-contain"
                 />
-              ) : (
-                <div className="flex flex-col items-center justify-center p-2 text-center">
-                  <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-200 font-bold text-sm">
-                    {userRole === 'teacher' ? 'FAC' : 'STU'}
-                  </div>
-                  {isPipExpanded && (
-                    <span className="text-[11px] text-slate-400 mt-1">Camera Off</span>
-                  )}
+                <div className="absolute top-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-full flex items-center gap-2">
+                  <ScreenShare className="h-3.5 w-3.5 text-blue-400" />
+                  <span>You are sharing your screen</span>
                 </div>
-              )}
-
-              {/* PiP Mini Controls */}
-              <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
-                <button
-                  type="button"
-                  onClick={() => setIsPipExpanded(!isPipExpanded)}
-                  className="p-1 rounded bg-black/60 text-slate-300 hover:text-white"
-                  title={isPipExpanded ? 'Minimize View' : 'Expand View'}
-                >
-                  {isPipExpanded ? (
-                    <Minimize2 className="h-3 w-3" />
-                  ) : (
-                    <Maximize2 className="h-3 w-3" />
-                  )}
-                </button>
               </div>
+            ) : (
+              /* Remote Participant View */
+              <div className="flex flex-col items-center justify-center space-y-4 text-center p-6">
+                <div className="relative">
+                  <div className="h-28 w-28 sm:h-32 sm:w-32 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-100 text-3xl font-bold shadow-inner">
+                    {otherParticipantName
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </div>
+                  <div className="absolute -bottom-1 -right-1 bg-emerald-500 rounded-full p-1.5 border-2 border-[#171D2B] text-slate-950">
+                    <Volume2 className="h-4 w-4" />
+                  </div>
+                </div>
 
-              {/* Mic Status on PiP */}
-              <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/70 px-2 py-0.5 rounded text-[10px] text-slate-300">
-                {isMicOn ? (
-                  <Mic className="h-3 w-3 text-emerald-400" />
+                <div>
+                  <h2 className="text-xl font-semibold text-slate-100">{otherParticipantName}</h2>
+                  <p className="text-slate-400 text-sm mt-0.5">{otherParticipantRole}</p>
+                </div>
+
+                <div className="flex items-center gap-2 bg-slate-900/60 px-3 py-1 rounded-full border border-slate-800 text-xs text-slate-400">
+                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>Connected & Ready</span>
+                </div>
+              </div>
+            )}
+
+            {/* Self View Floating PiP (Bottom-right) */}
+            <div
+              className={`absolute bottom-4 right-4 rounded-xl border border-slate-700/80 bg-slate-900/90 backdrop-blur-md overflow-hidden shadow-2xl transition-all duration-300 z-10 ${
+                isPipExpanded ? 'w-44 sm:w-56 h-32 sm:h-40' : 'w-24 h-16'
+              }`}
+            >
+              <div className="relative w-full h-full flex items-center justify-center bg-black/40">
+                {isCamOn ? (
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover scale-x-[-1]"
+                  />
                 ) : (
-                  <MicOff className="h-3 w-3 text-red-400" />
+                  <div className="flex flex-col items-center justify-center p-2 text-center">
+                    <div className="h-10 w-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-200 font-bold text-sm">
+                      {userRole === 'teacher' ? 'FAC' : 'STU'}
+                    </div>
+                    {isPipExpanded && (
+                      <span className="text-[11px] text-slate-400 mt-1">Camera Off</span>
+                    )}
+                  </div>
                 )}
-                <span>You</span>
+
+                {/* PiP Mini Controls */}
+                <div className="absolute top-2 right-2 flex items-center gap-1 z-10">
+                  <button
+                    type="button"
+                    onClick={() => setIsPipExpanded(!isPipExpanded)}
+                    className="p-1 rounded bg-black/60 text-slate-300 hover:text-white"
+                    title={isPipExpanded ? 'Minimize View' : 'Expand View'}
+                  >
+                    {isPipExpanded ? (
+                      <Minimize2 className="h-3 w-3" />
+                    ) : (
+                      <Maximize2 className="h-3 w-3" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Mic Status on PiP */}
+                <div className="absolute bottom-2 left-2 flex items-center gap-1 bg-black/70 px-2 py-0.5 rounded text-[10px] text-slate-300">
+                  {isMicOn ? (
+                    <Mic className="h-3 w-3 text-emerald-400" />
+                  ) : (
+                    <MicOff className="h-3 w-3 text-red-400" />
+                  )}
+                  <span>You</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
+
+        {/* MODE 2: Whiteboard Focus Mode */}
+        {viewMode === 'whiteboard' && (
+          <div className="relative w-full h-full max-w-6xl flex flex-col shadow-2xl">
+            <WhiteboardCanvas
+              sessionId={session.id}
+              currentUserId={currentUserId}
+              currentUserName={userRole === 'teacher' ? (session.teacher?.full_name || 'Faculty') : (session.student?.full_name || 'Student')}
+              onSnapshotSaved={(v) => setLastSavedWbVersion(v)}
+            />
+
+            {/* Floating Mini PiP during Whiteboard Mode */}
+            <div
+              className={`absolute bottom-4 right-4 rounded-xl border border-slate-700/80 bg-slate-900/90 backdrop-blur-md overflow-hidden shadow-2xl transition-all duration-300 z-20 ${
+                isPipExpanded ? 'w-44 h-32' : 'w-24 h-16'
+              }`}
+            >
+              <div className="relative w-full h-full flex items-center justify-center bg-black/40">
+                {isCamOn ? (
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover scale-x-[-1]"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-2 text-center">
+                    <div className="h-8 w-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-200 font-bold text-xs">
+                      {userRole === 'teacher' ? 'FAC' : 'STU'}
+                    </div>
+                  </div>
+                )}
+                <div className="absolute top-1 right-1 flex items-center gap-1 z-10">
+                  <button
+                    type="button"
+                    onClick={() => setIsPipExpanded(!isPipExpanded)}
+                    className="p-1 rounded bg-black/60 text-slate-300 hover:text-white"
+                  >
+                    {isPipExpanded ? <Minimize2 className="h-2.5 w-2.5" /> : <Maximize2 className="h-2.5 w-2.5" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODE 3: Split View Mode */}
+        {viewMode === 'split' && (
+          <div className="w-full h-full max-w-7xl grid grid-cols-1 lg:grid-cols-12 gap-3 shadow-2xl">
+            {/* Left: Compact Video Stage */}
+            <div className="lg:col-span-4 h-full rounded-xl bg-[#171D2B] border border-slate-800/80 overflow-hidden flex flex-col items-center justify-center p-4 relative">
+              <div className="h-20 w-20 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-100 text-2xl font-bold shadow-inner">
+                {otherParticipantName
+                  .split(' ')
+                  .map((n) => n[0])
+                  .join('')
+                  .slice(0, 2)
+                  .toUpperCase()}
+              </div>
+              <h3 className="font-semibold text-slate-200 text-sm mt-3">{otherParticipantName}</h3>
+              <p className="text-slate-400 text-xs">{otherParticipantRole}</p>
+
+              {/* Compact Self-View at Bottom of Left Panel */}
+              <div className="w-full h-32 mt-4 rounded-lg bg-black/50 border border-slate-700 overflow-hidden relative">
+                {isCamOn ? (
+                  <video
+                    ref={localVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover scale-x-[-1]"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
+                    Camera Off
+                  </div>
+                )}
+                <div className="absolute bottom-1 left-1 bg-black/60 text-slate-300 text-[10px] px-1.5 py-0.5 rounded">
+                  You
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Collaborative Whiteboard */}
+            <div className="lg:col-span-8 h-full flex flex-col">
+              <WhiteboardCanvas
+                sessionId={session.id}
+                currentUserId={currentUserId}
+                currentUserName={userRole === 'teacher' ? (session.teacher?.full_name || 'Faculty') : (session.student?.full_name || 'Student')}
+                onSnapshotSaved={(v) => setLastSavedWbVersion(v)}
+              />
+            </div>
+          </div>
+        )}
       </main>
 
       {/* ── Bottom Control Bar ── */}
@@ -429,6 +570,27 @@ export function CallInterface({ access }: CallInterfaceProps) {
             title={isScreenSharing ? 'Stop Screen Share' : 'Share Screen'}
           >
             <ScreenShare className="h-5 w-5" />
+          </Button>
+
+          {/* Whiteboard Quick Toggle */}
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() =>
+              setViewMode((prev) => (prev === 'whiteboard' ? 'video' : 'whiteboard'))
+            }
+            className={`h-12 w-12 rounded-full p-0 border transition-all ${
+              viewMode === 'whiteboard' || viewMode === 'split'
+                ? 'bg-amber-500 hover:bg-amber-600 border-amber-400 text-slate-950 font-bold'
+                : 'bg-slate-800/80 hover:bg-slate-700 border-slate-700 text-slate-100'
+            }`}
+            title={
+              viewMode === 'whiteboard'
+                ? 'Return to Video Stage'
+                : 'Open Collaborative Whiteboard'
+            }
+          >
+            <PenTool className="h-5 w-5" />
           </Button>
 
           {/* Leave Call Button */}
@@ -524,6 +686,12 @@ export function CallInterface({ access }: CallInterfaceProps) {
               <div className="flex justify-between">
                 <span className="text-ink-muted">Time Remaining:</span>
                 <span className="font-mono font-semibold">{formatTime(remainingSec)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-muted">Whiteboard Snapshot:</span>
+                <span className="font-medium text-blue-600">
+                  {lastSavedWbVersion ? `v${lastSavedWbVersion} Saved` : 'Live / Active'}
+                </span>
               </div>
             </div>
 

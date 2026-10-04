@@ -9,6 +9,7 @@ import type {
   TeacherSummary,
   SessionRequest,
   CallAccessResult,
+  WhiteboardRecord,
 } from './schema'
 
 /**
@@ -453,4 +454,46 @@ export async function getSessionCallAccess(
     isWindowActive: true,
   }
 }
+
+// ---------------------------------------------------------------------------
+// 6. Whiteboard Queries
+// ---------------------------------------------------------------------------
+
+/**
+ * Fetch whiteboard snapshot record for a session.
+ * Enforces participant authorization: user must be student, teacher, or admin.
+ */
+export async function getWhiteboardBySessionId(
+  sessionId: string
+): Promise<WhiteboardRecord | null> {
+  const { user, profile } = await requireAuth()
+  const session = await getSessionRequestById(sessionId)
+
+  if (!session) {
+    return null
+  }
+
+  const isStudent = session.student_id === user.id
+  const isTeacher = session.teacher_id === user.id
+  const isAdmin = profile.role_primary === 'admin'
+
+  if (!isStudent && !isTeacher && !isAdmin) {
+    return null
+  }
+
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from('meeting_whiteboards')
+    .select('*')
+    .eq('session_id', sessionId)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[meet/queries] getWhiteboardBySessionId error:', error.message)
+    return null
+  }
+
+  return (data as unknown as WhiteboardRecord) ?? null
+}
+
 

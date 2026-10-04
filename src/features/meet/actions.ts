@@ -12,6 +12,7 @@ import {
   RespondSessionRequestSchema,
   SelectSessionModeSchema,
   CancelSessionRequestSchema,
+  SaveWhiteboardSnapshotSchema,
   type SaveAvailabilityRuleInput,
   type AddExceptionInput,
   type DeleteRuleInput,
@@ -20,6 +21,7 @@ import {
   type RespondSessionRequestInput,
   type SelectSessionModeInput,
   type CancelSessionRequestInput,
+  type SaveWhiteboardSnapshotInput,
   type ActionResult,
   type GeneratedSlot,
 } from './schema'
@@ -747,3 +749,135 @@ export async function expirePendingSessions(): Promise<{ expiredCount: number }>
 
   return { expiredCount: count }
 }
+
+// ---------------------------------------------------------------------------
+// 8. Whiteboard Actions
+// ---------------------------------------------------------------------------
+
+/**
+ * Save or update collaborative whiteboard snapshot for a session.
+ * Only authorized participants (student, teacher, admin) can persist snapshots.
+ */
+export async function saveWhiteboardSnapshot(
+  input: SaveWhiteboardSnapshotInput
+): Promise<ActionResult<{ whiteboardId: string; version: number }>> {
+  const { user, profile } = await requireAuth()
+
+  const parsed = SaveWhiteboardSnapshotSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: parsed.error.errors[0]?.message ?? 'Invalid whiteboard snapshot data',
+      },
+    }
+  }
+
+  const { session_id, snapshot_data, thumbnail_url } = parsed.data
+  const supabase = await createClient()
+
+  // 1. Verify session exists and user is participant or admin
+  const { data: session, error: sessionErr } = await supabase
+    .from('session_requests')
+    .select('id, student_id, teacher_id, room_id')
+    .eq('id', session_id)
+    .single()
+
+  if (sessionErr || !session) {
+    return {
+      ok: false,
+      error: { code: 'NOT_FOUND', message: 'Meeting session not found' },
+    }
+  }
+
+  const isStudent = session.student_id === user.id
+  const isTeacher = session.teacher_id === user.id
+  const isAdmin = profile.role_primary === 'admin'
+
+  if (!isStudent && !isTeacher && !isAdmin) {
+    return {
+      ok: false,
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'You are not authorized to save whiteboards for this session.',
+      },
+    }
+  }
+
+  const roomId = session.room_id || `meet-${session.id.slice(0, 8)}`
+
+  // 2. Check if a whiteboard record already exists for this session
+  const { data: existing } = await supabase
+    .from('meeting_whiteboards')
+    .select('id, version')
+    .eq('session_id', session_id)
+    .maybeSingle()
+
+  if (existing) {
+    const nextVersion = (existing.version || 1) + 1
+    const { data: updated, error: updateErr } = await supabase
+      .from('meeting_whiteboards')
+      .update({
+        snapshot_data,
+        thumbnail_url: thumbnail_url ?? null,
+        version: nextVersion,
+        saved_by: user.id,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+      .select('id, version')
+      .single()
+
+    if (updateErr) {
+      console.error('[meet/actions] updateWhiteboard error:', updateErr.message)
+      return {
+        ok: false,
+        error: { code: 'DB_ERROR', message: 'Failed to update whiteboard snapshot' },
+      }
+    }
+
+    revalidatePath(`/meet/${session_id}`)
+    revalidatePath(`/meet/${session_id}/whiteboard`)
+    return {
+      ok: true,
+      data: {
+        whiteboardId: updated.id,
+        version: updated.version,
+      },
+    }
+  }
+
+  // 3. Insert new whiteboard snapshot record
+  const { data: inserted, error: insertErr } = await supabase
+    .from('meeting_whiteboards')
+    .insert({
+      session_id,
+      room_id: roomId,
+      snapshot_data,
+      thumbnail_url: thumbnail_url ?? null,
+      version: 1,
+      saved_by: user.id,
+    })
+    .select('id, version')
+    .single()
+
+  if (insertErr) {
+    console.error('[meet/actions] insertWhiteboard error:', insertErr.message)
+    return {
+      ok: false,
+      error: { code: 'DB_ERROR', message: 'Failed to save whiteboard snapshot' },
+    }
+  }
+
+  revalidatePath(`/meet/${session_id}`)
+  revalidatePath(`/meet/${session_id}/whiteboard`)
+  return {
+    ok: true,
+    data: {
+      whiteboardId: inserted.id,
+      version: inserted.version,
+    },
+  }
+}
+
