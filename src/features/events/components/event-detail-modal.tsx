@@ -16,6 +16,7 @@ import {
   Plus,
   AlertCircle,
   Flag,
+  Building2,
 } from 'lucide-react'
 import type { EventItem, EventTeamItem, EventMessageItem } from '../schema'
 import {
@@ -68,6 +69,19 @@ export function EventDetailModal({
   const [reportReason, setReportReason] = React.useState('Misleading or inaccurate information')
   const [reportDetails, setReportDetails] = React.useState('')
 
+  // Keyboard escape listener to close drawer effortlessly
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose()
+      }
+    }
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown)
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, onClose])
+
   if (!isOpen || !event) return null
 
   const isAttending = event.userRsvpStatus === 'attending'
@@ -117,13 +131,13 @@ export function EventDetailModal({
     try {
       const res = await cancelRsvpAction(event.id)
       if (res.ok) {
-        setFeedback('RSVP cancelled and removed from your schedule.')
+        setFeedback('RSVP cancelled.')
         onEventUpdated()
       } else {
         setFeedback(res.error || 'Failed to cancel RSVP')
       }
     } catch {
-      setFeedback('An error occurred while cancelling RSVP')
+      setFeedback('Error cancelling RSVP')
     } finally {
       setIsProcessing(false)
     }
@@ -134,19 +148,20 @@ export function EventDetailModal({
     if (!teamName.trim()) return
 
     setIsProcessing(true)
-    const skills = desiredSkillsStr
-      .split(',')
-      .map((s) => s.trim())
-      .filter(Boolean)
-
     try {
+      const desiredSkills = desiredSkillsStr
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+
       const res = await createEventTeamAction({
         eventId: event.id,
         name: teamName.trim(),
         lookingForMembers: true,
-        desiredSkills: skills,
-        notes: teamNotes.trim(),
+        desiredSkills,
+        notes: teamNotes.trim() || undefined,
       })
+
       if (res.ok) {
         setTeamName('')
         setDesiredSkillsStr('')
@@ -235,41 +250,32 @@ export function EventDetailModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-150">
-      <div className="relative w-full max-w-2xl bg-surface rounded-md border border-border shadow-[var(--shadow-float)] overflow-hidden my-8 max-h-[90vh] flex flex-col">
-        {/* Banner Header: Clean surface, NO gradient decoration per DESIGN.MD §2 & §12 */}
-        <div className="relative h-44 shrink-0 bg-surface-sunken border-b border-border">
-          {event.bannerUrl ? (
-            <img src={event.bannerUrl} alt={event.title} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-surface-sunken text-ink-muted">
-              <Calendar className="w-10 h-10 opacity-30 mb-1" />
-              <span className="text-[11px] font-mono opacity-60">Campus event</span>
-            </div>
-          )}
-
-          {/* Close button */}
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute top-3 right-3 p-1.5 rounded-sm bg-surface/90 border border-border text-ink hover:bg-surface transition-colors cursor-pointer"
-            aria-label="Close dialog"
-          >
-            <X className="w-4 h-4" />
-          </button>
-
-          {/* Header text overlay banner */}
-          <div className="absolute bottom-3 left-4 right-4 bg-surface/95 backdrop-blur-xs p-3 rounded-sm border border-border flex flex-col gap-1">
-            <div className="flex items-center gap-1.5 flex-wrap">
+    <div
+      role="presentation"
+      className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] transition-opacity duration-240"
+      onClick={onClose}
+    >
+      {/* Slide-over Right Drawer: Full height, highly readable, never cramped or floating */}
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="event-drawer-title"
+        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-y-0 right-0 z-50 w-full sm:max-w-[580px] bg-surface border-l border-border h-full flex flex-col shadow-[var(--shadow-float)] transition-transform duration-240 ease-in-out overflow-hidden"
+      >
+        {/* Drawer Header */}
+        <div className="p-5 border-b border-border bg-surface shrink-0 space-y-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={cn(
                   'px-2 py-0.5 text-[10px] font-mono font-medium rounded-sm border',
                   event.kind === 'college'
                     ? 'bg-ink text-on-ink border-ink'
-                    : 'bg-surface text-ink border-border'
+                    : 'bg-surface-sunken text-ink border-border'
                 )}
               >
-                {event.kind === 'college' ? 'College event' : 'External event'}
+                {event.kind === 'college' ? 'College event' : 'External hackathon'}
               </span>
 
               {event.status === 'pending' && (
@@ -279,142 +285,223 @@ export function EventDetailModal({
               )}
 
               {event.allowTeams && (
-                <span className="px-2 py-0.5 text-[10px] font-mono text-ink rounded-sm bg-surface border border-border flex items-center gap-1">
-                  <Users className="w-3 h-3 text-highlight" />
-                  Teams ({event.minTeamSize}–{event.maxTeamSize})
+                <span className="px-2 py-0.5 text-[10px] font-mono font-medium rounded-sm bg-surface-sunken text-ink border border-border flex items-center gap-1">
+                  <Users size={11} className="text-highlight" />
+                  <span>Teams ({event.minTeamSize}–{event.maxTeamSize})</span>
                 </span>
               )}
             </div>
 
-            <h2 className="font-display text-lg sm:text-xl font-bold text-ink leading-tight line-clamp-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-sm p-1.5 text-ink-muted hover:text-ink hover:bg-surface-sunken transition-colors focus-visible:outline-2 focus-visible:outline-ink"
+              aria-label="Close details"
+            >
+              <X size={18} strokeWidth={1.75} />
+            </button>
+          </div>
+
+          <div>
+            <h2 id="event-drawer-title" className="font-display text-h2 font-bold text-ink leading-tight">
               {event.title}
             </h2>
-            <p className="text-meta font-mono text-ink-muted truncate">
-              Organized by <strong className="text-ink">{event.organizerName}</strong>
-            </p>
+            <div className="flex items-center gap-1.5 text-meta font-mono text-ink-muted mt-1">
+              <Building2 size={13} className="text-ink-muted shrink-0" />
+              <span>Organized by <strong className="text-ink font-semibold">{event.organizerName}</strong></span>
+            </div>
           </div>
-        </div>
 
-        {/* Navigation Tabs (Overview & RSVP, Teams, Discussion) */}
-        <div className="flex border-b border-border bg-surface-sunken/40 px-4 shrink-0">
-          <button
-            type="button"
-            onClick={() => setActiveTab('details')}
-            className={cn(
-              'py-2.5 px-3 text-small font-medium border-b-2 transition-colors cursor-pointer',
-              activeTab === 'details'
-                ? 'border-highlight text-ink font-bold'
-                : 'border-transparent text-ink-muted hover:text-ink'
-            )}
-          >
-            Overview & RSVP
-          </button>
+          {/* Feedback banner */}
+          {feedback && (
+            <div className="p-2.5 rounded-sm bg-surface-sunken border border-border text-meta text-ink flex items-center gap-2">
+              <Sparkles size={14} className="text-highlight shrink-0" />
+              <span className="flex-1">{feedback}</span>
+            </div>
+          )}
 
-          {event.allowTeams && (
+          {/* Navigation Tabs */}
+          <div className="flex border-b border-border -mb-5 pt-1 gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('details')}
+              className={cn(
+                'py-2 px-3 text-small font-medium border-b-2 -mb-px transition-colors cursor-pointer',
+                activeTab === 'details'
+                  ? 'border-highlight text-ink font-bold'
+                  : 'border-transparent text-ink-muted hover:text-ink'
+              )}
+            >
+              Overview & RSVP
+            </button>
+
             <button
               type="button"
               onClick={() => setActiveTab('teams')}
               className={cn(
-                'py-2.5 px-3 text-small font-medium border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer',
+                'py-2 px-3 text-small font-medium border-b-2 -mb-px transition-colors cursor-pointer',
                 activeTab === 'teams'
                   ? 'border-highlight text-ink font-bold'
                   : 'border-transparent text-ink-muted hover:text-ink'
               )}
             >
-              <Users className="w-3.5 h-3.5" />
-              <span>Teams ({teams.length})</span>
+              Teams ({teams.length})
             </button>
-          )}
 
-          <button
-            type="button"
-            onClick={() => setActiveTab('discussion')}
-            className={cn(
-              'py-2.5 px-3 text-small font-medium border-b-2 transition-colors flex items-center gap-1.5 cursor-pointer',
-              activeTab === 'discussion'
-                ? 'border-highlight text-ink font-bold'
-                : 'border-transparent text-ink-muted hover:text-ink'
-            )}
-          >
-            <MessageSquare className="w-3.5 h-3.5" />
-            <span>Discussion ({messages.length})</span>
-          </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('discussion')}
+              className={cn(
+                'py-2 px-3 text-small font-medium border-b-2 -mb-px transition-colors cursor-pointer',
+                activeTab === 'discussion'
+                  ? 'border-highlight text-ink font-bold'
+                  : 'border-transparent text-ink-muted hover:text-ink'
+              )}
+            >
+              Discussion ({messages.length})
+            </button>
+          </div>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="p-5 overflow-y-auto flex-1 space-y-4">
-          {feedback && (
-            <div className="p-3 rounded-sm bg-surface-sunken text-ink text-small border border-border flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-ink-muted" />
-              <span>{feedback}</span>
-            </div>
-          )}
-
-          {/* TAB 1: DETAILS */}
+        {/* Drawer Scrollable Body: Comfortable typography and spacing */}
+        <div className="flex-1 overflow-y-auto p-5 space-y-6">
+          {/* TAB 1: OVERVIEW & RSVP */}
           {activeTab === 'details' && (
-            <div className="space-y-4">
-              {/* Event Metadata Cards */}
+            <div className="space-y-6">
+              {/* Date, Time & Location Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="p-3 rounded-sm bg-surface-sunken border border-border flex items-start gap-2.5">
-                  <Clock className="w-4 h-4 text-ink-muted shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-small font-semibold text-ink font-display">
-                      {formattedDate}
-                    </p>
-                    <p className="text-meta font-mono text-ink-muted mt-0.5">
-                      {formattedStartTime} – {formattedEndTime}
-                    </p>
-                  </div>
+                <div className="p-3.5 rounded-sm bg-surface-sunken border border-border space-y-1">
+                  <span className="text-[11px] font-mono text-ink-muted flex items-center gap-1.5 font-medium">
+                    <Calendar size={13} /> Date & time
+                  </span>
+                  <p className="font-display text-small font-bold text-ink">
+                    {formattedDate}
+                  </p>
+                  <p className="text-meta font-mono text-ink-muted">
+                    {formattedStartTime} – {formattedEndTime}
+                  </p>
                 </div>
 
-                <div className="p-3 rounded-sm bg-surface-sunken border border-border flex items-start gap-2.5">
-                  <MapPin className="w-4 h-4 text-ink-muted shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-small font-semibold text-ink font-display">Location</p>
-                    <p className="text-meta font-mono text-ink-muted mt-0.5 line-clamp-2">
-                      {event.location}
-                    </p>
-                  </div>
+                <div className="p-3.5 rounded-sm bg-surface-sunken border border-border space-y-1">
+                  <span className="text-[11px] font-mono text-ink-muted flex items-center gap-1.5 font-medium">
+                    <MapPin size={13} /> Location
+                  </span>
+                  <p className="font-display text-small font-bold text-ink">
+                    {event.location}
+                  </p>
+                  <p className="text-meta text-ink-muted">
+                    Campus venue or link
+                  </p>
                 </div>
               </div>
 
-              {/* External Organizer Notice */}
-              {event.kind === 'external' && (
-                <div className="p-3 rounded-sm bg-surface-sunken border border-border text-meta font-mono text-ink flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-ink-muted" />
-                    <span>External organizer: {event.organizerName}</span>
+              {/* External Registration Link if any */}
+              {event.registrationLink && (
+                <div className="p-3.5 rounded-sm bg-surface-sunken border border-border flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-small font-semibold text-ink block">
+                      External portal registration required
+                    </span>
+                    <span className="text-meta text-ink-muted">
+                      Organizer hosted registration
+                    </span>
                   </div>
-                  {event.registrationLink && (
-                    <a
-                      href={event.registrationLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 font-semibold text-ink underline"
-                    >
-                      Visit Site <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
+                  <a
+                    href={event.registrationLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 rounded-sm bg-ink text-on-ink text-meta font-mono font-medium hover:opacity-90 flex items-center gap-1.5 shrink-0"
+                  >
+                    <span>Visit site</span>
+                    <ExternalLink size={12} />
+                  </a>
                 </div>
               )}
 
-              {/* Description */}
-              <div className="space-y-1.5">
-                <h3 className="font-display text-small font-bold text-ink">About Event</h3>
-                <div className="text-small text-ink leading-relaxed whitespace-pre-line bg-surface p-3.5 rounded-sm border border-border">
+              {/* Attendance & RSVP Section */}
+              <div className="p-4 rounded-md border border-border bg-surface space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-display text-small font-bold text-ink">
+                      Your Attendance
+                    </h3>
+                    <p className="text-meta text-ink-muted">
+                      {event.rsvpCount || 0} students currently registered
+                    </p>
+                  </div>
+
+                  <span
+                    className={cn(
+                      'text-meta font-mono font-semibold px-2 py-0.5 rounded-xs border',
+                      isAttending
+                        ? 'bg-success/10 text-success border-success/30'
+                        : 'bg-surface-sunken text-ink-muted border-border'
+                    )}
+                  >
+                    {isAttending ? 'Attending' : 'Not registered'}
+                  </span>
+                </div>
+
+                {!isAttending ? (
+                  <div className="space-y-3 pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer select-none text-small text-ink">
+                      <input
+                        type="checkbox"
+                        checked={syncToCalendar}
+                        onChange={(e) => setSyncToCalendar(e.target.checked)}
+                        className="rounded-xs border-border text-ink focus:ring-ink"
+                      />
+                      <span>Automatically add to my campus timetable & personal calendar</span>
+                    </label>
+
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={handleRsvp}
+                      disabled={isProcessing}
+                      className="w-full"
+                    >
+                      <Calendar size={15} />
+                      <span>RSVP Attending</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 pt-1">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCancelRsvp}
+                      disabled={isProcessing}
+                      className="text-danger hover:bg-danger/10 border-danger/30"
+                    >
+                      Cancel RSVP
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Full Event Description (Comfortable reading typography) */}
+              <div className="space-y-2">
+                <h3 className="font-display text-small font-bold text-ink">
+                  About Event
+                </h3>
+                <div className="p-4 rounded-sm bg-surface-sunken border border-border font-body text-body text-ink leading-relaxed whitespace-pre-wrap">
                   {event.description}
                 </div>
               </div>
 
               {/* Tags */}
               {event.tags && event.tags.length > 0 && (
-                <div className="space-y-1.5">
-                  <span className="text-meta font-mono text-ink-muted block">Tags</span>
-                  <div className="flex flex-wrap gap-1">
+                <div className="space-y-2">
+                  <h4 className="font-display text-meta font-bold text-ink">
+                    Tags
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5">
                     {event.tags.map((tag, idx) => (
                       <span
                         key={idx}
-                        className="px-2 py-0.5 text-[11px] font-mono rounded-sm bg-surface-sunken text-ink-muted border border-border"
+                        className="px-2 py-0.5 text-meta font-mono rounded-sm bg-surface-sunken border border-border text-ink"
                       >
                         #{tag}
                       </span>
@@ -423,130 +510,40 @@ export function EventDetailModal({
                 </div>
               )}
 
-              {/* RSVP Action Box */}
-              <div className="p-4 rounded-md border border-border bg-surface-sunken/60 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-display text-small font-bold text-ink">
-                      Your Attendance
-                    </h4>
-                    <p className="text-meta text-ink-muted mt-0.5">
-                      {isAttending
-                        ? 'You are confirmed for this event.'
-                        : 'Let organizers know you are attending.'}
-                    </p>
-                  </div>
-
-                  <span
-                    className={cn(
-                      'px-2.5 py-0.5 text-meta font-mono font-medium rounded-sm border',
-                      isAttending
-                        ? 'bg-success/15 text-success border-success/30'
-                        : 'bg-surface text-ink-muted border-border'
-                    )}
+              {/* Report Event Section */}
+              <div className="pt-2 border-t border-border">
+                {!showReportForm ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowReportForm(true)}
+                    className="text-meta font-mono text-ink-muted hover:text-danger flex items-center gap-1.5 transition-colors cursor-pointer"
                   >
-                    {isAttending ? 'Attending' : 'Not Registered'}
-                  </span>
-                </div>
-
-                {!isAttending && (
-                  <label className="flex items-center gap-2 cursor-pointer text-meta text-ink select-none pt-1">
-                    <input
-                      type="checkbox"
-                      checked={syncToCalendar}
-                      onChange={(e) => setSyncToCalendar(e.target.checked)}
-                      className="rounded-xs border-border text-ink focus:ring-ink"
-                    />
-                    <span>Automatically add to my campus timetable & personal calendar</span>
-                  </label>
-                )}
-
-                <div className="pt-1 flex items-center gap-3">
-                  {isAttending ? (
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={isProcessing}
-                      onClick={handleCancelRsvp}
-                      className="text-danger hover:bg-danger/10 border-danger/30"
-                    >
-                      Cancel RSVP
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      disabled={isProcessing}
-                      onClick={handleRsvp}
-                      className="flex items-center gap-1.5"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      <span>RSVP Attending</span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Report Event Link */}
-              <div className="flex justify-end pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowReportForm(true)}
-                  className="text-meta font-mono text-ink-muted hover:text-danger flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <Flag className="w-3.5 h-3.5" />
-                  <span>Report this event</span>
-                </button>
-              </div>
-
-              {/* Report Event Modal Form */}
-              {showReportForm && (
-                <div className="p-3.5 rounded-sm border border-danger/40 bg-surface space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h4 className="text-small font-bold text-danger flex items-center gap-1.5">
-                      <Flag className="w-3.5 h-3.5" />
-                      <span>Report Event to Campus Administration</span>
+                    <Flag size={12} />
+                    <span>Report this event</span>
+                  </button>
+                ) : (
+                  <form onSubmit={handleReportEvent} className="p-3 bg-surface-sunken border border-border rounded-sm space-y-3">
+                    <h4 className="font-display text-small font-bold text-ink flex items-center gap-1.5">
+                      <Flag size={13} className="text-danger" /> Report Event
                     </h4>
-                    <button
-                      type="button"
-                      onClick={() => setShowReportForm(false)}
-                      className="text-meta text-ink-muted hover:text-ink cursor-pointer"
+                    <select
+                      value={reportReason}
+                      onChange={(e) => setReportReason(e.target.value)}
+                      className="w-full bg-surface border border-border rounded-sm px-2.5 py-1.5 text-small text-ink"
                     >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  <form onSubmit={handleReportEvent} className="space-y-3">
-                    <div className="space-y-1">
-                      <label className="text-meta font-mono text-ink block font-bold">
-                        Reason for Report *
-                      </label>
-                      <select
-                        value={reportReason}
-                        onChange={(e) => setReportReason(e.target.value)}
-                        className="w-full bg-surface-sunken border border-border rounded-sm px-3 py-1.5 text-small text-ink"
-                      >
-                        <option value="Misleading or inaccurate information">Misleading or inaccurate information</option>
-                        <option value="Inappropriate commercial promotion">Inappropriate commercial promotion</option>
-                        <option value="Safety or security concern">Safety or security concern</option>
-                        <option value="Duplicate or spam event">Duplicate or spam event</option>
-                      </select>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-meta font-mono text-ink block">
-                        Additional Context (Optional)
-                      </label>
-                      <textarea
-                        rows={2}
-                        placeholder="Provide details to assist administrative review..."
-                        value={reportDetails}
-                        onChange={(e) => setReportDetails(e.target.value)}
-                        className="w-full bg-surface-sunken border border-border rounded-sm px-3 py-1.5 text-small text-ink placeholder:text-ink-muted"
-                      />
-                    </div>
-
-                    <div className="flex justify-end gap-2 pt-1">
+                      <option value="Misleading or inaccurate information">Misleading or inaccurate information</option>
+                      <option value="Inappropriate content or harassment">Inappropriate content or harassment</option>
+                      <option value="Commercial solicitation / spam">Commercial solicitation / spam</option>
+                      <option value="Unauthorized external brand">Unauthorized external brand</option>
+                    </select>
+                    <textarea
+                      rows={2}
+                      placeholder="Additional details (optional)..."
+                      value={reportDetails}
+                      onChange={(e) => setReportDetails(e.target.value)}
+                      className="w-full bg-surface border border-border rounded-sm p-2 text-small text-ink"
+                    />
+                    <div className="flex items-center gap-2 justify-end">
                       <Button
                         type="button"
                         variant="secondary"
@@ -565,118 +562,79 @@ export function EventDetailModal({
                       </Button>
                     </div>
                   </form>
-                </div>
-              )}
-
-              {/* Admin Moderation controls */}
-              {isAdmin && event.status === 'pending' && (
-                <div className="p-3.5 rounded-sm border border-warning/40 bg-surface space-y-2">
-                  <h4 className="text-small font-bold text-warning font-display">
-                    Administrator Review Queue
-                  </h4>
-                  <p className="text-meta text-ink-muted">
-                    This event is currently pending approval for college-wide calendar and directory visibility.
-                  </p>
-                  <div className="flex gap-2 pt-1">
-                    <Button
-                      type="button"
-                      variant="primary"
-                      size="sm"
-                      disabled={isProcessing}
-                      onClick={handleApprove}
-                    >
-                      Approve event
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      disabled={isProcessing}
-                      onClick={handleReject}
-                      className="text-danger hover:bg-danger/10"
-                    >
-                      Reject event
-                    </Button>
-                  </div>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
 
           {/* TAB 2: TEAMS */}
-          {activeTab === 'teams' && event.allowTeams && (
+          {activeTab === 'teams' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-display text-small font-bold text-ink">
-                    Hackathon & Project Teams
+                    Team Formation
                   </h3>
                   <p className="text-meta text-ink-muted">
-                    Connect with other students forming teams ({event.minTeamSize} – {event.maxTeamSize} members allowed).
+                    {event.allowTeams
+                      ? `Allowed team size: ${event.minTeamSize} to ${event.maxTeamSize} members`
+                      : 'Individual registration only for this opportunity.'}
                   </p>
                 </div>
 
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setShowTeamForm(!showTeamForm)}
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>{showTeamForm ? 'Close form' : 'Register team'}</span>
-                </Button>
+                {event.allowTeams && !showTeamForm && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setShowTeamForm(true)}
+                  >
+                    <Plus size={13} />
+                    <span>Create team</span>
+                  </Button>
+                )}
               </div>
 
-              {/* Form New Team */}
+              {/* Create Team Form */}
               {showTeamForm && (
-                <form
-                  onSubmit={handleCreateTeam}
-                  className="p-3.5 rounded-sm border border-border bg-surface-sunken space-y-3"
-                >
+                <form onSubmit={handleCreateTeam} className="p-4 bg-surface-sunken border border-border rounded-md space-y-3">
                   <h4 className="font-display text-small font-bold text-ink">
-                    Register a New Team
+                    Register a new team
                   </h4>
-
-                  <div className="space-y-1">
-                    <label className="text-meta font-mono font-bold text-ink block">
-                      Team Name
-                    </label>
+                  <div>
+                    <label className="text-meta text-ink-muted block mb-1">Team name</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. NeuralPulse"
+                      placeholder="e.g. VisionX or DevSquad"
                       value={teamName}
                       onChange={(e) => setTeamName(e.target.value)}
                       className="w-full bg-surface border border-border rounded-sm px-3 py-1.5 text-small text-ink"
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-meta font-mono text-ink block">
-                      Desired Skills / Roles (comma separated)
-                    </label>
+                  <div>
+                    <label className="text-meta text-ink-muted block mb-1">Desired skills (comma-separated)</label>
                     <input
                       type="text"
-                      placeholder="e.g. Next.js, PyTorch, Hardware, UI Design"
+                      placeholder="e.g. Next.js, Python, UI Design"
                       value={desiredSkillsStr}
                       onChange={(e) => setDesiredSkillsStr(e.target.value)}
                       className="w-full bg-surface border border-border rounded-sm px-3 py-1.5 text-small text-ink"
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <label className="text-meta font-mono text-ink block">
-                      Team Pitch / Notes
-                    </label>
+                  <div>
+                    <label className="text-meta text-ink-muted block mb-1">Team notes (optional)</label>
                     <textarea
                       rows={2}
-                      placeholder="What is your team building? What roles do you need?"
+                      placeholder="Looking for a backend engineer to build real-time APIs..."
                       value={teamNotes}
                       onChange={(e) => setTeamNotes(e.target.value)}
-                      className="w-full bg-surface border border-border rounded-sm px-3 py-1.5 text-small text-ink"
+                      className="w-full bg-surface border border-border rounded-sm p-2 text-small text-ink"
                     />
                   </div>
 
-                  <div className="flex justify-end gap-2 pt-1">
+                  <div className="flex items-center gap-2 justify-end pt-1">
                     <Button
                       type="button"
                       variant="secondary"
@@ -691,119 +649,132 @@ export function EventDetailModal({
                       size="sm"
                       disabled={isProcessing}
                     >
-                      Create team
+                      Register team
                     </Button>
                   </div>
                 </form>
               )}
 
-              {/* Existing Teams List */}
-              <div className="space-y-2">
-                {teams.length === 0 ? (
-                  <div className="p-8 text-center bg-surface-sunken/40 border border-border rounded-sm space-y-1">
-                    <Users className="w-8 h-8 text-ink-muted opacity-40 mx-auto" />
-                    <p className="text-small text-ink font-medium">No teams formed yet</p>
-                    <p className="text-meta text-ink-muted">Be the first to create a team for this hackathon!</p>
-                  </div>
-                ) : (
-                  teams.map((t) => (
-                    <div
-                      key={t.id}
-                      className="p-3.5 rounded-sm border border-border bg-surface flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                    >
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h4 className="font-display text-small font-bold text-ink">
+              {/* Teams List */}
+              {teams.length === 0 ? (
+                <div className="p-8 text-center bg-surface-sunken border border-border rounded-md text-ink-muted text-small space-y-2">
+                  <Users size={28} className="mx-auto opacity-40 mb-1" />
+                  <p>No teams formed yet.</p>
+                  {event.allowTeams && (
+                    <p className="text-meta">Be the first to create a team and find members!</p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {teams.map((t) => (
+                    <div key={t.id} className="p-3.5 bg-surface border border-border rounded-md space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="font-display font-bold text-ink block">
                             {t.name}
-                          </h4>
-                          {t.lookingForMembers && (
-                            <span className="px-1.5 py-0.5 rounded-xs text-[10px] font-mono bg-highlight/20 border border-highlight text-ink font-bold">
-                              Recruiting
-                            </span>
-                          )}
+                          </span>
+                          <span className="text-meta text-ink-muted font-mono">
+                            Leader: {t.leaderName}
+                          </span>
                         </div>
-
-                        <p className="text-meta font-mono text-ink-muted">
-                          Leader: {t.leaderName}
-                        </p>
-
-                        {t.notes && (
-                          <p className="text-small text-ink mt-1">
-                            {t.notes}
-                          </p>
-                        )}
-
-                        {t.desiredSkills && t.desiredSkills.length > 0 && (
-                          <div className="flex flex-wrap gap-1 pt-1">
-                            {t.desiredSkills.map((s, idx) => (
-                              <span
-                                key={idx}
-                                className="px-1.5 py-0.2 rounded-xs bg-surface-sunken text-ink-muted font-mono text-[10px] border border-border"
-                              >
-                                {s}
-                              </span>
-                            ))}
-                          </div>
+                        {t.lookingForMembers && (
+                          <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-xs bg-success/10 text-success border border-success/30">
+                            Looking for members
+                          </span>
                         )}
                       </div>
+
+                      {t.desiredSkills && t.desiredSkills.length > 0 && (
+                        <div className="flex flex-wrap gap-1 pt-1">
+                          {t.desiredSkills.map((skill: string, idx: number) => (
+                            <span key={idx} className="text-[10px] font-mono px-1.5 py-0.2 rounded-xs bg-surface-sunken border border-border text-ink-muted">
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           {/* TAB 3: DISCUSSION */}
           {activeTab === 'discussion' && (
             <div className="space-y-4">
-              <div className="space-y-2 max-h-[320px] overflow-y-auto p-1">
-                {messages.length === 0 ? (
-                  <div className="p-8 text-center bg-surface-sunken/40 border border-border rounded-sm space-y-1">
-                    <MessageSquare className="w-8 h-8 text-ink-muted opacity-40 mx-auto" />
-                    <p className="text-small text-ink font-medium">No discussion questions yet</p>
-                    <p className="text-meta text-ink-muted">Ask the event organizers or chat with participants.</p>
-                  </div>
-                ) : (
-                  messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className="p-3 rounded-sm border border-border bg-surface space-y-1"
-                    >
-                      <div className="flex items-center justify-between text-meta font-mono text-ink-muted">
-                        <span className="font-bold text-ink">{m.authorName}</span>
-                        <span>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+              <h3 className="font-display text-small font-bold text-ink">
+                Event Discussion & Q&A
+              </h3>
+
+              {/* Message Composer */}
+              <form onSubmit={handleSendMessage} className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Ask a question about schedule, criteria, or venue..."
+                  value={messageContent}
+                  onChange={(e) => setMessageContent(e.target.value)}
+                  className="flex-1 bg-surface border border-border rounded-sm px-3 py-2 text-small text-ink placeholder:text-ink-muted focus-visible:outline-2 focus-visible:outline-ink"
+                />
+                <Button type="submit" variant="primary" size="compact" disabled={isProcessing || !messageContent.trim()}>
+                  <Send size={14} />
+                  <span>Send</span>
+                </Button>
+              </form>
+
+              {/* Message Feed */}
+              {messages.length === 0 ? (
+                <div className="p-8 text-center bg-surface-sunken border border-border rounded-md text-ink-muted text-small">
+                  <MessageSquare size={28} className="mx-auto opacity-40 mb-2" />
+                  <p>No discussion messages yet.</p>
+                  <p className="text-meta mt-1">Post the first question for organizers or participants.</p>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  {messages.map((m) => (
+                    <div key={m.id} className="p-3 bg-surface-sunken border border-border rounded-sm space-y-1">
+                      <div className="flex items-center justify-between text-meta font-mono">
+                        <span className="font-semibold text-ink">{m.authorName}</span>
+                        <span className="text-ink-muted">
+                          {new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
                       </div>
                       <p className="text-small text-ink leading-relaxed">
                         {m.content}
                       </p>
                     </div>
-                  ))
-                )}
-              </div>
-
-              {/* Message input */}
-              <form onSubmit={handleSendMessage} className="flex gap-2 pt-2 border-t border-border">
-                <input
-                  type="text"
-                  placeholder="Ask a question or post to event chat..."
-                  value={messageContent}
-                  onChange={(e) => setMessageContent(e.target.value)}
-                  className="flex-1 bg-surface-sunken border border-border rounded-sm px-3 py-1.5 text-small text-ink placeholder:text-ink-muted focus-visible:outline-2 focus-visible:outline-ink"
-                />
-                <Button
-                  type="submit"
-                  variant="primary"
-                  size="sm"
-                  disabled={isProcessing || !messageContent.trim()}
-                  className="shrink-0 flex items-center gap-1.5"
-                >
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Send</span>
-                </Button>
-              </form>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
+
+        {/* Drawer Admin Footer (if admin) */}
+        {isAdmin && event.status === 'pending' && (
+          <div className="p-4 border-t border-border bg-surface-sunken flex items-center justify-between gap-3 shrink-0">
+            <span className="text-meta text-ink-muted">Admin review queue</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleReject}
+                disabled={isProcessing}
+                className="text-danger border-danger/30"
+              >
+                Reject event
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleApprove}
+                disabled={isProcessing}
+              >
+                Approve event
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

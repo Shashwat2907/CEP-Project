@@ -55,64 +55,9 @@ function applyTheme(nextTheme: 'light' | 'dark') {
 export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeToggleProps) {
   const theme = React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
 
-  const toggleTheme = (event: React.MouseEvent<HTMLButtonElement>) => {
+  const toggleTheme = () => {
     const nextTheme = theme === 'light' ? 'dark' : 'light'
-
-    // Check if View Transitions API is supported and motion is not reduced
-    const isTransitionSupported =
-      typeof document !== 'undefined' &&
-      'startViewTransition' in document &&
-      typeof (document as Document & { startViewTransition?: unknown }).startViewTransition === 'function'
-
-    const prefersReducedMotion =
-      typeof window !== 'undefined' &&
-      window.matchMedia &&
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-    if (!isTransitionSupported || prefersReducedMotion) {
-      applyTheme(nextTheme)
-      return
-    }
-
-    // Circular clip-path transition originating from the clicked button
-    const x = event.clientX
-    const y = event.clientY
-    const endRadius = Math.hypot(
-      Math.max(x, window.innerWidth - x),
-      Math.max(y, window.innerHeight - y)
-    )
-
-    const docWithTransition = document as Document & {
-      startViewTransition: (callback: () => void) => {
-        ready: Promise<void>
-        finished: Promise<void>
-      }
-    }
-
-    const transition = docWithTransition.startViewTransition(() => {
-      applyTheme(nextTheme)
-    })
-
-    transition.ready
-      .then(() => {
-        document.documentElement.animate(
-          {
-            clipPath: [
-              `circle(0px at ${x}px ${y}px)`,
-              `circle(${endRadius}px at ${x}px ${y}px)`,
-            ],
-          },
-          {
-            duration: 450,
-            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-            pseudoElement: '::view-transition-new(root)',
-          }
-        )
-      })
-      .catch(() => {
-        // Fallback safely if browser animation fails
-        applyTheme(nextTheme)
-      })
+    applyTheme(nextTheme)
   }
 
   // Sidebar variant: full-width bar with smooth sliding switch above profile

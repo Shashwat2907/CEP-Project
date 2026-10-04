@@ -64,6 +64,32 @@ export function CalendarView({
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [editingItem, setEditingItem] = React.useState<CalendarEventItem | null>(null)
   const [isSubmitting, setIsSubmitting] = React.useState(false)
+  const timelineScrollRef = React.useRef<HTMLDivElement>(null)
+
+  // Auto-scroll timeline to earliest event or current hour
+  React.useEffect(() => {
+    if (viewMode === 'day' && timelineScrollRef.current) {
+      const todayEvents = entries.filter(
+        (e) => new Date(e.startsAt).toDateString() === selectedDate.toDateString()
+      )
+      let targetHour = 9
+      if (todayEvents.length > 0) {
+        const earliest = Math.min(...todayEvents.map((e) => new Date(e.startsAt).getHours()))
+        targetHour = Math.max(8, earliest - 0.5)
+      } else if (selectedDate.toDateString() === new Date().toDateString()) {
+        const currentHour = new Date().getHours()
+        if (currentHour >= 8 && currentHour <= 20) {
+          targetHour = Math.max(8, currentHour - 1)
+        }
+      }
+      const scrollPos = Math.max(0, (targetHour - 8) * HOUR_HEIGHT - 10)
+      if (typeof timelineScrollRef.current.scrollTo === 'function') {
+        timelineScrollRef.current.scrollTo({ top: scrollPos, behavior: 'smooth' })
+      } else {
+        timelineScrollRef.current.scrollTop = scrollPos
+      }
+    }
+  }, [selectedDate, viewMode, entries])
 
   // Form fields
   const [formTitle, setFormTitle] = React.useState('')
@@ -422,22 +448,25 @@ export function CalendarView({
             </span>
           </div>
 
-          {/* Time Canvas */}
-          <div className="relative overflow-x-auto">
+          {/* Time Canvas: Scrollable container with sticky hour indicators */}
+          <div
+            ref={timelineScrollRef}
+            className="relative overflow-x-auto overflow-y-auto max-h-[580px] scroll-smooth border-t border-border"
+          >
             <div className="min-w-[650px] relative" style={{ height: `${HOURS.length * HOUR_HEIGHT}px` }}>
               {/* Hour Grid Rows */}
               {HOURS.map((hour, idx) => (
                 <div
                   key={hour}
                   onClick={() => handleSlotClick(selectedDate.toISOString().slice(0, 10), hour)}
-                  className="group absolute left-0 right-0 border-b border-border flex items-start hover:bg-surface-sunken/40 transition-colors cursor-pointer"
+                  className="group absolute left-0 right-0 border-b border-border/80 flex items-start hover:bg-surface-sunken/40 transition-colors cursor-pointer"
                   style={{
                     top: `${idx * HOUR_HEIGHT}px`,
                     height: `${HOUR_HEIGHT}px`,
                   }}
                 >
-                  {/* Hour Gutter */}
-                  <div className="w-16 shrink-0 pr-3 pt-1 text-right text-meta font-mono text-ink-muted select-none">
+                  {/* Hour Gutter - Sticky on horizontal scroll */}
+                  <div className="w-16 shrink-0 pr-3 pt-1 text-right text-meta font-mono text-ink-muted select-none sticky left-0 bg-surface z-10">
                     {hour.toString().padStart(2, '0')}:00
                   </div>
 
@@ -501,30 +530,30 @@ export function CalendarView({
                         right: '16px',
                         borderLeftColor: meta.hex,
                       }}
-                      className="absolute z-10 bg-surface border-l-4 border-t border-r border-b border-border rounded-r-md p-3 hover:border-ink/60 transition-all flex flex-col justify-between overflow-hidden"
+                      className="absolute z-10 bg-surface dark:bg-[#151D2F] border-l-4 border-t border-r border-b border-border rounded-r-md p-3 hover:border-ink transition-all flex flex-col justify-between overflow-hidden shadow-xs"
                     >
                       <div className="flex items-start justify-between gap-2 min-w-0">
-                        <div className="min-w-0 space-y-0.5">
-                          <div className="flex items-center gap-2">
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <span
                               className={cn(
-                                'text-[10px] font-mono font-medium px-1.5 py-0.2 rounded-xs border',
+                                'text-[10px] font-mono font-semibold px-2 py-0.5 rounded-xs border',
                                 meta.badgeClass
                               )}
                             >
                               {meta.label}
                             </span>
-                            <span className="text-[11px] font-mono text-ink-muted flex items-center gap-1">
-                              <Clock size={11} /> {timeRange}
+                            <span className="text-meta font-mono text-ink-muted font-medium flex items-center gap-1">
+                              <Clock size={12} /> {timeRange}
                             </span>
                           </div>
 
-                          <h4 className="font-display text-small font-bold text-ink truncate leading-tight">
+                          <h4 className="font-display text-small font-bold text-ink leading-tight">
                             {item.title}
                           </h4>
 
                           {item.description && (
-                            <p className="text-[12px] text-ink-muted truncate">
+                            <p className="text-[12px] text-ink-muted line-clamp-2 leading-relaxed">
                               {item.description}
                             </p>
                           )}
@@ -535,7 +564,7 @@ export function CalendarView({
                           {item.link && (
                             <Link
                               href={item.link}
-                              className="px-2 py-0.5 text-[11px] font-mono font-semibold rounded-xs bg-surface-sunken border border-border text-ink hover:bg-border transition-colors flex items-center gap-1"
+                              className="px-2 py-1 text-meta font-mono font-semibold rounded-xs bg-surface-sunken border border-border text-ink hover:bg-border transition-colors flex items-center gap-1"
                             >
                               <span>View</span>
                               <ExternalLink size={10} />
@@ -572,8 +601,8 @@ export function CalendarView({
                       </div>
 
                       {item.location && (
-                        <p className="text-[11px] font-mono text-ink-muted flex items-center gap-1 pt-1 truncate">
-                          <MapPin size={11} /> {item.location}
+                        <p className="text-meta font-mono text-ink-muted flex items-center gap-1.5 pt-1 truncate">
+                          <MapPin size={12} /> {item.location}
                         </p>
                       )}
                     </div>
@@ -622,8 +651,8 @@ export function CalendarView({
             })}
           </div>
 
-          {/* 7 Columns Timetable Grid */}
-          <div className="grid grid-cols-7 divide-x divide-border min-h-[520px]">
+          {/* 7 Columns Timetable Grid (scrollable) */}
+          <div className="grid grid-cols-7 divide-x divide-border overflow-y-auto max-h-[580px]">
             {weekDays.map((colDate) => {
               const dateStr = colDate.toISOString().slice(0, 10)
               const isToday = colDate.toDateString() === new Date().toDateString()

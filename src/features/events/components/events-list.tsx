@@ -11,6 +11,8 @@ import {
   Compass,
   CheckCircle,
   ExternalLink,
+  LayoutList,
+  LayoutGrid,
 } from 'lucide-react'
 import type { EventItem, EventKind } from '../schema'
 import { getEventsAction, getEventByIdAction, rsvpEventAction, cancelRsvpAction } from '../actions'
@@ -32,8 +34,9 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
   const [showOnlyAttending, setShowOnlyAttending] = useState(false)
   const [showPending, setShowPending] = useState(false)
+  const [layoutMode, setLayoutMode] = useState<'list' | 'grid'>('list')
 
-  // Modal states
+  // Modal / Drawer states
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
   const [selectedEventDetail, setSelectedEventDetail] = useState<{
     event: EventItem | null
@@ -69,12 +72,22 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
     refreshEvents()
   }, [selectedKind, showPending])
 
-  // Open detail modal
-  const handleOpenDetail = async (item: EventItem) => {
+  // Open detail drawer INSTANTLY on first click, then load teams & messages in background
+  const handleOpenDetail = (item: EventItem) => {
     setSelectedEventId(item.id)
+    setSelectedEventDetail({
+      event: item,
+      teams: [],
+      messages: [],
+    })
     setIsDetailOpen(true)
-    const detail = await getEventByIdAction(item.id)
-    setSelectedEventDetail(detail)
+
+    // Load full relations without blocking UI
+    getEventByIdAction(item.id).then((detail) => {
+      if (detail) {
+        setSelectedEventDetail(detail)
+      }
+    }).catch(() => {})
   }
 
   // Quick RSVP from card
@@ -215,6 +228,38 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* View Mode Toggle: Collegiate List vs Grid */}
+          <div className="flex items-center rounded-sm border border-border bg-surface-sunken p-0.5">
+            <button
+              type="button"
+              onClick={() => setLayoutMode('list')}
+              className={cn(
+                'p-1.5 rounded-xs transition-colors cursor-pointer',
+                layoutMode === 'list'
+                  ? 'bg-surface text-ink font-bold shadow-xs'
+                  : 'text-ink-muted hover:text-ink'
+              )}
+              title="List view"
+              aria-label="List view"
+            >
+              <LayoutList size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayoutMode('grid')}
+              className={cn(
+                'p-1.5 rounded-xs transition-colors cursor-pointer',
+                layoutMode === 'grid'
+                  ? 'bg-surface text-ink font-bold shadow-xs'
+                  : 'text-ink-muted hover:text-ink'
+              )}
+              title="Grid view"
+              aria-label="Grid view"
+            >
+              <LayoutGrid size={16} />
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => setShowOnlyAttending(!showOnlyAttending)}
@@ -283,7 +328,7 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
         </div>
       )}
 
-      {/* Events Grid */}
+      {/* Events List / Grid */}
       {filteredEvents.length === 0 ? (
         <div className="p-12 text-center rounded-md border border-dashed border-border bg-surface space-y-3">
           <Calendar className="w-10 h-10 mx-auto text-ink-muted opacity-40" />
@@ -304,12 +349,26 @@ export function EventsList({ initialEvents = [], isAdmin = false }: EventsListPr
             Clear all filters
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      ) : layoutMode === 'list' ? (
+        <div className="space-y-3">
           {filteredEvents.map((event) => (
             <EventCard
               key={event.id}
               event={event}
+              layout="row"
+              onSelect={handleOpenDetail}
+              onQuickRsvp={handleQuickRsvp}
+              isRsvping={rsvpingId === event.id}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredEvents.map((event) => (
+            <EventCard
+              key={event.id}
+              event={event}
+              layout="card"
               onSelect={handleOpenDetail}
               onQuickRsvp={handleQuickRsvp}
               isRsvping={rsvpingId === event.id}
