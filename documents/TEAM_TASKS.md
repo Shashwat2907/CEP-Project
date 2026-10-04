@@ -117,9 +117,9 @@ Kedar: `docs/acad-and-community-spec`
 - [ ] Later (separate branch): native app sends OS geofence enter and exit events through the same endpoint with `source = native`
 
 ### `feat/profile-and-roster-import`
-- [ ] Admin page to upload roster CSV with validation and error report; matches on college email, carries enrollment number or staff ID, rejects duplicate emails or IDs, sets status `invited` for new rows and `inactive` for people removed
-- [ ] Profile page (view and limited edit), photo upload
-- [ ] Teacher profile fields (department, subjects, office hours text)
+- [x] Admin page to upload roster CSV with validation and error report; matches on college email, carries enrollment number or staff ID, rejects duplicate emails or IDs, sets status `invited` for new rows and `inactive` for people removed
+- [x] Profile page (view and limited edit), photo upload
+- [x] Teacher profile fields (department, subjects, office hours text)
 
 ### `feat/digital-id`
 - [ ] Short-lived signed token endpoint (30 second expiry)
