@@ -134,13 +134,13 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Home page "today" block reusing the calendar query
 
 ### `feat/lost-and-found`
-- [ ] Migrations: `lost_found_items`, `lost_found_claims`, `lost_found_events` with RLS (hidden verification detail never returned by general queries)
-- [ ] Report lost and report found forms (category, photos, location list, time window)
-- [ ] Drop-off point flow with handover code for finders
-- [ ] Match suggestions (category, location, time, text similarity) and notifications to both sides
-- [ ] Claim with verification question, desk review, pickup confirmed using the claimant's digital ID
-- [ ] State machine with every transition logged; auto-expiry job; admin disposal list
-- [ ] Abuse report button and daily posting limit
+- [x] Migrations: `lost_found_items`, `lost_found_claims`, `lost_found_events` with RLS (hidden verification detail never returned by general queries)
+- [x] Report lost and report found forms (category, photos, location list, time window)
+- [x] Drop-off point flow with handover code for finders
+- [x] Match suggestions (category, location, time, text similarity) and notifications to both sides
+- [x] Claim with verification question, desk review, pickup confirmed using the claimant's digital ID
+- [x] State machine with every transition logged; auto-expiry job; admin disposal list
+- [x] Abuse report button and daily posting limit
 
 ### `feat/events`
 - [ ] Migrations: `events`, `event_rsvps`
