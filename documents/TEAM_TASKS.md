@@ -253,21 +253,21 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Chat history per user and resource; limit and error states
 
 ### `feat/community-core`
-- [ ] Migrations: `communities`, `community_members` with RLS
-- [ ] Auto-create official communities from the roster: year, subject, batch; teacher-moderated
-- [ ] Unofficial communities created by students; join, leave, member list
-- [ ] Community list and discovery with filters
+- [x] Migrations: `communities`, `community_members` with RLS
+- [x] Auto-create official communities from the roster: year, subject, batch; teacher-moderated
+- [x] Unofficial communities created by students; join, leave, member list
+- [x] Community list and discovery with filters
 
 ### `feat/community-chat`
-- [ ] Migrations: `messages`, `message_votes`
-- [ ] Realtime chat with replies, reactions, attachments, unread counts
-- [ ] Reusable chat component exported through `shared/` for events and clubs
-- [ ] Report message, mute, moderator actions, rate limiting
+- [x] Migrations: `messages`, `message_votes`
+- [x] Realtime chat with replies, reactions, attachments, unread counts
+- [x] Reusable chat component exported through `shared/` for events and clubs
+- [x] Report message, mute, moderator actions, rate limiting
 
 ### `feat/community-tags`
-- [ ] Migration: `community_tags`
-- [ ] Upvote on replies; database trigger awards tags (for example Helper, Doubt solver) at configurable thresholds per community
-- [ ] Tags shown next to names in chat and on profiles
+- [x] Migration: `community_tags`
+- [x] Upvote on replies; database trigger awards tags (for example Helper, Doubt solver) at configurable thresholds per community
+- [x] Tags shown next to names in chat and on profiles
 
 ### `feat/clubs-core`
 - [ ] Migrations: `clubs`, `club_members`, `club_notices` with RLS

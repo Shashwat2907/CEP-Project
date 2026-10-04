@@ -206,6 +206,17 @@ export async function approveResource(
     }
   }
 
+  if (!(await isSupabaseOnline())) {
+    const res = MOCK_RESOURCES.find((r) => r.id === parsed.data.resource_id)
+    if (res) {
+      res.status = 'approved'
+      res.approved_by = user.id
+    }
+    revalidatePath('/acad')
+    revalidatePath('/teacher/acad')
+    return { ok: true }
+  }
+
   const supabase = await createClient()
   const { data: updatedResource, error } = await supabase
     .from('resources')
@@ -272,6 +283,17 @@ export async function rejectResource(
         message: parsed.error.errors[0]?.message ?? 'Invalid input',
       },
     }
+  }
+
+  if (!(await isSupabaseOnline())) {
+    const res = MOCK_RESOURCES.find((r) => r.id === parsed.data.resource_id)
+    if (res) {
+      res.status = 'rejected'
+      res.rejection_reason = parsed.data.rejection_reason
+    }
+    revalidatePath('/acad')
+    revalidatePath('/teacher/acad')
+    return { ok: true }
   }
 
   const supabase = await createClient()

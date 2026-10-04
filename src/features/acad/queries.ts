@@ -238,13 +238,13 @@ export async function getPendingApprovals(): Promise<Resource[]> {
       .eq('status', 'pending')
       .order('created_at', { ascending: true }) // oldest first for fairness
 
-    if (!error && data) {
+    if (!error && data && data.length > 0) {
       return data as Resource[]
     }
   } catch {
     // Offline
   }
-  return []
+  return MOCK_RESOURCES.filter((r) => r.status === 'pending')
 }
 
 // ---------------------------------------------------------------------------

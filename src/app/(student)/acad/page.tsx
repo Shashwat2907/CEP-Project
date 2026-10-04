@@ -1,4 +1,6 @@
 import { Suspense } from 'react'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import { redirect } from 'next/navigation'
 import { requireAuth } from '@/shared/auth/guards'
 import { getCurrentProfile } from '@/shared/auth/session'
@@ -10,6 +12,7 @@ import {
 import { ResourceCard } from '@/features/acad/components/ResourceCard'
 import { UploadResourceForm } from '@/features/acad/components/UploadResourceForm'
 import { ResourceFilterBar } from '@/features/acad/components/ResourceFilterBar'
+import { AppShell } from '@/shared/ui/app-shell'
 import type { ResourceType } from '@/features/acad/schema'
 import type { Metadata } from 'next'
 
@@ -83,16 +86,42 @@ export default async function StudentAcadPage({ searchParams }: StudentAcadPageP
   ])
 
   return (
-    <main style={{ padding: '1.5rem', maxWidth: '56rem', margin: '0 auto' }}>
-      {/* Page Header */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>
-          Academic Resources
-        </h1>
-        <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)', marginTop: '0.25rem' }}>
-          Explore study materials, past year questions, and lecture slides verified by faculty.
-        </p>
-      </div>
+    <AppShell
+      initialRole={profile?.role_primary ?? 'student'}
+      userName={profile?.full_name ?? 'Shashwat Choudhary'}
+      identifier={profile?.college_id ?? '23BCE1042'}
+      department={profile?.branch ? `${profile.branch} (Year ${profile.year ?? 2})` : 'Computer Science'}
+      userEmail={profile?.college_email ?? 'student@campus.edu'}
+      activePath="/acad"
+    >
+      <main className="p-4 md:p-6 max-w-5xl mx-auto w-full">
+        {/* Navigation Breadcrumb / Return to Homepage */}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-sm border border-border bg-surface hover:bg-surface-sunken text-ink transition-colors"
+            >
+              <ArrowLeft size={14} />
+              <span>Return to Homepage</span>
+            </Link>
+            <div className="h-4 w-px bg-border" />
+            <span className="text-xs text-ink-muted">Academic Resources</span>
+          </div>
+          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+            Student Portal
+          </span>
+        </div>
+
+        {/* Page Header */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1 className="text-2xl font-bold font-display text-ink mb-1">
+            Academic Resources
+          </h1>
+          <p style={{ fontSize: '0.875rem', color: 'var(--muted-foreground)' }}>
+            Explore study materials, past year questions, and lecture slides verified by faculty.
+          </p>
+        </div>
 
       {/* Filter and Search Bar */}
       <Suspense fallback={<div style={{ height: '3.5rem', marginBottom: '1.5rem' }} />}>
@@ -190,6 +219,7 @@ export default async function StudentAcadPage({ searchParams }: StudentAcadPageP
           </div>
         )}
       </section>
-    </main>
+      </main>
+    </AppShell>
   )
 }

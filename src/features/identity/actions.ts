@@ -320,3 +320,53 @@ export async function verifyCodeAction(
     message: 'Authentication successful',
   }
 }
+
+/**
+ * Signs out the current user session (clears Supabase auth & dev mock session cookies).
+ */
+export async function signOutAction(): Promise<{ success: boolean }> {
+  try {
+    const supabase = await createClient()
+    await supabase.auth.signOut({ scope: 'global' })
+  } catch {
+    // Offline
+  }
+
+  try {
+    const cookieStore = await cookies()
+    cookieStore.delete('dev_mock_user_email')
+  } catch {
+    // ignore
+  }
+
+  return { success: true }
+}
+
+/**
+ * Convenient role/account switcher for development.
+ * Sets the active session to the chosen mock roster user (e.g. Teacher, Student, Admin).
+ */
+export async function quickSwitchRoleAction(
+  email: string
+): Promise<{ success: boolean; error?: string }> {
+  const normalized = email.toLowerCase().trim()
+  const found = MOCK_ROSTER.find((r) => r.college_email.toLowerCase() === normalized)
+  if (!found) {
+    return { success: false, error: 'User not found in roster' }
+  }
+
+  try {
+    const cookieStore = await cookies()
+    cookieStore.set('dev_mock_user_email', found.college_email, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+    })
+  } catch {
+    return { success: false, error: 'Could not set session' }
+  }
+
+  return { success: true }
+}
+

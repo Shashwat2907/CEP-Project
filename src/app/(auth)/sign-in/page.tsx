@@ -11,7 +11,7 @@ import {
   CardDescription,
   CardContent,
 } from '@/shared/ui'
-import { requestCodeAction, verifyCodeAction } from '@/features/identity/actions'
+import { requestCodeAction, verifyCodeAction, quickSwitchRoleAction } from '@/features/identity/actions'
 import { Mail, KeyRound, ArrowLeft, AlertCircle } from 'lucide-react'
 
 function SignInForm() {
@@ -223,8 +223,64 @@ function SignInForm() {
               </form>
             )}
 
-            <div className="mt-6 pt-4 border-t border-border text-center">
-              <p className="text-meta text-ink-muted">
+            <div className="mt-6 pt-4 border-t border-border">
+              <p className="text-meta font-semibold text-ink-muted uppercase tracking-wider mb-2 text-center">
+                Demo Accounts (1-Click Switch)
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setLoading(true)
+                    const res = await quickSwitchRoleAction('sharma@campus.edu')
+                    if (res.success) {
+                      window.location.href = '/teacher/acad'
+                    } else {
+                      setLoading(false)
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs rounded-sm border border-purple-500/30 bg-purple-500/10 hover:bg-purple-500/20 text-ink transition-colors flex items-center justify-between font-medium cursor-pointer"
+                >
+                  <span>👨‍🏫 <strong>Teacher:</strong> Prof. Rajesh Sharma (CS)</span>
+                  <span className="text-[10px] text-purple-700 dark:text-purple-300 font-mono">sharma@campus.edu</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setLoading(true)
+                    const res = await quickSwitchRoleAction('student@campus.edu')
+                    if (res.success) {
+                      window.location.href = '/'
+                    } else {
+                      setLoading(false)
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs rounded-sm border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-ink transition-colors flex items-center justify-between font-medium cursor-pointer"
+                >
+                  <span>🎓 <strong>Student:</strong> Aarav Mehta (23BCE1001)</span>
+                  <span className="text-[10px] text-blue-700 dark:text-blue-300 font-mono">student@campus.edu</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setLoading(true)
+                    const res = await quickSwitchRoleAction('admin@campus.edu')
+                    if (res.success) {
+                      window.location.href = '/'
+                    } else {
+                      setLoading(false)
+                    }
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs rounded-sm border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-ink transition-colors flex items-center justify-between font-medium cursor-pointer"
+                >
+                  <span>🛡️ <strong>Admin:</strong> Campus Administrator</span>
+                  <span className="text-[10px] text-emerald-700 dark:text-emerald-300 font-mono">admin@campus.edu</span>
+                </button>
+              </div>
+
+              <p className="text-meta text-ink-muted text-center mt-3">
                 No password required. Access is tied to your college mailbox.
               </p>
             </div>
