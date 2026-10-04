@@ -7,13 +7,18 @@ import {
   ShieldCheck,
   Building2,
   QrCode,
+  MapPin,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog'
 import { Button } from './button'
 import { NotificationPopover } from './notification-popover'
+import { PresencePopover } from '@/features/presence/components/presence-popover'
+import { PresenceConsentDialog } from '@/features/presence/components/presence-consent-dialog'
+import { useOptionalPresence } from '@/features/presence/presence-context'
+import type { PresenceConfidence, PresenceConsentRecord } from '@/features/presence/schema'
 
-export type PresenceState = 'in' | 'out' | 'checking' | 'denied'
+export type PresenceState = 'in' | 'out' | 'checking' | 'denied' | 'offline'
 
 export interface StatusClusterProps {
   identifier?: string // e.g., '23BCE1042' or 'T-CS-102'
@@ -26,6 +31,20 @@ export interface StatusClusterProps {
   onBellClick?: () => void
   className?: string
   hideIdOnMobile?: boolean
+
+  // Extended Presence & Boundary props
+  zoneName?: string
+  verifiedAt?: string | null
+  confidence?: PresenceConfidence
+  accuracyMeters?: number
+  consent?: PresenceConsentRecord | null
+  onVerifyLocation?: () => Promise<void> | void
+  onTogglePause?: (isPaused: boolean) => Promise<void> | void
+  onSaveConsent?: (input: {
+    consentGiven: boolean
+    isPaused?: boolean
+    visibility?: 'nobody' | 'friends' | 'everyone'
+  }) => Promise<void> | void
 }
 
 export function StatusCluster({
@@ -39,11 +58,28 @@ export function StatusCluster({
   onBellClick,
   className,
   hideIdOnMobile = false,
+  zoneName = 'Main Campus',
+  verifiedAt,
+  confidence = 'high',
+  accuracyMeters = 15,
+  consent,
+  onVerifyLocation,
+  onTogglePause,
+  onSaveConsent,
 }: StatusClusterProps) {
+  const presenceCtx = useOptionalPresence()
   const [internalPresence, setInternalPresence] = React.useState<PresenceState>('in')
-  const presence = controlledPresence ?? internalPresence
+  const presence = presenceCtx ? presenceCtx.presenceState : (controlledPresence ?? internalPresence)
+  const currentZone = presenceCtx?.zoneName ?? zoneName
+  const currentVerifiedAt = presenceCtx?.verifiedAt ?? verifiedAt
+  const currentConfidence = presenceCtx?.confidence ?? confidence
+  const currentAccuracy = presenceCtx?.accuracyMeters ?? accuracyMeters
+  const currentConsent = presenceCtx?.consent ?? consent
 
   const [isIdCardOpen, setIsIdCardOpen] = React.useState(false)
+  const [isPresencePopoverOpen, setIsPresencePopoverOpen] = React.useState(false)
+  const [isConsentDialogOpen, setIsConsentDialogOpen] = React.useState(false)
+  const [isCheckingLocation, setIsCheckingLocation] = React.useState(false)
   const [qrCountdown, setQrCountdown] = React.useState(30)
   const [tokenSeed, setTokenSeed] = React.useState('8F2A-99B4')
 
@@ -66,8 +102,82 @@ export function StatusCluster({
   // Simple direct toggle per user instruction: "and in or out i want a simple toggle only"
   const handleTogglePresence = () => {
     const nextState: PresenceState = presence === 'in' ? 'out' : 'in'
-    setInternalPresence(nextState)
+    if (presenceCtx) {
+      presenceCtx.setPresenceState(nextState)
+    } else {
+      setInternalPresence(nextState)
+    }
     onPresenceToggle?.(nextState)
+  }
+
+  const handleRefreshLocation = async () => {
+    if (presenceCtx) {
+      await presenceCtx.checkCurrentLocation()
+      return
+    }
+    if (onVerifyLocation) {
+      await onVerifyLocation()
+      return
+    }
+    if (typeof window !== 'undefined' && 'geolocation' in navigator) {
+      setIsCheckingLocation(true)
+      setInternalPresence('checking')
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            const { verifyPresence } = await import('@/features/presence/actions')
+            const res = await verifyPresence({
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracy: pos.coords.accuracy,
+            })
+            if (res.ok) {
+              const nextState: PresenceState = res.data.state
+              setInternalPresence(nextState)
+              onPresenceToggle?.(nextState)
+            }
+          } finally {
+            setIsCheckingLocation(false)
+          }
+        },
+        () => {
+          setIsCheckingLocation(false)
+          setInternalPresence('denied')
+          onPresenceToggle?.('denied')
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      )
+    }
+  }
+
+  const handleTogglePause = async (isPaused: boolean) => {
+    if (presenceCtx) {
+      await presenceCtx.togglePause(isPaused)
+      return
+    }
+    if (onTogglePause) {
+      await onTogglePause(isPaused)
+      return
+    }
+    const { togglePresencePause } = await import('@/features/presence/actions')
+    await togglePresencePause(isPaused)
+  }
+
+  const handleSaveConsent = async (input: {
+    consentGiven: boolean
+    isPaused?: boolean
+    visibility?: 'nobody' | 'friends' | 'everyone'
+  }) => {
+    if (presenceCtx) {
+      await presenceCtx.saveConsent(input)
+      return
+    }
+    if (onSaveConsent) {
+      await onSaveConsent(input)
+      return
+    }
+    const { updatePresenceConsent } = await import('@/features/presence/actions')
+    await updatePresenceConsent(input)
   }
 
   const userInitials = userName
@@ -97,62 +207,107 @@ export function StatusCluster({
           </span>
         </button>
 
-        {/* 2. IN / OUT Sliding Pill: Simple Direct Toggle (DESIGN.MD §7 + User Instruction) */}
-        <button
-          type="button"
-          role="switch"
-          aria-checked={presence === 'in'}
-          onClick={handleTogglePresence}
-          className={cn(
-            'relative inline-flex items-center h-8 p-0.5 bg-surface-sunken border border-border rounded-full cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink transition-colors group'
-          )}
-          title={`Presence status: ${presence.toUpperCase()} (Click to toggle)`}
-          aria-label={`Campus presence: ${presence.toUpperCase()}. Click to toggle`}
-        >
-          {/* Sliding active pill background thumb */}
-          <div
+        {/* 2. IN / OUT Sliding Pill: Symmetrical Two-Segment Toggle (DESIGN.MD §7) */}
+        <div className="inline-flex items-center gap-1">
+          <button
+            type="button"
+            role="switch"
+            aria-checked={presence === 'in'}
+            onClick={handleTogglePresence}
             className={cn(
-              'absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-full bg-surface border border-border shadow-xs transition-transform duration-250 ease-out pointer-events-none',
-              presence === 'in' ? 'left-0.5 translate-x-0' : 'left-0.5 translate-x-full'
+              'relative grid grid-cols-2 w-[116px] h-8 p-0.5 rounded-full cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink transition-all group overflow-hidden',
+              presence === 'in'
+                ? 'bg-in-campus/15 border border-in-campus/40 shadow-[0_0_8px_rgba(31,157,107,0.2)]'
+                : 'bg-surface-sunken border border-border'
             )}
-          />
-
-          {/* IN segment */}
-          <span
-            className={cn(
-              'relative z-10 flex items-center justify-center gap-1.5 px-2.5 min-w-[42px] h-full text-meta font-medium transition-colors duration-150',
-              presence === 'in' ? 'text-in-campus font-bold' : 'text-ink-muted group-hover:text-ink'
-            )}
+            title={`Presence status: ${presence.toUpperCase()} (Click to toggle)`}
+            aria-label={`Campus presence: ${presence.toUpperCase()}. Click to toggle`}
           >
-            <span
+            {/* Sliding active pill background thumb: exactly 56px wide matching each column */}
+            <div
               className={cn(
-                'w-2 h-2 rounded-full transition-opacity',
-                presence === 'in' ? 'bg-in-campus animate-pulse opacity-100' : 'opacity-0 w-0'
+                'absolute top-0.5 bottom-0.5 w-[56px] rounded-full transition-transform duration-200 ease-out pointer-events-none',
+                presence === 'in'
+                  ? 'left-0.5 translate-x-0 bg-in-campus text-white border border-in-campus shadow-sm'
+                  : 'left-0.5 translate-x-full bg-surface border border-border text-ink shadow-xs'
               )}
             />
-            <span>IN</span>
-          </span>
 
-          {/* OUT segment */}
-          <span
-            className={cn(
-              'relative z-10 flex items-center justify-center gap-1.5 px-2.5 min-w-[42px] h-full text-meta font-medium transition-colors duration-150',
-              presence === 'out' ? 'text-ink font-bold' : 'text-ink-muted group-hover:text-ink'
-            )}
-          >
+            {/* IN segment - perfectly centered in column 1 */}
             <span
               className={cn(
-                'w-2 h-2 rounded-full transition-opacity',
-                presence === 'out' ? 'bg-out-campus opacity-100' : 'opacity-0 w-0'
+                'relative z-10 flex items-center justify-center gap-1.5 w-full h-full text-meta font-bold transition-colors duration-150',
+                presence === 'in' ? 'text-white' : 'text-ink-muted group-hover:text-ink'
               )}
+            >
+              {presence === 'in' && (
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
+              )}
+              <span>IN</span>
+            </span>
+
+            {/* OUT segment - perfectly centered in column 2 */}
+            <span
+              className={cn(
+                'relative z-10 flex items-center justify-center gap-1.5 w-full h-full text-meta font-bold transition-colors duration-150',
+                presence === 'out' ? 'text-ink' : 'text-ink-muted group-hover:text-ink'
+              )}
+            >
+              {presence === 'out' && (
+                <span className="w-2 h-2 rounded-full bg-out-campus shrink-0" />
+              )}
+              <span>OUT</span>
+            </span>
+          </button>
+
+          {/* Details & Campus Boundary Popover Trigger Button */}
+          <button
+            type="button"
+            onClick={() => setIsPresencePopoverOpen(true)}
+            className="w-8 h-8 rounded-full border border-border bg-surface text-ink-muted hover:text-ink hover:bg-surface-sunken flex items-center justify-center transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ink"
+            title="Presence status and campus boundary details"
+            aria-label="Presence status and campus boundary details"
+          >
+            <MapPin
+              size={15}
+              strokeWidth={1.75}
+              className={cn(presence === 'in' ? 'text-in-campus' : 'text-ink-muted')}
             />
-            <span>OUT</span>
-          </span>
-        </button>
+          </button>
+        </div>
 
         {/* 3. Interactive Notification Bell (DESIGN.MD §6) */}
         <NotificationPopover unreadCount={unreadNotifications} onBellClick={onBellClick} />
       </div>
+
+      {/* Popover for Campus Boundary Status & Verification (DESIGN.MD §7) */}
+      <PresencePopover
+        open={isPresencePopoverOpen}
+        onOpenChange={setIsPresencePopoverOpen}
+        presenceState={presence}
+        zoneName={currentZone}
+        confidence={currentConfidence}
+        accuracyMeters={currentAccuracy}
+        verifiedAt={currentVerifiedAt}
+        consent={currentConsent}
+        isChecking={presenceCtx ? presenceCtx.isChecking : (isCheckingLocation || presence === 'checking')}
+        onRefreshLocation={handleRefreshLocation}
+        onTogglePause={handleTogglePause}
+        onSimulateInside={() => presenceCtx?.simulateLocation({ latitude: 12.9735, longitude: 79.1620 })}
+        onSimulateOutside={() => presenceCtx?.simulateLocation({ latitude: 12.9900, longitude: 79.2000 })}
+        onOpenConsentDialog={() => {
+          setIsPresencePopoverOpen(false)
+          setIsConsentDialogOpen(true)
+        }}
+      />
+
+      {/* Plain-Language Privacy Consent Dialog (PLAN.MD §5.1) */}
+      <PresenceConsentDialog
+        open={isConsentDialogOpen}
+        onOpenChange={setIsConsentDialogOpen}
+        currentConsent={currentConsent}
+        onSaveConsent={handleSaveConsent}
+      />
 
       {/* Pop-out Official Verifiable College ID Card (DESIGN.MD §8) */}
       <Dialog open={isIdCardOpen} onOpenChange={setIsIdCardOpen}>

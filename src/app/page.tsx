@@ -1,4 +1,5 @@
 import { AppShell } from '@/shared/ui/app-shell'
+import { AdminCampusBoundary } from '@/features/presence'
 
 export default function Home() {
   return (
@@ -123,6 +124,19 @@ export default function Home() {
               </p>
             </div>
           </div>
+        </section>
+
+        {/* Section 5: Campus Geofence Boundary & Presence Verification */}
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-h2 font-semibold text-ink">
+              5. Campus Boundary Polygon & Geofence Tester
+            </h2>
+            <span className="font-mono text-meta px-2 py-0.5 rounded-sm bg-in-campus/10 text-in-campus border border-in-campus/20">
+              feat/presence-toggle
+            </span>
+          </div>
+          <AdminCampusBoundary />
         </section>
       </div>
     </AppShell>
