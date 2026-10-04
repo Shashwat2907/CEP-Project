@@ -92,8 +92,15 @@ export function isPointInPolygon(point: LatLng, polygon: LatLng[]): boolean {
  * - < 30m: high
  * - 30m to 100m: medium
  * - > 100m: low (shows warning in UI)
+ * - Campus IP network agreement boosts confidence to high
  */
-export function calculateConfidence(accuracyMeters?: number | null): PresenceConfidence {
+export function calculateConfidence(
+  accuracyMeters?: number | null,
+  ipOnCampus?: boolean
+): PresenceConfidence {
+  if (ipOnCampus && (accuracyMeters === undefined || accuracyMeters === null || accuracyMeters <= 100)) {
+    return 'high'
+  }
   if (accuracyMeters === undefined || accuracyMeters === null || accuracyMeters < 0) {
     return 'medium'
   }
@@ -105,6 +112,7 @@ export function calculateConfidence(accuracyMeters?: number | null): PresenceCon
   }
   return 'low'
 }
+
 
 /**
  * Calculates great-circle distance between two coordinates in meters (Haversine formula).

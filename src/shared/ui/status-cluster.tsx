@@ -215,7 +215,7 @@ export function StatusCluster({
             aria-checked={presence === 'in'}
             onClick={handleTogglePresence}
             className={cn(
-              'relative grid grid-cols-2 w-[116px] h-8 p-0.5 rounded-full cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink transition-all group overflow-hidden',
+              'relative grid grid-cols-2 w-[116px] h-8 p-1 rounded-full cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink transition-all group overflow-hidden',
               presence === 'in'
                 ? 'bg-in-campus/15 border border-in-campus/40 shadow-[0_0_8px_rgba(31,157,107,0.2)]'
                 : 'bg-surface-sunken border border-border'
@@ -223,39 +223,45 @@ export function StatusCluster({
             title={`Presence status: ${presence.toUpperCase()} (Click to toggle)`}
             aria-label={`Campus presence: ${presence.toUpperCase()}. Click to toggle`}
           >
-            {/* Sliding active pill background thumb: exactly 56px wide matching each column */}
+            {/* Sliding active pill background thumb: perfectly symmetrical 50% - 4px width */}
             <div
               className={cn(
-                'absolute top-0.5 bottom-0.5 w-[56px] rounded-full transition-transform duration-200 ease-out pointer-events-none',
+                'absolute top-1 bottom-1 w-[calc(50%-4px)] rounded-full transition-all duration-200 ease-out pointer-events-none',
                 presence === 'in'
-                  ? 'left-0.5 translate-x-0 bg-in-campus text-white border border-in-campus shadow-sm'
-                  : 'left-0.5 translate-x-full bg-surface border border-border text-ink shadow-xs'
+                  ? 'left-1 bg-in-campus text-white shadow-sm'
+                  : 'left-[50%] bg-surface border border-border text-ink shadow-xs'
               )}
             />
 
-            {/* IN segment - perfectly centered in column 1 */}
+            {/* IN segment - centered in left half */}
             <span
               className={cn(
                 'relative z-10 flex items-center justify-center gap-1.5 w-full h-full text-meta font-bold transition-colors duration-150',
                 presence === 'in' ? 'text-white' : 'text-ink-muted group-hover:text-ink'
               )}
             >
-              {presence === 'in' && (
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse shrink-0" />
-              )}
+              <span
+                className={cn(
+                  'w-2 h-2 rounded-full shrink-0 transition-opacity duration-150',
+                  presence === 'in' ? 'bg-white animate-pulse opacity-100' : 'bg-transparent opacity-0'
+                )}
+              />
               <span>IN</span>
             </span>
 
-            {/* OUT segment - perfectly centered in column 2 */}
+            {/* OUT segment - centered in right half */}
             <span
               className={cn(
                 'relative z-10 flex items-center justify-center gap-1.5 w-full h-full text-meta font-bold transition-colors duration-150',
                 presence === 'out' ? 'text-ink' : 'text-ink-muted group-hover:text-ink'
               )}
             >
-              {presence === 'out' && (
-                <span className="w-2 h-2 rounded-full bg-out-campus shrink-0" />
-              )}
+              <span
+                className={cn(
+                  'w-2 h-2 rounded-full shrink-0 transition-opacity duration-150',
+                  presence === 'out' ? 'bg-out-campus opacity-100' : 'bg-transparent opacity-0'
+                )}
+              />
               <span>OUT</span>
             </span>
           </button>

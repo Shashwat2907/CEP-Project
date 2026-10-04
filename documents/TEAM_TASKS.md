@@ -103,17 +103,17 @@ Kedar: `docs/acad-and-community-spec`
 - [ ] Tests for inside, outside, low accuracy and denied cases
 
 ### `feat/presence-monitoring`
-- [ ] Migrations: `presence_heartbeats`, `presence_sessions`, `presence_daily` with RLS and retention settings in a config table
-- [ ] Heartbeat endpoint: server evaluates position against zones, stores state, zone, accuracy and confidence; never stores coordinates; never records location when outside campus
-- [ ] Campus network check: compare request IP with admin-managed campus IP ranges and raise confidence
-- [ ] Client heartbeat while the app is visible, configurable interval, backs off on battery saver and offline
-- [ ] Session logic: open on verified IN, extend on heartbeat, close on verified OUT or timeout (marked "signal lost"); idempotent and safe on duplicate heartbeats
-- [ ] Three states in the pill and popover: inside, outside, unknown ("Last seen on campus 40 min ago")
-- [ ] Scheduled jobs: nightly rollup into `presence_daily`; delete raw heartbeats past retention; delete or anonymize old sessions after the term
-- [ ] "My time on campus" page: sessions and daily summary, and an export of everything stored about me
-- [ ] Admin: manage named zones (hostel, library, classrooms) and campus IP ranges; aggregate dashboard only; individual lookup requires a reason and writes `audit_log`
-- [ ] Teacher view: aggregate attendance for their own classes, within class time only (hook for later attendance feature)
-- [ ] Tests: consent required, revoke stops collection, timeout closes session, missing heartbeats show as unknown, teacher cannot see outside class window, denied lookups without a reason
+- [x] Migrations: `presence_heartbeats`, `presence_sessions`, `presence_daily` with RLS and retention settings in a config table
+- [x] Heartbeat endpoint: server evaluates position against zones, stores state, zone, accuracy and confidence; never stores coordinates; never records location when outside campus
+- [x] Campus network check: compare request IP with admin-managed campus IP ranges and raise confidence
+- [x] Client heartbeat while the app is visible, configurable interval, backs off on battery saver and offline
+- [x] Session logic: open on verified IN, extend on heartbeat, close on verified OUT or timeout (marked "signal lost"); idempotent and safe on duplicate heartbeats
+- [x] Three states in the pill and popover: inside, outside, unknown ("Last seen on campus 40 min ago")
+- [x] Scheduled jobs: nightly rollup into `presence_daily`; delete raw heartbeats past retention; delete or anonymize old sessions after the term
+- [x] "My time on campus" page: sessions and daily summary, and an export of everything stored about me
+- [x] Admin: manage named zones (hostel, library, classrooms) and campus IP ranges; aggregate dashboard only; individual lookup requires a reason and writes `audit_log`
+- [x] Teacher view: aggregate attendance for their own classes, within class time only (hook for later attendance feature)
+- [x] Tests: consent required, revoke stops collection, timeout closes session, missing heartbeats show as unknown, teacher cannot see outside class window, denied lookups without a reason
 - [ ] Later (separate branch): native app sends OS geofence enter and exit events through the same endpoint with `source = native`
 
 ### `feat/profile-and-roster-import`

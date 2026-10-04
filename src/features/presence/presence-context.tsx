@@ -8,7 +8,7 @@ import {
   CampusZone,
   DEFAULT_CAMPUS_ZONE,
 } from './schema'
-import { verifyPresence, updatePresenceConsent, togglePresencePause } from './actions'
+import { verifyPresence, updatePresenceConsent, togglePresencePause, appendHeartbeat } from './actions'
 import { isPointInPolygon, calculateConfidence } from './polygon'
 
 export interface PresenceContextValue {
@@ -73,6 +73,22 @@ export function PresenceProvider({
     }
   )
 
+  const handleSetPresenceState = React.useCallback(
+    (nextState: PresenceState) => {
+      setPresenceState(nextState)
+      if (nextState === 'in') {
+        setIsSimulated(true)
+        setZoneName(activeZone.name)
+        setLastCoords({ latitude: 12.9735, longitude: 79.1620 })
+      } else if (nextState === 'out') {
+        setIsSimulated(true)
+        setZoneName('Off Campus')
+        setLastCoords({ latitude: 12.9900, longitude: 79.2000 })
+      }
+    },
+    [activeZone]
+  )
+
   /**
    * Evaluates coordinates against active campus boundary polygon and updates the live toggle state.
    */
@@ -95,12 +111,18 @@ export function PresenceProvider({
 
         setLastCoords({ latitude: coords.latitude, longitude: coords.longitude })
 
-        // Call server action for audit and outbox event logging
+        // Call server action for audit, outbox event, and monitoring session management
         try {
           await verifyPresence({
             latitude: coords.latitude,
             longitude: coords.longitude,
             accuracy,
+          })
+          await appendHeartbeat({
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracy,
+            source: 'browser',
           })
         } catch {
           // In unit / offline fallback, local evaluation succeeds
@@ -296,7 +318,7 @@ export function PresenceProvider({
         activeZone,
         errorMessage,
         setActiveZone,
-        setPresenceState,
+        setPresenceState: handleSetPresenceState,
         verifyCoordinates,
         checkCurrentLocation,
         simulateLocation,
