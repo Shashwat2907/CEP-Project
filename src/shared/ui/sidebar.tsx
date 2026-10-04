@@ -16,6 +16,7 @@ import {
   BookOpen,
   ClipboardList,
   Shield,
+  ShieldAlert,
   Users,
   MapPin,
   FileText,
@@ -57,6 +58,7 @@ export const TEACHER_NAV_ITEMS: NavItem[] = [
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Overview', href: '/admin', icon: Shield },
+  { label: 'Digital ID & Access', href: '/admin/digital-id', icon: ShieldAlert },
   { label: 'Roster Import', href: '/admin/roster', icon: Users },
   { label: 'Zone Management', href: '/admin/zones', icon: MapPin },
   { label: 'Audit Log', href: '/admin/audit', icon: FileText },

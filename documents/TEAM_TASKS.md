@@ -93,14 +93,14 @@ Kedar: `docs/acad-and-community-spec`
 ## You: remaining branches (after Stage 0)
 
 ### `feat/presence-toggle`
-- [ ] Migration: `campus_zones` (campus zone first), `presence_consent` with RLS
-- [ ] Admin screen to draw the campus polygon (named zones come in the monitoring branch)
-- [ ] Consent screen in plain language; pause and revoke controls in the pill popover
-- [ ] Server-side boundary check (point in polygon) using browser location
-- [ ] IN/OUT pill with checking, permission denied and offline states, plus "last verified" popover
-- [ ] Privacy setting for who can see your status (nobody, friends, everyone; friends part wired later)
-- [ ] No data stored until consent is recorded
-- [ ] Tests for inside, outside, low accuracy and denied cases
+- [x] Migration: `campus_zones` (campus zone first), `presence_consent` with RLS
+- [x] Admin screen to draw the campus polygon (named zones come in the monitoring branch)
+- [x] Consent screen in plain language; pause and revoke controls in the pill popover
+- [x] Server-side boundary check (point in polygon) using browser location
+- [x] IN/OUT pill with checking, permission denied and offline states, plus "last verified" popover
+- [x] Privacy setting for who can see your status (nobody, friends, everyone; friends part wired later)
+- [x] No data stored until consent is recorded
+- [x] Tests for inside, outside, low accuracy and denied cases
 
 ### `feat/presence-monitoring`
 - [x] Migrations: `presence_heartbeats`, `presence_sessions`, `presence_daily` with RLS and retention settings in a config table
@@ -122,11 +122,11 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Teacher profile fields (department, subjects, office hours text)
 
 ### `feat/digital-id`
-- [ ] Short-lived signed token endpoint (30 second expiry)
-- [ ] ID card component with rotating QR, countdown, verified-at line
-- [ ] `/verify` page for guards and desks: scan, show name, photo, status
-- [ ] Verifier role and admin revoke or suspend
-- [ ] Tests: expired token fails, revoked ID fails, tampered token fails
+- [x] Short-lived signed token endpoint (30 second expiry)
+- [x] ID card component with rotating QR, countdown, verified-at line
+- [x] `/verify` page for guards and desks: scan, show name, photo, status
+- [x] Verifier role and admin revoke or suspend
+- [x] Tests: expired token fails, revoked ID fails, tampered token fails
 
 ### `feat/calendar`
 - [ ] Day, week, agenda views reading `calendar_entries`
