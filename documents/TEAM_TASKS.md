@@ -159,10 +159,10 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Tests: organizer cannot read complaints, resources, communities, presence or profiles; suspended organizer is blocked immediately; unapproved organizer cannot post
 
 ### `feat/friends`
-- [ ] Migration: `friendships` with RLS
-- [ ] Search, send and accept requests, friends list, remove
-- [ ] Wire presence visibility to friends
-- [ ] Profile view for friends and public profile for others
+- [x] Migration: `friendships` with RLS
+- [x] Search, send and accept requests, friends list, remove
+- [x] Wire presence visibility to friends
+- [x] Profile view for friends and public profile for others
 
 ### `chore/pwa-and-performance`
 - [ ] Installable PWA, push notifications through the notifications table
