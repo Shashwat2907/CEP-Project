@@ -1,7 +1,11 @@
 import { AppShell } from '@/shared/ui/app-shell'
 import { AdminCampusBoundary } from '@/features/presence'
+import { TodayScheduleBlock } from '@/features/calendar/components/today-schedule-block'
+import { getTodayCalendarEntriesAction } from '@/features/calendar/actions'
 
-export default function Home() {
+export default async function Home() {
+  const todayEntries = await getTodayCalendarEntriesAction()
+
   return (
     <AppShell
       initialRole="student"
@@ -12,6 +16,9 @@ export default function Home() {
       activePath="/"
     >
       <div className="max-w-[1200px] space-y-10">
+        {/* First block: Today on Campus Schedule (PLAN.MD §5.11: "'Today' is the home page's first block.") */}
+        <TodayScheduleBlock initialEntries={todayEntries} />
+
         {/* Page header (Page title in content body per DESIGN.MD §6) */}
         <div>
           <h1 className="font-display text-display font-bold text-ink">

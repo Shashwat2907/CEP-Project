@@ -129,9 +129,9 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Tests: expired token fails, revoked ID fails, tampered token fails
 
 ### `feat/calendar`
-- [ ] Day, week, agenda views reading `calendar_entries`
-- [ ] Source filters, source colors from `DESIGN.md`, personal items create and edit
-- [ ] Home page "today" block reusing the calendar query
+- [x] Day, week, agenda views reading `calendar_entries`
+- [x] Source filters, source colors from `DESIGN.md`, personal items create and edit
+- [x] Home page "today" block reusing the calendar query
 
 ### `feat/lost-and-found`
 - [ ] Migrations: `lost_found_items`, `lost_found_claims`, `lost_found_events` with RLS (hidden verification detail never returned by general queries)
