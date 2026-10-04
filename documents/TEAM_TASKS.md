@@ -224,10 +224,10 @@ Kedar: `docs/acad-and-community-spec`
 ## Kedar: branches (start after Stage 0 is merged)
 
 ### `feat/acad-resources-core`
-- [ ] Migrations: subjects, `resources` with RLS and a storage bucket with policies
-- [ ] Upload form for teachers and students (year, branch, subject, type, file)
-- [ ] Student uploads start as `pending`; teacher approval queue with approve and reject reason
-- [ ] Signed URL download and view
+- [x] Migrations: subjects, `resources` with RLS and a storage bucket with policies
+- [x] Upload form for teachers and students (year, branch, subject, type, file)
+- [x] Student uploads start as `pending`; teacher approval queue with approve and reject reason
+- [x] Signed URL download and view
 
 ### `feat/acad-browse-and-filter`
 - [x] Resource list defaulting to the student's own year and branch
@@ -242,32 +242,32 @@ Kedar: `docs/acad-and-community-spec`
 
 
 ### `feat/flashcards`
-- [ ] Migrations: `flashcard_decks`, `flashcards`, `flashcard_reviews`
-- [ ] Generate a deck from a selected resource with Gemini, grounded in chunks, each card linked to its source page
-- [ ] Study view with flip and rating; simple spaced repetition scheduling
-- [ ] Edit, delete and regenerate cards; daily limit respected
+- [x] Migrations: `flashcard_decks`, `flashcards`, `flashcard_reviews`
+- [x] Generate a deck from a selected resource with Gemini, grounded in chunks, each card linked to its source page
+- [x] Study view with flip and rating; simple spaced repetition scheduling
+- [x] Edit, delete and regenerate cards; daily limit respected
 
 ### `feat/doubt-chat`
-- [ ] Retrieval-augmented chat scoped to one resource or one subject
-- [ ] Answers show citations to resource and page; if retrieval is weak the bot says it could not find it
-- [ ] Chat history per user and resource; limit and error states
+- [x] Retrieval-augmented chat scoped to one resource or one subject
+- [x] Answers show citations to resource and page; if retrieval is weak the bot says it could not find it
+- [x] Chat history per user and resource; limit and error states
 
 ### `feat/community-core`
-- [ ] Migrations: `communities`, `community_members` with RLS
-- [ ] Auto-create official communities from the roster: year, subject, batch; teacher-moderated
-- [ ] Unofficial communities created by students; join, leave, member list
-- [ ] Community list and discovery with filters
+- [x] Migrations: `communities`, `community_members` with RLS
+- [x] Auto-create official communities from the roster: year, subject, batch; teacher-moderated
+- [x] Unofficial communities created by students; join, leave, member list
+- [x] Community list and discovery with filters
 
 ### `feat/community-chat`
-- [ ] Migrations: `messages`, `message_votes`
-- [ ] Realtime chat with replies, reactions, attachments, unread counts
-- [ ] Reusable chat component exported through `shared/` for events and clubs
-- [ ] Report message, mute, moderator actions, rate limiting
+- [x] Migrations: `messages`, `message_votes`
+- [x] Realtime chat with replies, reactions, attachments, unread counts
+- [x] Reusable chat component exported through `shared/` for events and clubs
+- [x] Report message, mute, moderator actions, rate limiting
 
 ### `feat/community-tags`
-- [ ] Migration: `community_tags`
-- [ ] Upvote on replies; database trigger awards tags (for example Helper, Doubt solver) at configurable thresholds per community
-- [ ] Tags shown next to names in chat and on profiles
+- [x] Migration: `community_tags`
+- [x] Upvote on replies; database trigger awards tags (for example Helper, Doubt solver) at configurable thresholds per community
+- [x] Tags shown next to names in chat and on profiles
 
 ### `feat/clubs-core`
 - [ ] Migrations: `clubs`, `club_members`, `club_notices` with RLS

@@ -166,6 +166,130 @@ export interface AiQuotaStatus {
 }
 
 // ---------------------------------------------------------------------------
+// Flashcards & Spaced Repetition (feat/flashcards)
+// ---------------------------------------------------------------------------
+
+export const FlashcardSchema = z.object({
+  id:          z.string().uuid(),
+  deck_id:     z.string().uuid(),
+  position:    z.number().int().min(0),
+  front:       z.string().min(1, 'Question cannot be empty'),
+  back:        z.string().min(1, 'Answer cannot be empty'),
+  source_page: z.number().int().positive().nullable().optional(),
+  chunk_id:    z.string().uuid().nullable().optional(),
+  created_at:  z.string().optional(),
+})
+export type Flashcard = z.infer<typeof FlashcardSchema>
+
+export const FlashcardReviewSchema = z.object({
+  id:           z.string().uuid().optional(),
+  card_id:      z.string().uuid(),
+  user_id:      z.string().uuid(),
+  due_at:       z.string(),
+  interval:     z.number().int().min(1),
+  ease:         z.number().min(1.3),
+  repetitions:  z.number().int().min(0),
+  last_quality: z.number().int().min(0).max(5).nullable().optional(),
+  reviewed_at:  z.string().nullable().optional(),
+  created_at:   z.string().optional(),
+  updated_at:   z.string().optional(),
+})
+export type FlashcardReview = z.infer<typeof FlashcardReviewSchema>
+
+export interface FlashcardWithReview extends Flashcard {
+  review?: FlashcardReview | null
+}
+
+export const FlashcardDeckSchema = z.object({
+  id:          z.string().uuid(),
+  resource_id: z.string().uuid(),
+  owner_id:    z.string().uuid(),
+  title:       z.string().min(1),
+  card_count:  z.number().int().min(0),
+  created_at:  z.string().optional(),
+  updated_at:  z.string().optional(),
+  cards:       z.array(FlashcardSchema).optional(),
+})
+export type FlashcardDeck = z.infer<typeof FlashcardDeckSchema>
+
+export const GenerateFlashcardsSchema = z.object({
+  resource_id: z.string().uuid(),
+})
+export type GenerateFlashcardsInput = z.infer<typeof GenerateFlashcardsSchema>
+
+export const RateFlashcardSchema = z.object({
+  card_id: z.string().uuid(),
+  quality: z.number().int().min(0).max(5),
+})
+export type RateFlashcardInput = z.infer<typeof RateFlashcardSchema>
+
+export const EditFlashcardSchema = z.object({
+  card_id: z.string().uuid(),
+  front:   z.string().min(1, 'Front cannot be empty').max(1000).trim(),
+  back:    z.string().min(1, 'Back cannot be empty').max(2000).trim(),
+})
+export type EditFlashcardInput = z.infer<typeof EditFlashcardSchema>
+
+export const DeleteFlashcardSchema = z.object({
+  card_id: z.string().uuid(),
+})
+export type DeleteFlashcardInput = z.infer<typeof DeleteFlashcardSchema>
+
+// ---------------------------------------------------------------------------
+// Doubt AI Chat (feat/doubt-chat)
+// Source of truth: documents/PLAN.md §5.6, TEAM_TASKS.md, CONTRACT.md
+// ---------------------------------------------------------------------------
+
+export const DoubtCitationSchema = z.object({
+  chunk_id:       z.string().uuid().nullable().optional(),
+  resource_id:    z.string().uuid(),
+  resource_title: z.string().optional(),
+  page_number:    z.number().int().positive().nullable().optional(),
+  similarity:     z.number().optional(),
+  excerpt:        z.string().min(1),
+})
+export type DoubtCitation = z.infer<typeof DoubtCitationSchema>
+
+export const ConfidenceStatusSchema = z.enum(['grounded', 'weak_retrieval', 'general_guidance'])
+export type ConfidenceStatus = z.infer<typeof ConfidenceStatusSchema>
+
+export const DoubtMessageSchema = z.object({
+  id:                z.string().uuid(),
+  thread_id:         z.string().uuid(),
+  sender_role:       z.enum(['user', 'assistant']),
+  content:           z.string().min(1),
+  citations:         z.array(DoubtCitationSchema).default([]),
+  confidence_status: ConfidenceStatusSchema.default('grounded'),
+  created_at:        z.string().optional(),
+})
+export type DoubtMessage = z.infer<typeof DoubtMessageSchema>
+
+export const DoubtThreadSchema = z.object({
+  id:          z.string().uuid(),
+  user_id:     z.string().uuid(),
+  resource_id: z.string().uuid().nullable().optional(),
+  subject_id:  z.string().uuid().nullable().optional(),
+  title:       z.string().min(1).default('Doubt Clearing Session'),
+  created_at:  z.string().optional(),
+  updated_at:  z.string().optional(),
+  messages:    z.array(DoubtMessageSchema).optional(),
+})
+export type DoubtThread = z.infer<typeof DoubtThreadSchema>
+
+export const AskDoubtSchema = z.object({
+  question:    z.string().min(2, 'Question must be at least 2 characters').max(1000).trim(),
+  resource_id: z.string().uuid().optional(),
+  subject_id:  z.string().uuid().optional(),
+  thread_id:   z.string().uuid().optional(),
+})
+export type AskDoubtInput = z.infer<typeof AskDoubtSchema>
+
+export const ClearDoubtThreadSchema = z.object({
+  thread_id: z.string().uuid(),
+})
+export type ClearDoubtThreadInput = z.infer<typeof ClearDoubtThreadSchema>
+
+// ---------------------------------------------------------------------------
 // Server action response shape (CONTRACT.md §5.5)
 // ---------------------------------------------------------------------------
 
@@ -178,4 +302,5 @@ export type ActionError = {
 }
 
 export type ActionResult<T = undefined> = ActionOk<T> | ActionError
+
 

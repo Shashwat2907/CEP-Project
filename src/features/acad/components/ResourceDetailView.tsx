@@ -6,20 +6,25 @@ import {
   Calendar,
   User,
   GraduationCap,
-  Sparkles,
-  Bot,
   AlertCircle,
   CheckCircle2,
   Clock,
 } from 'lucide-react'
 import { SaveBookmarkButton } from './SaveBookmarkButton'
 import { ProcessingStatusBadge } from './ProcessingStatusBadge'
-import type { Resource } from '../schema'
+import { FlashcardDeckButton } from './FlashcardDeckButton'
+import { DoubtChatButton } from './DoubtChatButton'
+import type { Resource, DoubtMessage } from '../schema'
 
 interface ResourceDetailViewProps {
   resource: Resource
   signedUrl: string
   chunkCount?: number
+  hasDeck?: boolean
+  cardCount?: number
+  dueCount?: number
+  doubtThreadId?: string
+  initialDoubtMessages?: DoubtMessage[]
 }
 
 
@@ -60,6 +65,11 @@ export function ResourceDetailView({
   resource,
   signedUrl,
   chunkCount,
+  hasDeck = false,
+  cardCount = 0,
+  dueCount = 0,
+  doubtThreadId,
+  initialDoubtMessages = [],
 }: ResourceDetailViewProps) {
   const statusInfo =
     PROCESSING_STATUS_INFO[resource.processing_status] ?? PROCESSING_STATUS_INFO.not_started
@@ -68,21 +78,33 @@ export function ResourceDetailView({
   return (
     <div style={{ maxWidth: '48rem', margin: '0 auto', padding: '1.5rem 1rem' }}>
       {/* Back navigation */}
-      <div style={{ marginBottom: '1.5rem' }}>
-        <Link
-          href="/acad"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.375rem',
-            fontSize: '0.875rem',
-            color: 'var(--muted-foreground)',
-            textDecoration: 'none',
-          }}
-        >
-          <ArrowLeft size={16} />
-          <span>Back to Resources</span>
-        </Link>
+      <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem' }}>
+          <Link
+            href="/"
+            style={{
+              color: 'var(--muted-foreground)',
+              textDecoration: 'none',
+              fontWeight: 500,
+            }}
+          >
+            ← Return to Homepage
+          </Link>
+          <span style={{ color: 'var(--border)' }}>/</span>
+          <Link
+            href="/acad"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              color: 'var(--muted-foreground)',
+              textDecoration: 'none',
+            }}
+          >
+            <ArrowLeft size={14} />
+            <span>Back to Resources</span>
+          </Link>
+        </div>
       </div>
 
       {/* Main card */}
@@ -229,10 +251,10 @@ export function ResourceDetailView({
         {/* Primary Download Button */}
         <div>
           <a
-            href={signedUrl}
+            href={signedUrl && signedUrl !== '#' ? signedUrl : `/api/acad/download?id=${encodeURIComponent(resource.id)}`}
             target="_blank"
             rel="noopener noreferrer"
-            download
+            download={`${resource.title.replace(/[^a-zA-Z0-9_\-\.]/g, '_')}.${resource.file_ext || 'pdf'}`}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -269,35 +291,21 @@ export function ResourceDetailView({
             paddingTop: '1rem',
           }}
         >
-          <div
-            style={{
-              padding: '0.75rem',
-              borderRadius: '0.5rem',
-              border: '1px dashed var(--border)',
-              textAlign: 'center',
-              color: 'var(--muted-foreground)',
-              fontSize: '0.8125rem',
-            }}
-          >
-            <Sparkles size={16} style={{ marginBottom: '0.25rem', margin: '0 auto' }} />
-            <div>Generate Flashcards</div>
-            <div style={{ fontSize: '0.7rem' }}>Available in Phase 2</div>
-          </div>
+          <FlashcardDeckButton
+            resourceId={resource.id}
+            hasDeck={hasDeck}
+            cardCount={cardCount}
+            dueCount={dueCount}
+            processingStatus={resource.processing_status}
+          />
 
-          <div
-            style={{
-              padding: '0.75rem',
-              borderRadius: '0.5rem',
-              border: '1px dashed var(--border)',
-              textAlign: 'center',
-              color: 'var(--muted-foreground)',
-              fontSize: '0.8125rem',
-            }}
-          >
-            <Bot size={16} style={{ marginBottom: '0.25rem', margin: '0 auto' }} />
-            <div>Doubt AI Chat</div>
-            <div style={{ fontSize: '0.7rem' }}>Available in Phase 2</div>
-          </div>
+          <DoubtChatButton
+            resourceId={resource.id}
+            resourceTitle={resource.title}
+            processingStatus={resource.processing_status}
+            initialMessages={initialDoubtMessages}
+            initialThreadId={doubtThreadId}
+          />
         </div>
       </article>
     </div>
