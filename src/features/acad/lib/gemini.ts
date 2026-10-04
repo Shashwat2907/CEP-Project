@@ -7,7 +7,7 @@
  */
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-const EMBEDDING_MODEL = 'text-embedding-004'
+const EMBEDDING_MODEL = 'gemini-embedding-001'
 const BATCH_SIZE = 10
 
 export class GeminiApiError extends Error {

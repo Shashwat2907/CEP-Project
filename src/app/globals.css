@@ -2,6 +2,8 @@
 
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-bg: var(--bg);
   --color-surface: var(--surface);

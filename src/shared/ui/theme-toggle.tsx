@@ -9,12 +9,20 @@ export interface ThemeToggleProps extends React.ButtonHTMLAttributes<HTMLButtonE
   className?: string
 }
 
+const listeners = new Set<() => void>()
+
 function subscribe(callback: () => void) {
-  if (typeof window === 'undefined') return () => {}
+  listeners.add(callback)
+  if (typeof window === 'undefined') {
+    return () => {
+      listeners.delete(callback)
+    }
+  }
   window.addEventListener('storage', callback)
   const mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)')
   mediaQuery?.addEventListener?.('change', callback)
   return () => {
+    listeners.delete(callback)
     window.removeEventListener('storage', callback)
     mediaQuery?.removeEventListener?.('change', callback)
   }
@@ -45,6 +53,13 @@ function applyTheme(nextTheme: 'light' | 'dark') {
       } else {
         document.documentElement.classList.remove('dark')
       }
+      listeners.forEach((listener) => {
+        try {
+          listener()
+        } catch {
+          // ignore
+        }
+      })
       window.dispatchEvent(new Event('storage'))
     }
   } catch {
@@ -54,6 +69,15 @@ function applyTheme(nextTheme: 'light' | 'dark') {
 
 export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeToggleProps) {
   const theme = React.useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
+
+  React.useEffect(() => {
+    const current = getSnapshot()
+    if (current === 'dark') {
+      document.documentElement.classList.add('dark')
+    } else {
+      document.documentElement.classList.remove('dark')
+    }
+  }, [])
 
   const toggleTheme = (event: React.MouseEvent<HTMLButtonElement>) => {
     const nextTheme = theme === 'light' ? 'dark' : 'light'

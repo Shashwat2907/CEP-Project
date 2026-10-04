@@ -212,10 +212,46 @@ export const MOCK_CHUNKS: ResourceChunk[] = [
     id: '00000000-0000-0000-0020-000000000004',
     resource_id: '00000000-0000-0000-0010-000000000002',
     chunk_index: 0,
+    page_number: 1,
+    content:
+      'DBMS End-Semester Examination Overview (2024). Section A: Relational Algebra and SQL. Fundamental operators: Selection (sigma), Projection (pi), Cartesian Product (cross), Set Difference (-), and Union (cup). Complex queries involve INNER JOIN, LEFT OUTER JOIN, and correlated subqueries with GROUP BY and HAVING clauses.',
+    token_count: 55,
+  },
+  {
+    id: '00000000-0000-0000-0020-000000000005',
+    resource_id: '00000000-0000-0000-0010-000000000002',
+    chunk_index: 1,
     page_number: 2,
     content:
-      'Relational database normalization eliminates data redundancy. First Normal Form (1NF) requires atomic values. Second Normal Form (2NF) eliminates partial dependency on a composite primary key. Third Normal Form (3NF) eliminates transitive functional dependencies.',
-    token_count: 40,
+      'Relational database normalization eliminates data redundancy and update anomalies. First Normal Form (1NF) requires atomic attribute values. Second Normal Form (2NF) eliminates partial dependency on any candidate key. Third Normal Form (3NF) eliminates transitive functional dependencies (for X -> A, either X is a superkey or A is prime). Boyce-Codd Normal Form (BCNF) strictly requires every determinant X to be a superkey.',
+    token_count: 68,
+  },
+  {
+    id: '00000000-0000-0000-0020-000000000006',
+    resource_id: '00000000-0000-0000-0010-000000000002',
+    chunk_index: 2,
+    page_number: 3,
+    content:
+      'Transactions and ACID Properties: Atomicity (all-or-nothing execution), Consistency (preserves database invariants), Isolation (concurrent transactions execute without interference), and Durability (committed changes persist). Serializability ensures concurrent schedule equivalence to a serial schedule. Conflict serializability is verified using Precedence Graphs (acyclic graph = conflict serializable).',
+    token_count: 62,
+  },
+  {
+    id: '00000000-0000-0000-0020-000000000007',
+    resource_id: '00000000-0000-0000-0010-000000000002',
+    chunk_index: 3,
+    page_number: 4,
+    content:
+      'Concurrency Control Protocols: Two-Phase Locking (2PL) guarantees conflict serializability with Growing Phase (acquires locks) and Shrinking Phase (releases locks). Strict 2PL holds exclusive locks until commit/abort to avoid cascading aborts. Deadlock resolution uses Wait-For Graphs and cycle detection or Wait-Die and Wound-Wait timestamp schemes.',
+    token_count: 59,
+  },
+  {
+    id: '00000000-0000-0000-0020-000000000008',
+    resource_id: '00000000-0000-0000-0010-000000000002',
+    chunk_index: 4,
+    page_number: 5,
+    content:
+      'Indexing and Storage Management: B+ Trees maintain balanced height with leaf nodes linked sequentially for efficient range scans. B+ Tree node capacity formula: p * sizeof(pointer) + (p - 1) * sizeof(key) <= block_size. Recovery uses Write-Ahead Logging (WAL) and checkpointing algorithms to reconstruct state following power failure.',
+    token_count: 60,
   },
 ]
 

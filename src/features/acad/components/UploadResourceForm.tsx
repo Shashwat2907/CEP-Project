@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { initiateUpload } from '../actions'
 import type { Subject, ResourceType } from '../schema'
 
@@ -28,6 +29,7 @@ export function UploadResourceForm({
   defaultYear,
   defaultBranch,
 }: UploadResourceFormProps) {
+  const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [error, setError]       = useState<string | null>(null)
   const [success, setSuccess]   = useState(false)
@@ -68,10 +70,11 @@ export function UploadResourceForm({
         return
       }
 
-      // PUT the file directly to Supabase Storage via the signed URL
+      // PUT the file directly to Storage via the signed or local mock upload URL
       setUploading(true)
       try {
-        const res = await fetch(result.data.uploadUrl, {
+        const uploadUrl = result.data.uploadUrl
+        const res = await fetch(uploadUrl, {
           method: 'PUT',
           body: file,
           headers: { 'Content-Type': ALLOWED_MIME[ext] ?? 'application/octet-stream' },
@@ -79,6 +82,7 @@ export function UploadResourceForm({
         if (!res.ok) throw new Error('Storage upload failed')
         setSuccess(true)
         form.reset()
+        router.refresh()
       } catch {
         setError('File upload failed. Please try again.')
       } finally {

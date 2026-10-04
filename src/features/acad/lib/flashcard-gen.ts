@@ -9,7 +9,7 @@ import { getGeminiApiKey, GeminiApiError } from './gemini'
 import type { ResourceChunk } from '../schema'
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-const GENERATION_MODEL = 'gemini-1.5-flash'
+const GENERATION_MODEL = 'gemini-3.8-flash'
 
 export interface GeneratedCard {
   front: string

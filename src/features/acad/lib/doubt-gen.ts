@@ -11,7 +11,7 @@ import { getGeminiApiKey, GeminiApiError } from './gemini'
 import type { DoubtCitation, ConfidenceStatus } from '../schema'
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-const GENERATION_MODEL = 'gemini-1.5-flash'
+const GENERATION_MODEL = 'gemini-3.8-flash'
 const WEAK_RETRIEVAL_THRESHOLD = 0.28
 
 export interface MatchedChunk {
@@ -96,7 +96,7 @@ ${contextText}
 
 CRITICAL RULES:
 1. Ground your answer EXCLUSIVELY on the provided context passages. Do NOT extrapolate or introduce external facts.
-2. If the passages do not contain enough information to answer the question, state: "${WEAK_RETRIEVAL_MESSAGE}" and set confidence_status to "weak_retrieval".
+2. If the student asks to summarize, extract key formulas/algorithms, or generate potential exam questions, synthesize and explain the provided passages directly. Only if the student question is completely irrelevant or the passages lack any topical overlap should you state: "${WEAK_RETRIEVAL_MESSAGE}" and set confidence_status to "weak_retrieval".
 3. In your explanation, cite the relevant page numbers whenever making a factual statement (e.g., "As detailed on Page 4...").
 4. Provide structured citations for every passage you utilized. Each citation must have:
    - "chunk_id": the exact UUID from the [ID: ...] tag

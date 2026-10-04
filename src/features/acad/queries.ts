@@ -726,7 +726,10 @@ export async function searchSimilarChunks(
   // Fallback to MOCK_CHUNKS
   let mockChunks = MOCK_CHUNKS
   if (options?.resourceId) {
-    mockChunks = mockChunks.filter((c) => c.resource_id === options.resourceId)
+    const filtered = mockChunks.filter((c) => c.resource_id === options.resourceId)
+    if (filtered.length > 0) {
+      mockChunks = filtered
+    }
   }
   return mockChunks.slice(0, options?.count ?? 5).map((c, i) => ({
     id: c.id,

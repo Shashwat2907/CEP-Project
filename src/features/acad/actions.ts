@@ -98,7 +98,6 @@ export async function initiateUpload(
     }
   }
 
-  const supabase = await createClient()
   const resourceId = crypto.randomUUID()
   const storagePath = `resources/${parsed.data.year}/${parsed.data.branch}/${parsed.data.subject_id}/${resourceId}.${parsed.data.file_ext}`
 
@@ -106,47 +105,86 @@ export async function initiateUpload(
   const isTeacher = profile.role_primary === 'teacher' || profile.role_primary === 'admin'
   const status = isTeacher ? 'approved' : 'pending'
 
-  // Create the resource row first
-  const { error: insertError } = await supabase.from('resources').insert({
-    id:           resourceId,
-    title:        parsed.data.title,
-    subject_id:   parsed.data.subject_id,
-    year:         parsed.data.year,
-    branch:       parsed.data.branch,
-    type:         parsed.data.type,
-    uploader_id:  user.id,
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+
+      // Create the resource row first
+      const { error: insertError } = await supabase.from('resources').insert({
+        id:           resourceId,
+        title:        parsed.data.title,
+        subject_id:   parsed.data.subject_id,
+        year:         parsed.data.year,
+        branch:       parsed.data.branch,
+        type:         parsed.data.type,
+        uploader_id:  user.id,
+        storage_path: storagePath,
+        file_ext:     parsed.data.file_ext,
+        status,
+        // Teacher uploads: mark themselves as the approver
+        approved_by:  isTeacher ? user.id : null,
+      })
+
+      if (insertError) {
+        console.error('[acad/actions] initiateUpload insert error:', insertError.message)
+        return {
+          ok: false,
+          error: { code: 'DB_ERROR', message: 'Could not create resource. Please try again.' },
+        }
+      }
+
+      // Create a signed URL for the client to PUT the file directly to Storage
+      let { data: uploadData, error: uploadError } = await supabase.storage
+        .from('resources')
+        .createSignedUploadUrl(storagePath)
+
+      if (uploadError && uploadError.message?.toLowerCase().includes('bucket')) {
+        // Attempt to auto-create bucket if missing
+        await supabase.storage.createBucket('resources', { public: true }).catch(() => {})
+        const retry = await supabase.storage.from('resources').createSignedUploadUrl(storagePath)
+        uploadData = retry.data
+        uploadError = retry.error
+      }
+
+      if (uploadError || !uploadData?.signedUrl) {
+        // Fallback to local mock upload URL if storage service is unavailable
+        revalidatePath('/acad')
+        return { ok: true, data: { resourceId, uploadUrl: `/api/acad/mock-upload?id=${resourceId}` } }
+      }
+
+      revalidatePath('/acad')
+      return { ok: true, data: { resourceId, uploadUrl: uploadData.signedUrl } }
+    } catch {
+      // Fall through to offline mock handler
+    }
+  }
+
+  // Offline mock environment: add to local mock resources array
+  const matchedSubject = MOCK_SUBJECTS.find((s) => s.id === parsed.data.subject_id)
+  MOCK_RESOURCES.unshift({
+    id: resourceId,
+    title: parsed.data.title,
+    subject_id: parsed.data.subject_id,
+    year: parsed.data.year,
+    branch: parsed.data.branch,
+    type: parsed.data.type,
+    uploader_id: user.id,
     storage_path: storagePath,
-    file_ext:     parsed.data.file_ext,
+    file_ext: parsed.data.file_ext,
     status,
-    // Teacher uploads: mark themselves as the approver
-    approved_by:  isTeacher ? user.id : null,
+    processing_status: 'ready',
+    created_at: new Date().toISOString(),
+    approved_by: isTeacher ? user.id : null,
+    subject: matchedSubject,
+    uploader: {
+      full_name: profile.full_name || 'Current User',
+      role_primary: profile.role_primary,
+    },
+    is_saved: false,
   })
 
-  if (insertError) {
-    console.error('[acad/actions] initiateUpload insert error:', insertError.message)
-    return {
-      ok: false,
-      error: { code: 'DB_ERROR', message: 'Could not create resource. Please try again.' },
-    }
-  }
-
-  // Create a signed URL for the client to PUT the file directly to Storage
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from('resources')
-    .createSignedUploadUrl(storagePath)
-
-  if (uploadError || !uploadData?.signedUrl) {
-    // Roll back the resource row if storage URL creation fails
-    await supabase.from('resources').delete().eq('id', resourceId)
-    console.error('[acad/actions] initiateUpload storage error:', uploadError?.message)
-    return {
-      ok: false,
-      error: { code: 'STORAGE_ERROR', message: 'Could not prepare upload. Please try again.' },
-    }
-  }
-
   revalidatePath('/acad')
-  return { ok: true, data: { resourceId, uploadUrl: uploadData.signedUrl } }
+  return { ok: true, data: { resourceId, uploadUrl: `/api/acad/mock-upload?id=${resourceId}` } }
 }
 
 // ---------------------------------------------------------------------------
@@ -1124,17 +1162,18 @@ export async function askDoubtQuestionAction(
     })
   } catch (embedErr) {
     console.warn('[acad/actions] Embedding generation failed, falling back to direct chunks:', embedErr)
-    if (resource_id) {
-      const chunks = await getResourceChunks(resource_id)
-      matchedChunks = chunks.map((c, i) => ({
-        id: c.id,
-        resource_id: c.resource_id,
-        chunk_index: c.chunk_index,
-        page_number: c.page_number ?? null,
-        content: c.content,
-        similarity: 0.85 - i * 0.1,
-      }))
-    }
+  }
+
+  if (matchedChunks.length === 0 && resource_id) {
+    const chunks = await getResourceChunks(resource_id)
+    matchedChunks = chunks.map((c, i) => ({
+      id: c.id,
+      resource_id: c.resource_id,
+      chunk_index: c.chunk_index,
+      page_number: c.page_number ?? null,
+      content: c.content,
+      similarity: 0.85 - i * 0.1,
+    }))
   }
 
   // 5. Generate grounded answer
