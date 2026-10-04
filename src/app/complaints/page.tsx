@@ -1,8 +1,9 @@
 import { requireAuth } from '@/shared/auth/guards'
 import { getCurrentProfile } from '@/shared/auth/session'
-import { getComplaintDomains, getMyComplaints } from '@/features/complaints/queries'
+import { getComplaintDomains, getMyComplaints, getTrackerComplaintsWithUpvotes } from '@/features/complaints/queries'
 import { RaiseComplaintForm } from '@/features/complaints/components/RaiseComplaintForm'
 import { MyComplaintsList } from '@/features/complaints/components/MyComplaintsList'
+import { PublicTrackerBoard } from '@/features/complaints/components/PublicTrackerBoard'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/shared/ui/tabs'
 import { Button } from '@/shared/ui/button'
 import Link from 'next/link'
@@ -18,9 +19,10 @@ export default async function ComplaintsPage() {
   await requireAuth()
   const profile = await getCurrentProfile()
 
-  const [domains, myComplaints] = await Promise.all([
+  const [domains, myComplaints, trackerComplaints] = await Promise.all([
     getComplaintDomains(),
     getMyComplaints(),
+    getTrackerComplaintsWithUpvotes(),
   ])
 
   const isStaffOrAdmin = profile?.role_primary === 'teacher' || profile?.role_primary === 'admin'
@@ -49,6 +51,9 @@ export default async function ComplaintsPage() {
           <TabsTrigger value="my-complaints">
             My Complaints ({myComplaints.length})
           </TabsTrigger>
+          <TabsTrigger value="tracker">
+            Public Tracker ({trackerComplaints.length})
+          </TabsTrigger>
           <TabsTrigger value="raise">
             Raise a Grievance
           </TabsTrigger>
@@ -56,6 +61,13 @@ export default async function ComplaintsPage() {
 
         <TabsContent value="my-complaints">
           <MyComplaintsList complaints={myComplaints} />
+        </TabsContent>
+
+        <TabsContent value="tracker">
+          <PublicTrackerBoard
+            initialComplaints={trackerComplaints}
+            domains={domains}
+          />
         </TabsContent>
 
         <TabsContent value="raise">

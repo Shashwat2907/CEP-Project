@@ -15,7 +15,13 @@ import {
   type UpdateStatusInput,
   type ActionResult,
   type EscalationResult,
+  ToggleUpvoteSchema,
+  MarkDuplicateSchema,
+  type ToggleUpvoteInput,
+  type MarkDuplicateInput,
+  type SimilarComplaint,
 } from './schema'
+import { searchSimilarComplaints } from './queries'
 
 /**
  * Server Actions for the Complaints feature.
@@ -616,4 +622,224 @@ export async function escalateOverdueComplaintsAction(): Promise<
       timestamp: new Date().toISOString(),
     },
   }
+}
+
+// ---------------------------------------------------------------------------
+// 7. Toggle Complaint Upvote (Public Tracker & Duplicate prevention)
+// ---------------------------------------------------------------------------
+
+export async function toggleComplaintUpvote(
+  input: ToggleUpvoteInput
+): Promise<ActionResult<{ upvoted: boolean; count: number }>> {
+  const { user } = await requireAuth()
+
+  const parsed = ToggleUpvoteSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Invalid complaint ID' },
+    }
+  }
+
+  const { complaint_id } = parsed.data
+  const supabase = await createClient()
+
+  // 1. Verify complaint exists, is not resolved/closed, and is not in a sensitive domain
+  const { data: complaint, error: compErr } = await supabase
+    .from('complaints')
+    .select('id, status, due_at, author_id, upvotes_count, domain:complaint_domains!inner(sensitive)')
+    .eq('id', complaint_id)
+    .single()
+
+  if (compErr || !complaint) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Complaint not found' } }
+  }
+
+  const isSensitive = (complaint.domain as any)?.sensitive ?? false // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (isSensitive) {
+    return {
+      ok: false,
+      error: { code: 'FORBIDDEN', message: 'Upvoting is not permitted for sensitive private grievances' },
+    }
+  }
+
+  if (complaint.status === 'resolved' || complaint.status === 'closed') {
+    return {
+      ok: false,
+      error: { code: 'INVALID_STATE', message: 'Cannot upvote a resolved or closed complaint' },
+    }
+  }
+
+  // 2. Check if already upvoted
+  const { data: existingUpvote } = await supabase
+    .from('complaint_upvotes')
+    .select('created_at')
+    .eq('complaint_id', complaint_id)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  let upvoted = false
+  let newCount = complaint.upvotes_count ?? 0
+
+  if (existingUpvote) {
+    // Remove upvote
+    const { error: deleteErr } = await supabase
+      .from('complaint_upvotes')
+      .delete()
+      .eq('complaint_id', complaint_id)
+      .eq('user_id', user.id)
+
+    if (deleteErr) {
+      return { ok: false, error: { code: 'DB_DELETE_FAILED', message: deleteErr.message } }
+    }
+    upvoted = false
+    newCount = Math.max(0, newCount - 1)
+  } else {
+    // Add upvote
+    const { error: insertErr } = await supabase
+      .from('complaint_upvotes')
+      .insert({ complaint_id, user_id: user.id })
+
+    if (insertErr) {
+      return { ok: false, error: { code: 'DB_INSERT_FAILED', message: insertErr.message } }
+    }
+    upvoted = true
+    newCount = newCount + 1
+
+    // Rule: Every 10 upvotes reduces remaining SLA by 10% (capped at 50% max reduction)
+    if (newCount > 0 && newCount % 10 === 0 && complaint.due_at) {
+      const currentDue = new Date(complaint.due_at).getTime()
+      const now = Date.now()
+      const remainingMs = currentDue - now
+
+      if (remainingMs > 0) {
+        // Calculate reduction ratio: min(50%, (newCount / 10) * 10%)
+        const discountPercent = Math.min(50, Math.floor(newCount / 10) * 10) / 100
+        const acceleratedDueAt = new Date(now + remainingMs * (1 - discountPercent)).toISOString()
+
+        await supabase
+          .from('complaints')
+          .update({ due_at: acceleratedDueAt })
+          .eq('id', complaint_id)
+
+        await supabase.from('complaint_events').insert({
+          complaint_id,
+          type: 'note_added',
+          note: `High community impact: Reached ${newCount} upvotes. SLA accelerated by ${Math.floor(discountPercent * 100)}%.`,
+        })
+      }
+    }
+  }
+
+  revalidatePath('/complaints')
+  return { ok: true, data: { upvoted, count: newCount } }
+}
+
+// ---------------------------------------------------------------------------
+// 8. Mark Complaint as Duplicate (Handler / Admin)
+// ---------------------------------------------------------------------------
+
+export async function markComplaintDuplicate(
+  input: MarkDuplicateInput
+): Promise<ActionResult> {
+  const { user, profile } = await requireAuth()
+
+  const parsed = MarkDuplicateSchema.safeParse(input)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: { code: 'VALIDATION_ERROR', message: 'Invalid duplicate parameters' },
+    }
+  }
+
+  const { complaint_id, duplicate_of_id, note } = parsed.data
+  if (complaint_id === duplicate_of_id) {
+    return {
+      ok: false,
+      error: { code: 'INVALID_INPUT', message: 'A complaint cannot be marked as duplicate of itself' },
+    }
+  }
+
+  const supabase = await createClient()
+
+  // Verify permissions: must be assigned handler or admin
+  const { data: ticket } = await supabase
+    .from('complaints')
+    .select('id, assigned_to, author_id, title')
+    .eq('id', complaint_id)
+    .single()
+
+  if (!ticket) {
+    return { ok: false, error: { code: 'NOT_FOUND', message: 'Complaint not found' } }
+  }
+
+  const isAssigned = ticket.assigned_to === user.id
+  const isAdmin = profile.role_primary === 'admin'
+  if (!isAssigned && !isAdmin) {
+    return { ok: false, error: { code: 'UNAUTHORIZED', message: 'Not authorized to mark duplicates' } }
+  }
+
+  // 1. Close the duplicate ticket
+  const resolutionNote = note ?? `Closed as duplicate of grievance #${duplicate_of_id.slice(0, 8)}`
+  const { error: updateErr } = await supabase
+    .from('complaints')
+    .update({
+      status: 'closed',
+      duplicate_of_id,
+      resolution_note: resolutionNote,
+      resolved_at: new Date().toISOString(),
+    })
+    .eq('id', complaint_id)
+
+  if (updateErr) {
+    return { ok: false, error: { code: 'DB_UPDATE_FAILED', message: updateErr.message } }
+  }
+
+  // 2. Transfer upvotes from duplicate ticket to primary ticket
+  const { data: dupUpvotes } = await supabase
+    .from('complaint_upvotes')
+    .select('user_id')
+    .eq('complaint_id', complaint_id)
+
+  if (dupUpvotes && dupUpvotes.length > 0) {
+    for (const up of dupUpvotes) {
+      await supabase
+        .from('complaint_upvotes')
+        .insert({ complaint_id: duplicate_of_id, user_id: up.user_id })
+        .maybeSingle() // ignores conflicts on duplicate user
+    }
+  }
+
+  // 3. Log audit event
+  await supabase.from('complaint_events').insert({
+    complaint_id,
+    type: 'closed',
+    actor_id: user.id,
+    note: resolutionNote,
+  })
+
+  // 4. Notify author
+  await notify({
+    userId: ticket.author_id,
+    type: 'complaint.resolved',
+    title: 'Complaint Closed as Duplicate',
+    body: `Your ticket "${ticket.title}" has been linked to an existing ticket. Your issue and upvote have been merged.`,
+    link: `/complaints/${duplicate_of_id}`,
+    payload: { complaintId: complaint_id, duplicateOfId: duplicate_of_id },
+  })
+
+  revalidatePath('/complaints')
+  revalidatePath(`/complaints/${complaint_id}`)
+  return { ok: true, data: undefined }
+}
+
+// ---------------------------------------------------------------------------
+// 9. Search Similar Complaints (Debounced while typing)
+// ---------------------------------------------------------------------------
+
+export async function findSimilarComplaints(
+  queryText: string,
+  domainId?: string
+): Promise<SimilarComplaint[]> {
+  return searchSimilarComplaints(queryText, domainId)
 }

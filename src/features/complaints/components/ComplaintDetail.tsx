@@ -6,8 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Chip } from '@/shared/ui/chip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog'
-import { Clock, CheckCircle2, RotateCcw, Shield, ArrowLeft, User, AlertTriangle } from 'lucide-react'
-import { confirmResolution, reopenComplaint, resolveComplaint } from '../actions'
+import { Clock, CheckCircle2, RotateCcw, Shield, ArrowLeft, User, AlertTriangle, ThumbsUp, GitMerge } from 'lucide-react'
+import { confirmResolution, reopenComplaint, resolveComplaint, toggleComplaintUpvote, markComplaintDuplicate } from '../actions'
 import { ComplaintTimeline } from './ComplaintTimeline'
 import type { Complaint } from '../schema'
 
@@ -28,10 +28,67 @@ export function ComplaintDetail({
   const [reopenNote, setReopenNote] = React.useState('')
   const [loading, setLoading] = React.useState(false)
 
+  const [hasUpvoted, setHasUpvoted] = React.useState(complaint.has_upvoted ?? false)
+  const [upvotesCount, setUpvotesCount] = React.useState(complaint.upvotes_count ?? 0)
+  const [upvoting, setUpvoting] = React.useState(false)
+
+  const [duplicateOpen, setDuplicateOpen] = React.useState(false)
+  const [duplicateOfId, setDuplicateOfId] = React.useState('')
+  const [duplicateNote, setDuplicateNote] = React.useState('')
+  const [duplicateError, setDuplicateError] = React.useState<string | null>(null)
+
   const isAuthor = complaint.author_id === currentUserId
   const isAssigned = complaint.assigned_to === currentUserId || currentUserRole === 'admin'
   const isResolved = complaint.status === 'resolved'
   const isClosed = complaint.status === 'closed'
+  const isSensitive = complaint.domain?.sensitive ?? false
+
+  const handleToggleUpvote = async () => {
+    if (upvoting || isSensitive) return
+    setUpvoting(true)
+    const nextUpvoted = !hasUpvoted
+    setHasUpvoted(nextUpvoted)
+    setUpvotesCount((c) => (nextUpvoted ? c + 1 : Math.max(0, c - 1)))
+
+    try {
+      const res = await toggleComplaintUpvote({ complaint_id: complaint.id })
+      if (!res.ok) {
+        setHasUpvoted(complaint.has_upvoted ?? false)
+        setUpvotesCount(complaint.upvotes_count ?? 0)
+      } else {
+        setHasUpvoted(res.data.upvoted)
+        setUpvotesCount(res.data.count)
+      }
+    } catch {
+      setHasUpvoted(complaint.has_upvoted ?? false)
+      setUpvotesCount(complaint.upvotes_count ?? 0)
+    } finally {
+      setUpvoting(false)
+    }
+  }
+
+  const handleMarkDuplicate = async () => {
+    if (!duplicateOfId.trim()) {
+      setDuplicateError('Please enter the target master complaint ID.')
+      return
+    }
+    setLoading(true)
+    setDuplicateError(null)
+    try {
+      const res = await markComplaintDuplicate({
+        complaint_id: complaint.id,
+        duplicate_of_id: duplicateOfId.trim(),
+        note: duplicateNote.trim() || undefined,
+      })
+      if (!res.ok) {
+        setDuplicateError(res.error.message)
+      } else {
+        setDuplicateOpen(false)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleConfirm = async () => {
     setLoading(true)
@@ -111,19 +168,35 @@ export function ComplaintDetail({
               )}
             </div>
 
-            {complaint.due_at && !isResolved && !isClosed && (
-              <div className="flex items-center gap-1.5 text-meta text-warning font-medium">
-                <Clock className="h-4 w-4" />
-                <span>
-                  SLA Target: {new Date(complaint.due_at).toLocaleString(undefined, {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-3">
+              {!isSensitive && !isResolved && !isClosed && (
+                <Button
+                  size="sm"
+                  variant={hasUpvoted ? 'primary' : 'outline'}
+                  className="gap-1.5"
+                  onClick={handleToggleUpvote}
+                  disabled={upvoting}
+                >
+                  <ThumbsUp className={`h-3.5 w-3.5 ${hasUpvoted ? 'fill-current' : ''}`} />
+                  <span>{upvotesCount}</span>
+                  <span className="hidden sm:inline">{hasUpvoted ? 'Upvoted' : 'Upvote'}</span>
+                </Button>
+              )}
+
+              {complaint.due_at && !isResolved && !isClosed && (
+                <div className="flex items-center gap-1.5 text-meta text-warning font-medium">
+                  <Clock className="h-4 w-4" />
+                  <span>
+                    SLA Target: {new Date(complaint.due_at).toLocaleString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           <CardTitle className="mt-2 text-h2">{complaint.title}</CardTitle>
@@ -145,6 +218,25 @@ export function ComplaintDetail({
         </CardHeader>
 
         <CardContent className="pt-4 space-y-6">
+          {/* Merged Duplicate Notice */}
+          {complaint.duplicate_of_id && (
+            <div className="rounded-md border border-border bg-surface-sunken p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <GitMerge className="h-5 w-5 text-ink-muted shrink-0" />
+                <div>
+                  <p className="font-semibold text-small text-ink">Merged Duplicate Grievance</p>
+                  <p className="text-meta text-ink-muted">
+                    This complaint was closed as a duplicate of an earlier grievance. All community upvotes have been merged.
+                  </p>
+                </div>
+              </div>
+              <Link href={`/complaints/${complaint.duplicate_of_id}`}>
+                <Button size="sm" variant="outline" className="text-small">
+                  View Primary Grievance →
+                </Button>
+              </Link>
+            </div>
+          )}
           {/* Needs Admin Attention Banner */}
           {complaint.needs_admin_attention && (
             <div className="rounded-md border border-danger/40 bg-danger/10 p-4">
@@ -210,7 +302,15 @@ export function ComplaintDetail({
 
           {/* Handler Actions */}
           {isAssigned && !isResolved && !isClosed && (
-            <div className="pt-2 border-t border-border/60 flex justify-end">
+            <div className="pt-2 border-t border-border/60 flex items-center justify-end gap-3">
+              <Button
+                variant="outline"
+                className="gap-1.5"
+                onClick={() => setDuplicateOpen(true)}
+                disabled={loading}
+              >
+                <GitMerge className="h-4 w-4" /> Mark as Duplicate
+              </Button>
               <Button
                 className="bg-success text-white hover:bg-success/90 gap-1.5"
                 onClick={() => setResolveOpen(true)}
@@ -298,6 +398,63 @@ export function ComplaintDetail({
               disabled={reopenNote.trim().length < 5 || loading}
             >
               Reopen Grievance
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Mark Duplicate Dialog */}
+      <Dialog open={duplicateOpen} onOpenChange={setDuplicateOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Mark Complaint as Duplicate</DialogTitle>
+            <DialogDescription>
+              Link this grievance to an existing master ticket. This ticket will be closed and its community upvotes will be transferred to the master ticket.
+            </DialogDescription>
+          </DialogHeader>
+
+          {duplicateError && (
+            <div className="rounded-md border border-danger/30 bg-danger/10 p-3 text-small text-danger">
+              {duplicateError}
+            </div>
+          )}
+
+          <div className="space-y-4 py-2">
+            <div>
+              <label className="mb-1 block text-small font-medium text-ink">
+                Master Complaint ID <span className="text-danger">*</span>
+              </label>
+              <input
+                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-small text-ink focus:border-ink focus:outline-none"
+                placeholder="Paste the master complaint UUID (e.g. 550e8400-e29b-41d4-a716-446655440000)"
+                value={duplicateOfId}
+                onChange={(e) => setDuplicateOfId(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-small font-medium text-ink">
+                Note for Student (Optional)
+              </label>
+              <textarea
+                className="min-h-[80px] w-full rounded-md border border-border bg-surface p-3 text-small text-ink focus:border-ink focus:outline-none"
+                placeholder="Explanation of why this ticket is duplicate and where updates can be tracked..."
+                value={duplicateNote}
+                onChange={(e) => setDuplicateNote(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDuplicateOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-ink text-surface hover:bg-ink-strong"
+              onClick={handleMarkDuplicate}
+              disabled={!duplicateOfId.trim() || loading}
+            >
+              Confirm Duplicate & Merge
             </Button>
           </DialogFooter>
         </DialogContent>

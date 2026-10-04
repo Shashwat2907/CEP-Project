@@ -111,7 +111,10 @@ export const ComplaintSchema = z.object({
   current_level:         z.number().int().min(1).max(3).default(1),
   assigned_to:           z.string().uuid().nullable().optional(),
   anonymous:             z.boolean().default(false),
-  needs_admin_attention: z.boolean().default(false),
+  needs_admin_attention: z.boolean().default(false).optional(),
+  duplicate_of_id:       z.string().uuid().nullable().optional(),
+  upvotes_count:         z.number().int().default(0).optional(),
+  has_upvoted:           z.boolean().optional(),
   due_at:                z.string().nullable().optional(),
   resolved_at:           z.string().nullable().optional(),
   resolution_note:       z.string().nullable().optional(),
@@ -136,6 +139,36 @@ export const EscalationResultSchema = z.object({
   timestamp:               z.string(),
 })
 export type EscalationResult = z.infer<typeof EscalationResultSchema>
+
+export const ToggleUpvoteSchema = z.object({
+  complaint_id: z.string().uuid(),
+})
+export type ToggleUpvoteInput = z.infer<typeof ToggleUpvoteSchema>
+
+export const MarkDuplicateSchema = z.object({
+  complaint_id:    z.string().uuid(),
+  duplicate_of_id: z.string().uuid(),
+  note:            z.string().max(500).optional(),
+})
+export type MarkDuplicateInput = z.infer<typeof MarkDuplicateSchema>
+
+export const TrackerFilterSchema = z.object({
+  domain_id: z.string().uuid().optional(),
+  status:    ComplaintStatusSchema.optional(),
+  sort:      z.enum(['longest_pending', 'most_upvoted', 'newest']).default('longest_pending'),
+})
+export type TrackerFilter = z.infer<typeof TrackerFilterSchema>
+
+export const SimilarComplaintSchema = z.object({
+  id:            z.string().uuid(),
+  title:         z.string(),
+  body:          z.string(),
+  status:        ComplaintStatusSchema,
+  upvotes_count: z.number().int().default(0).optional(),
+  created_at:    z.string(),
+  domain:        z.object({ name: z.string(), sensitive: z.boolean().optional() }).optional(),
+})
+export type SimilarComplaint = z.infer<typeof SimilarComplaintSchema>
 
 // ---------------------------------------------------------------------------
 // 3. Form Validation Inputs

@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { requireAuth } from '@/shared/auth/guards'
-import type { Complaint, ComplaintDomain, DomainAssignee } from './schema'
+import type { Complaint, ComplaintDomain, DomainAssignee, SimilarComplaint, TrackerFilter } from './schema'
 
 /**
  * Read-side queries for the Complaints feature.
@@ -173,6 +173,18 @@ export async function getComplaintById(complaintId: string): Promise<Complaint |
     complaint.author = { full_name: 'Anonymous Student', role_primary: 'student' }
   }
 
+  // Populate user upvote state if non-sensitive
+  if (!complaint.domain?.sensitive) {
+    const { data: upvoteRow } = await supabase
+      .from('complaint_upvotes')
+      .select('user_id')
+      .eq('complaint_id', complaintId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    complaint.has_upvoted = !!upvoteRow
+  }
+
   return complaint
 }
 
@@ -243,4 +255,121 @@ export async function getNeedsAdminAttentionComplaints(): Promise<Complaint[]> {
     return []
   }
   return data as Complaint[]
+}
+
+// ---------------------------------------------------------------------------
+// 7. Duplicate Search & Community Tracker
+// ---------------------------------------------------------------------------
+
+/**
+ * Real-time similarity search for open complaints while typing.
+ * Excludes sensitive domains, matches title/body, and returns upvote counts.
+ */
+export async function searchSimilarComplaints(
+  queryText: string,
+  domainId?: string
+): Promise<SimilarComplaint[]> {
+  if (!queryText || queryText.trim().length < 3) {
+    return []
+  }
+  const cleanQuery = queryText.trim()
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('complaints')
+    .select(`
+      id,
+      title,
+      body,
+      status,
+      upvotes_count,
+      created_at,
+      domain:complaint_domains!inner(name, sensitive)
+    `)
+    .not('status', 'in', '("resolved","closed")')
+    .eq('domain.sensitive', false)
+    .or(`title.ilike.%${cleanQuery}%,body.ilike.%${cleanQuery}%`)
+
+  if (domainId) {
+    query = query.eq('domain_id', domainId)
+  }
+
+  const { data, error } = await query
+    .order('upvotes_count', { ascending: false })
+    .limit(5)
+
+  if (error) {
+    console.error('[complaints/queries] searchSimilarComplaints error:', error.message)
+    return []
+  }
+
+  return (data as unknown as SimilarComplaint[]) ?? []
+}
+
+/**
+ * Public Community Tracker query with upvote statuses, sorting, and filters.
+ * Excludes sensitive categories strictly.
+ */
+export async function getTrackerComplaintsWithUpvotes(
+  filter?: TrackerFilter
+): Promise<Complaint[]> {
+  const { user, profile } = await requireAuth()
+  const supabase = await createClient()
+
+  let query = supabase
+    .from('complaints')
+    .select(`
+      *,
+      domain:complaint_domains!inner(id, name, sensitive, visibility),
+      author:profiles!complaints_author_id_fkey(full_name, role_primary),
+      upvotes:complaint_upvotes(user_id)
+    `)
+    .eq('domain.sensitive', false)
+    .eq('domain.visibility', 'public')
+
+  if (filter?.domain_id) {
+    query = query.eq('domain_id', filter.domain_id)
+  }
+
+  if (filter?.status) {
+    query = query.eq('status', filter.status)
+  }
+
+  // Sorting
+  const sortMode = filter?.sort ?? 'longest_pending'
+  if (sortMode === 'most_upvoted') {
+    query = query.order('upvotes_count', { ascending: false })
+  } else if (sortMode === 'newest') {
+    query = query.order('created_at', { ascending: false })
+  } else {
+    // default: longest pending (oldest created open tickets first)
+    query = query.order('created_at', { ascending: true })
+  }
+
+  const { data, error } = await query.limit(50)
+
+  if (error) {
+    console.error('[complaints/queries] getTrackerComplaintsWithUpvotes error:', error.message)
+    return []
+  }
+
+  const isAdmin = profile.role_primary === 'admin'
+
+  return ((data as unknown[]) ?? []).map((row: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    const hasUpvoted = Array.isArray(row.upvotes)
+      ? row.upvotes.some((u: { user_id: string }) => u.user_id === user.id)
+      : false
+
+    const complaint: Complaint = {
+      ...row,
+      has_upvoted: hasUpvoted,
+      upvotes_count: row.upvotes_count ?? (Array.isArray(row.upvotes) ? row.upvotes.length : 0),
+    }
+
+    if (complaint.anonymous && !isAdmin && complaint.author_id !== user.id) {
+      complaint.author = { full_name: 'Anonymous Student', role_primary: 'student' }
+    }
+
+    return complaint
+  })
 }

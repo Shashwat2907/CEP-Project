@@ -190,11 +190,11 @@ Kedar: `docs/acad-and-community-spec`
 - [x] Tests with shortened SLAs covering each level, resolved before due, and double-run safety
 
 ### `feat/complaints-tracker-and-upvotes`
-- [ ] Migration: `complaint_upvotes` with unique constraint per user and complaint
-- [ ] Similar-complaint suggestions while typing (full text search and similarity)
-- [ ] Upvote button; upvotes raise priority and shorten the next SLA slightly
-- [ ] Public tracker: sorted by longest pending by default, filters by domain and status
-- [ ] Duplicate handling: handler can mark "closed as duplicate" and merge upvotes
+- [x] Migration: `complaint_upvotes` with unique constraint per user and complaint
+- [x] Similar-complaint suggestions while typing (full text search and similarity)
+- [x] Upvote button; upvotes raise priority and shorten the next SLA slightly
+- [x] Public tracker: sorted by longest pending by default, filters by domain and status
+- [x] Duplicate handling: handler can mark "closed as duplicate" and merge upvotes
 
 ### `feat/meet-availability`
 - [ ] Migrations: `availability_rules`, `availability_exceptions`

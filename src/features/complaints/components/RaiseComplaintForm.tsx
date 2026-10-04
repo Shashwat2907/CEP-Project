@@ -2,12 +2,13 @@
 
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Input } from '@/shared/ui/input'
-import { AlertCircle, Shield, CheckCircle2, Lock } from 'lucide-react'
-import { submitComplaint } from '../actions'
-import type { ComplaintDomain } from '../schema'
+import { AlertCircle, Shield, CheckCircle2, Lock, ThumbsUp } from 'lucide-react'
+import { submitComplaint, findSimilarComplaints } from '../actions'
+import type { ComplaintDomain, SimilarComplaint } from '../schema'
 
 interface RaiseComplaintFormProps {
   domains: ComplaintDomain[]
@@ -23,9 +24,34 @@ export function RaiseComplaintForm({ domains }: RaiseComplaintFormProps) {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [successId, setSuccessId] = React.useState<string | null>(null)
+  const [similarComplaints, setSimilarComplaints] = React.useState<SimilarComplaint[]>([])
+  const [, setSearchingSimilar] = React.useState(false)
 
   const selectedDomain = domains.find((d) => d.id === domainId)
   const isSensitive = selectedDomain?.sensitive ?? false
+
+  const displayedSimilar = isSensitive || title.trim().length < 4 ? [] : similarComplaints
+
+  // Live similarity search with 350ms debounce
+  React.useEffect(() => {
+    if (isSensitive || title.trim().length < 4) {
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setSearchingSimilar(true)
+      try {
+        const results = await findSimilarComplaints(title, domainId || undefined)
+        setSimilarComplaints(results)
+      } catch {
+        // Ignore network errors in background similarity search
+      } finally {
+        setSearchingSimilar(false)
+      }
+    }, 350)
+
+    return () => clearTimeout(timer)
+  }, [title, domainId, isSensitive])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -89,6 +115,7 @@ export function RaiseComplaintForm({ domains }: RaiseComplaintFormProps) {
                 setDomainId('')
                 setSubcategoryId('')
                 setAnonymous(false)
+                setSimilarComplaints([])
               }}
             >
               Raise Another
@@ -176,6 +203,55 @@ export function RaiseComplaintForm({ domains }: RaiseComplaintFormProps) {
               maxLength={120}
             />
           </div>
+
+          {/* Live Similar Grievances Suggestion */}
+          {displayedSimilar.length > 0 && !isSensitive && (
+            <div className="rounded-md border border-accent/40 bg-accent/5 p-3.5 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-small font-semibold text-ink flex items-center gap-1.5">
+                  <ThumbsUp className="h-4 w-4 text-accent" />
+                  Similar Open Grievances Already Reported ({displayedSimilar.length})
+                </span>
+                <span className="text-meta text-ink-muted">
+                  Upvoting accelerates resolution
+                </span>
+              </div>
+              <p className="text-meta text-ink-muted leading-normal">
+                An issue matching yours may already be under review. You can upvote the existing ticket instead of creating a duplicate:
+              </p>
+              <div className="divide-y divide-border/50">
+                {displayedSimilar.map((item) => (
+                  <div key={item.id} className="py-2.5 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link
+                        href={`/complaints/${item.id}`}
+                        target="_blank"
+                        className="text-small font-medium text-ink hover:underline line-clamp-1"
+                      >
+                        {item.title}
+                      </Link>
+                      <div className="text-meta text-ink-muted flex items-center gap-2 mt-0.5">
+                        <span>{item.domain?.name}</span>
+                        <span>•</span>
+                        <span className="capitalize">{item.status.replace('_', ' ')}</span>
+                      </div>
+                    </div>
+                    <Link href={`/complaints/${item.id}`} target="_blank">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="gap-1 shrink-0 text-meta hover:border-ink"
+                      >
+                        <ThumbsUp className="h-3.5 w-3.5" />
+                        <span>{item.upvotes_count ?? 0}</span>
+                      </Button>
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Description */}
           <div>
