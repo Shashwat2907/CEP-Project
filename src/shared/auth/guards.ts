@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { cookies } from 'next/headers'
 import { getCurrentUser, getCurrentProfile, getCurrentRoles } from './session'
 import { createClient } from '@/lib/supabase/server'
 import type { UserRoleType, UserProfile } from './schema'
@@ -20,8 +21,18 @@ export async function requireAuth(): Promise<{
   const profile = await getCurrentProfile()
   if (!profile || profile.status === 'inactive') {
     // Inactive accounts cannot access campus features per PLAN.MD §4.1
-    const supabase = await createClient()
-    await supabase.auth.signOut({ scope: 'global' })
+    try {
+      const supabase = await createClient()
+      await supabase.auth.signOut({ scope: 'global' })
+    } catch {
+      // offline
+    }
+    try {
+      const cookieStore = await cookies()
+      cookieStore.delete('dev_mock_user_email')
+    } catch {
+      // ignore
+    }
     redirect('/sign-in?error=inactive')
   }
 
@@ -50,7 +61,17 @@ export async function requireRole(allowedRoles: UserRoleType[]): Promise<{
  * Signs the user out of all devices by invalidating all active sessions.
  */
 export async function signOutAllDevices() {
-  const supabase = await createClient()
-  await supabase.auth.signOut({ scope: 'global' })
+  try {
+    const supabase = await createClient()
+    await supabase.auth.signOut({ scope: 'global' })
+  } catch {
+    // offline
+  }
+  try {
+    const cookieStore = await cookies()
+    cookieStore.delete('dev_mock_user_email')
+  } catch {
+    // ignore
+  }
   redirect('/sign-in')
 }
