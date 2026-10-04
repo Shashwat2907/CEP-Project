@@ -197,10 +197,10 @@ Kedar: `docs/acad-and-community-spec`
 - [ ] Duplicate handling: handler can mark "closed as duplicate" and merge upvotes
 
 ### `feat/meet-availability`
-- [ ] Migrations: `availability_rules`, `availability_exceptions`
-- [ ] Teacher screen: weekly slots and one-off exceptions
-- [ ] Slot generation on read with short caching
-- [ ] Student view: browse teachers and open slots
+- [x] Migrations: `availability_rules`, `availability_exceptions`
+- [x] Teacher screen: weekly slots and one-off exceptions
+- [x] Slot generation on read with short caching
+- [x] Student view: browse teachers and open slots
 
 ### `feat/meet-booking`
 - [ ] Migration: `session_requests` with an exclusion constraint preventing overlapping accepted sessions per teacher
