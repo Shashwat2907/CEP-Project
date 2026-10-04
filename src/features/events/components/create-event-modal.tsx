@@ -24,6 +24,14 @@ export function CreateEventModal({ isOpen, onClose, onCreated }: CreateEventModa
   const [endDateStr, setEndDateStr] = useState('')
   const [endTimeStr, setEndTimeStr] = useState('17:00')
   const [registrationLink, setRegistrationLink] = useState('')
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [brochureUrl, setBrochureUrl] = useState('')
+  const [prizePool, setPrizePool] = useState('')
+  const [eligibility, setEligibility] = useState('')
+  const [opportunityType, setOpportunityType] = useState('hackathon')
+  const [stages, setStages] = useState<Array<{ title: string; description: string; date: string }>>([
+    { title: 'Round 1: Registration & Submission', description: 'Submit abstract or proposal', date: '' },
+  ])
   const [capacity, setCapacity] = useState('')
   const [bannerUrl, setBannerUrl] = useState('')
   const [tagsStr, setTagsStr] = useState('')
@@ -34,6 +42,29 @@ export function CreateEventModal({ isOpen, onClose, onCreated }: CreateEventModa
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const [successNotice, setSuccessNotice] = useState<string | null>(null)
+
+  const handleBrochureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setBrochureUrl(reader.result)
+      }
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleAddStage = () => {
+    setStages((prev) => [
+      ...prev,
+      { title: `Round ${prev.length + 1}: Finale & Presentation`, description: 'Demo before jury', date: '' },
+    ])
+  }
+
+  const handleRemoveStage = (index: number) => {
+    setStages((prev) => prev.filter((_, i) => i !== index))
+  }
 
   if (!isOpen) return null
 
@@ -73,6 +104,12 @@ export function CreateEventModal({ isOpen, onClose, onCreated }: CreateEventModa
         startsAt,
         endsAt,
         registrationLink: registrationLink.trim() || undefined,
+        websiteUrl: websiteUrl.trim() || undefined,
+        brochureUrl: brochureUrl.trim() || undefined,
+        prizePool: prizePool.trim() || undefined,
+        eligibility: eligibility.trim() || undefined,
+        opportunityType,
+        stages: stages.filter((s) => s.title.trim()),
         capacity: capacity ? parseInt(capacity, 10) : undefined,
         bannerUrl: bannerUrl.trim() || undefined,
         tags,
@@ -315,11 +352,174 @@ export function CreateEventModal({ isOpen, onClose, onCreated }: CreateEventModa
             />
           </div>
 
+          {/* Unstop Opportunity Fields: Category & Official Website */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-small font-semibold text-ink mb-1">
+                Opportunity Type
+              </label>
+              <select
+                value={opportunityType}
+                onChange={(e) => setOpportunityType(e.target.value)}
+                className="w-full text-small px-3 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+              >
+                <option value="hackathon">Hackathon & Coding Sprint</option>
+                <option value="competition">Case Competition / Challenge</option>
+                <option value="workshop">Hands-On Workshop</option>
+                <option value="quiz">Technical / General Quiz</option>
+                <option value="cultural">Cultural & Arts Fest</option>
+                <option value="talk">Guest Lecture / Conference</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-small font-semibold text-ink mb-1">
+                Official Event Website
+              </label>
+              <input
+                type="url"
+                placeholder="https://..."
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                className="w-full text-small px-3 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+              />
+            </div>
+          </div>
+
+          {/* Event Brochure Section: File Upload & Brochure Link */}
+          <div className="p-3.5 rounded-sm bg-surface-sunken border border-border space-y-2.5">
+            <label className="block text-small font-bold text-ink">
+              Event Brochure / Poster Flyer
+            </label>
+            <p className="text-meta text-ink-muted">
+              Upload event brochure image/PDF or provide direct link for attendees to download and inspect.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center gap-3">
+              <label className="px-3.5 py-1.5 rounded-sm border border-border bg-surface text-meta font-mono font-medium text-ink hover:bg-border transition-colors cursor-pointer shrink-0">
+                <span>Browse file...</span>
+                <input
+                  type="file"
+                  accept="image/*,application/pdf"
+                  onChange={handleBrochureUpload}
+                  className="hidden"
+                />
+              </label>
+
+              <span className="text-meta font-mono text-ink-muted">or URL:</span>
+
+              <input
+                type="text"
+                placeholder="https://.../brochure.pdf or image link"
+                value={brochureUrl}
+                onChange={(e) => setBrochureUrl(e.target.value)}
+                className="flex-1 text-small px-3 py-1.5 rounded-sm bg-surface border border-border text-ink"
+              />
+            </div>
+
+            {brochureUrl && (
+              <div className="pt-1 flex items-center justify-between text-meta font-mono text-in-campus bg-surface p-2 rounded-sm border border-border">
+                <span className="truncate">✓ Brochure attached</span>
+                <button
+                  type="button"
+                  onClick={() => setBrochureUrl('')}
+                  className="text-danger hover:underline ml-2 cursor-pointer"
+                >
+                  Remove
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Prize Pool & Eligibility */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-small font-semibold text-ink mb-1">
+                Prizes & Rewards
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. ₹75,000 Cash + Certificates + Goodies"
+                value={prizePool}
+                onChange={(e) => setPrizePool(e.target.value)}
+                className="w-full text-small px-3 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+              />
+            </div>
+
+            <div>
+              <label className="block text-small font-semibold text-ink mb-1">
+                Eligibility Criteria
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Open to all students & alumni"
+                value={eligibility}
+                onChange={(e) => setEligibility(e.target.value)}
+                className="w-full text-small px-3 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
+              />
+            </div>
+          </div>
+
+          {/* Stages & Timeline (Rounds) */}
+          <div className="p-3.5 rounded-sm bg-surface-sunken border border-border space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-small font-bold text-ink">Stages & Rounds Timeline</span>
+                <p className="text-meta text-ink-muted">Define the sequential rounds of this opportunity (like Unstop)</p>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddStage}
+                className="text-meta font-mono font-semibold px-2.5 py-1 rounded-sm bg-surface border border-border text-ink hover:bg-border transition-colors cursor-pointer"
+              >
+                + Add Round
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {stages.map((stage, idx) => (
+                <div key={idx} className="p-2.5 rounded-sm bg-surface border border-border space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <input
+                      type="text"
+                      placeholder={`Round ${idx + 1} Name`}
+                      value={stage.title}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setStages((prev) => prev.map((s, i) => (i === idx ? { ...s, title: val } : s)))
+                      }}
+                      className="flex-1 text-small font-bold px-2 py-1 rounded-xs bg-surface-sunken border border-border text-ink"
+                    />
+                    {stages.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveStage(idx)}
+                        className="text-xs text-danger hover:underline cursor-pointer"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="Brief description of this stage..."
+                    value={stage.description}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      setStages((prev) => prev.map((s, i) => (i === idx ? { ...s, description: val } : s)))
+                    }}
+                    className="w-full text-small px-2 py-1 rounded-xs bg-surface-sunken border border-border text-ink"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Registration Link, Capacity & Banner */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-small font-semibold text-ink mb-1">
-                Registration Link
+                Portal Registration Link
               </label>
               <input
                 type="url"

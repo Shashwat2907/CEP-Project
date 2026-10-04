@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { Calendar, MapPin, Users, Check, Clock, ArrowRight, Building2, Sparkles } from 'lucide-react'
+import { Calendar, MapPin, Users, Check, Clock, ArrowRight, Building2, Sparkles, Trophy, Globe, FileText } from 'lucide-react'
 import type { EventItem } from '../schema'
 import { cn } from '@/lib/utils'
 
@@ -88,6 +88,27 @@ export function EventCard({
                 <Building2 size={12} className="text-ink-muted" />
                 <span className="truncate max-w-[200px]">{event.organizerName}</span>
               </span>
+
+              {event.prizePool && (
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold rounded-sm bg-highlight/15 text-ink border border-highlight/30 flex items-center gap-1">
+                  <Trophy size={11} className="text-highlight" />
+                  <span>{event.prizePool.split('+')[0].split('in')[0].trim()}</span>
+                </span>
+              )}
+
+              {event.brochureUrl && (
+                <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono rounded-xs bg-surface-sunken text-ink-muted border border-border">
+                  <FileText size={10} />
+                  <span>Brochure</span>
+                </span>
+              )}
+
+              {event.websiteUrl && (
+                <span className="hidden md:inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono rounded-xs bg-surface-sunken text-ink-muted border border-border">
+                  <Globe size={10} />
+                  <span>Site</span>
+                </span>
+              )}
             </div>
 
             {/* Title */}

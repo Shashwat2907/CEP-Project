@@ -18,6 +18,8 @@ import {
   CreditCard,
   Flag,
   FileText,
+  Camera,
+  Image as ImageIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/shared/ui/button'
@@ -76,6 +78,7 @@ export function LostFoundDashboard({
   const [lostLocation, setLostLocation] = React.useState<string>(CAMPUS_LOCATIONS[0])
   const [lostDate, setLostDate] = React.useState(new Date().toISOString().slice(0, 10))
   const [lostTimeWindow, setLostTimeWindow] = React.useState('Morning (09:00 - 12:00)')
+  const [lostPhoto, setLostPhoto] = React.useState('')
 
   // Report Found Form State
   const [foundCategory, setFoundCategory] = React.useState<ItemCategory>('electronics')
@@ -87,10 +90,31 @@ export function LostFoundDashboard({
   const [foundDropoff, setFoundDropoff] = React.useState<string>(DROPOFF_POINTS[0])
   const [foundDate, setFoundDate] = React.useState(new Date().toISOString().slice(0, 10))
   const [foundTimeWindow, setFoundTimeWindow] = React.useState('Afternoon (14:00 - 16:00)')
+  const [foundPhoto, setFoundPhoto] = React.useState('')
 
   // Claim Form State
   const [claimAnswer, setClaimAnswer] = React.useState('')
   const [claimProof, setClaimProof] = React.useState('')
+
+  const handleLostPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') setLostPhoto(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleFoundPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === 'string') setFoundPhoto(reader.result)
+    }
+    reader.readAsDataURL(file)
+  }
 
   // Pickup Form State
   const [claimantDigitalIdInput, setClaimantDigitalIdInput] = React.useState(currentCollegeId)
@@ -127,7 +151,7 @@ export function LostFoundDashboard({
         location: lostLocation,
         incidentDate: lostDate,
         timeWindow: lostTimeWindow,
-        photoUrls: [],
+        photoUrls: lostPhoto ? [lostPhoto] : [],
       })
       if (res.ok && res.data) {
         setItems((prev) => [res.data!, ...prev])
@@ -135,6 +159,7 @@ export function LostFoundDashboard({
         setIsReportLostOpen(false)
         setLostTitle('')
         setLostDesc('')
+        setLostPhoto('')
       }
     } finally {
       setIsSubmitting(false)
@@ -156,7 +181,7 @@ export function LostFoundDashboard({
         dropoffPoint: foundDropoff as any,
         incidentDate: foundDate,
         timeWindow: foundTimeWindow,
-        photoUrls: [],
+        photoUrls: foundPhoto ? [foundPhoto] : [],
       })
       if (res.ok && res.data) {
         setItems((prev) => [res.data!, ...prev])
@@ -167,6 +192,7 @@ export function LostFoundDashboard({
         setFoundDesc('')
         setFoundHiddenDetail('')
         setFoundQuestion('')
+        setFoundPhoto('')
       }
     } finally {
       setIsSubmitting(false)
@@ -430,6 +456,20 @@ export function LostFoundDashboard({
                 className="bg-surface border border-border rounded-md p-5 transition-colors hover:border-ink/50 space-y-4 flex flex-col justify-between"
               >
                 <div className="space-y-3">
+                  {/* Photo Preview if item has photoUrls */}
+                  {item.photoUrls && item.photoUrls.length > 0 && item.photoUrls[0] && (
+                    <div className="w-full h-44 rounded-sm overflow-hidden border border-border bg-surface-sunken relative group">
+                      <img
+                        src={item.photoUrls[0]}
+                        alt={item.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                      />
+                      <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded-xs bg-black/70 text-white font-mono text-[10px] flex items-center gap-1 backdrop-blur-xs">
+                        <Camera size={11} /> Photo attached
+                      </div>
+                    </div>
+                  )}
+
                   {/* Status row */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5">
@@ -645,6 +685,45 @@ export function LostFoundDashboard({
               </div>
             </div>
 
+            {/* Photo upload / link */}
+            <div>
+              <label className="text-small font-medium text-ink block mb-1">
+                Item Photo (Optional)
+              </label>
+              <div className="flex items-center gap-2">
+                <label className="px-3 py-1.5 rounded-sm border border-border bg-surface text-meta font-mono font-medium text-ink hover:bg-surface-sunken cursor-pointer shrink-0">
+                  <Camera size={13} className="inline mr-1" />
+                  <span>Browse...</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLostPhotoUpload}
+                    className="hidden"
+                  />
+                </label>
+                <input
+                  type="text"
+                  placeholder="Or paste photo URL..."
+                  value={lostPhoto}
+                  onChange={(e) => setLostPhoto(e.target.value)}
+                  className="flex-1 bg-surface-sunken border border-border rounded-sm px-3 py-1.5 text-small text-ink"
+                />
+              </div>
+
+              {lostPhoto && (
+                <div className="mt-2 relative w-20 h-20 rounded-sm border border-border overflow-hidden group">
+                  <img src={lostPhoto} alt="Lost preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setLostPhoto('')}
+                    className="absolute inset-0 bg-black/60 text-white text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+
             <DialogFooter className="mt-4">
               <Button type="button" variant="secondary" onClick={() => setIsReportLostOpen(false)}>
                 Cancel
@@ -781,6 +860,45 @@ export function LostFoundDashboard({
               </select>
             </div>
 
+            {/* Photo upload / link */}
+            <div>
+              <label className="text-small font-medium text-ink block mb-1">
+                Item Photo (Optional)
+              </label>
+              <div className="flex items-center gap-2">
+                <label className="px-3 py-1.5 rounded-sm border border-border bg-surface text-meta font-mono font-medium text-ink hover:bg-surface-sunken cursor-pointer shrink-0">
+                  <Camera size={13} className="inline mr-1" />
+                  <span>Browse...</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFoundPhotoUpload}
+                    className="hidden"
+                  />
+                </label>
+                <input
+                  type="text"
+                  placeholder="Or paste photo URL..."
+                  value={foundPhoto}
+                  onChange={(e) => setFoundPhoto(e.target.value)}
+                  className="flex-1 bg-surface-sunken border border-border rounded-sm px-3 py-1.5 text-small text-ink"
+                />
+              </div>
+
+              {foundPhoto && (
+                <div className="mt-2 relative w-20 h-20 rounded-sm border border-border overflow-hidden group">
+                  <img src={foundPhoto} alt="Found preview" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setFoundPhoto('')}
+                    className="absolute inset-0 bg-black/60 text-white text-xs opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+
             <DialogFooter className="mt-4">
               <Button type="button" variant="secondary" onClick={() => setIsReportFoundOpen(false)}>
                 Cancel
@@ -805,6 +923,16 @@ export function LostFoundDashboard({
 
           {selectedItem && (
             <form onSubmit={handleSubmitClaim} className="space-y-4 py-2">
+              {selectedItem.photoUrls && selectedItem.photoUrls.length > 0 && selectedItem.photoUrls[0] && (
+                <div className="rounded-sm overflow-hidden border border-border bg-surface-sunken">
+                  <img
+                    src={selectedItem.photoUrls[0]}
+                    alt={selectedItem.title}
+                    className="w-full h-36 object-cover"
+                  />
+                </div>
+              )}
+
               <div className="p-3 rounded-md bg-surface-sunken border border-border space-y-1">
                 <span className="text-[10px] font-mono text-ink-muted uppercase block">Item</span>
                 <p className="font-display font-bold text-ink text-small">{selectedItem.title}</p>

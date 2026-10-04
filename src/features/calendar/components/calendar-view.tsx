@@ -48,6 +48,7 @@ export function CalendarView({
 }: CalendarViewProps) {
   const [entries, setEntries] = React.useState<CalendarEventItem[]>(initialEntries)
   const [viewMode, setViewMode] = React.useState<CalendarViewMode>(initialViewMode)
+  const [dayLayout, setDayLayout] = React.useState<'schedule' | 'timeline'>('schedule')
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date())
   const [activeSources, setActiveSources] = React.useState<CalendarSourceType[]>([
     'class',
@@ -430,186 +431,382 @@ export function CalendarView({
         </div>
       </div>
 
-      {/* 2. Interactive Day View with Hourly Time Grid (08:00 - 20:00) */}
+      {/* 2. Interactive Day View with Layout Switcher (Schedule List vs Hourly Timeline) */}
       {viewMode === 'day' && (
         <div className="bg-surface border border-border rounded-md overflow-hidden shadow-none space-y-0">
           {/* Day Header */}
-          <div className="p-4 border-b border-border bg-surface-sunken/40 flex items-center justify-between">
+          <div className="p-4 border-b border-border bg-surface-sunken/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="font-display font-bold text-h2 text-ink">
                 Timeline for {selectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
               </h3>
               <p className="text-meta text-ink-muted mt-0.5">
-                Click on any hour slot to schedule a personal task, study block, or assignment.
+                {dayLayout === 'schedule'
+                  ? 'Chronological schedule list with full details, clear timings, and action links.'
+                  : 'Hourly canvas breakdown. Click on any slot to schedule a personal task.'}
               </p>
             </div>
-            <span className="text-meta font-mono font-bold px-2 py-0.5 rounded-sm bg-surface border border-border text-ink">
-              {filteredEntries.filter((e) => new Date(e.startsAt).toDateString() === selectedDate.toDateString()).length} events
-            </span>
+
+            <div className="flex items-center gap-2">
+              <span className="text-meta font-mono font-bold px-2 py-0.5 rounded-sm bg-surface border border-border text-ink">
+                {filteredEntries.filter((e) => new Date(e.startsAt).toDateString() === selectedDate.toDateString()).length} events
+              </span>
+
+              {/* Day layout toggle: Schedule List vs Timeline Grid */}
+              <div className="inline-flex rounded-sm border border-border bg-surface p-0.5">
+                <button
+                  type="button"
+                  onClick={() => setDayLayout('schedule')}
+                  className={cn(
+                    'px-2.5 py-1 text-meta font-mono font-semibold rounded-xs transition-colors cursor-pointer',
+                    dayLayout === 'schedule'
+                      ? 'bg-ink text-on-ink shadow-xs'
+                      : 'text-ink-muted hover:text-ink'
+                  )}
+                  title="Spacious schedule list"
+                >
+                  Schedule List
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDayLayout('timeline')}
+                  className={cn(
+                    'px-2.5 py-1 text-meta font-mono font-semibold rounded-xs transition-colors cursor-pointer',
+                    dayLayout === 'timeline'
+                      ? 'bg-ink text-on-ink shadow-xs'
+                      : 'text-ink-muted hover:text-ink'
+                  )}
+                  title="Hourly timeline grid"
+                >
+                  Hourly Grid
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Time Canvas: Scrollable container with sticky hour indicators */}
-          <div
-            ref={timelineScrollRef}
-            className="relative overflow-x-auto overflow-y-auto max-h-[580px] scroll-smooth border-t border-border"
-          >
-            <div className="min-w-[650px] relative" style={{ height: `${HOURS.length * HOUR_HEIGHT}px` }}>
-              {/* Hour Grid Rows */}
-              {HOURS.map((hour, idx) => (
-                <div
-                  key={hour}
-                  onClick={() => handleSlotClick(selectedDate.toISOString().slice(0, 10), hour)}
-                  className="group absolute left-0 right-0 border-b border-border/80 flex items-start hover:bg-surface-sunken/40 transition-colors cursor-pointer"
-                  style={{
-                    top: `${idx * HOUR_HEIGHT}px`,
-                    height: `${HOUR_HEIGHT}px`,
-                  }}
-                >
-                  {/* Hour Gutter - Sticky on horizontal scroll */}
-                  <div className="w-16 shrink-0 pr-3 pt-1 text-right text-meta font-mono text-ink-muted select-none sticky left-0 bg-surface z-10">
-                    {hour.toString().padStart(2, '0')}:00
-                  </div>
-
-                  {/* Half-hour dashed line */}
-                  <div className="flex-1 h-full border-l border-border relative">
-                    <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-border/30" />
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-mono text-ink-muted pl-2 pt-1 inline-block select-none">
-                      + Add item at {hour.toString().padStart(2, '0')}:00
-                    </span>
-                  </div>
+          {/* Option A: Schedule List View (Clear, spacious, perfectly readable, no squishing) */}
+          {dayLayout === 'schedule' && (
+            <div className="p-4 sm:p-5 space-y-3">
+              {filteredEntries.filter((e) => new Date(e.startsAt).toDateString() === selectedDate.toDateString()).length === 0 ? (
+                <div className="py-12 text-center bg-surface-sunken/40 rounded-md border border-dashed border-border p-6 space-y-2">
+                  <CalendarDays size={32} className="mx-auto text-ink-muted opacity-40" />
+                  <p className="font-display text-small font-bold text-ink">
+                    No events scheduled for this day.
+                  </p>
+                  <p className="text-meta text-ink-muted max-w-sm mx-auto">
+                    Enjoy your free time, or add a personal study block, assignment reminder, or task.
+                  </p>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => {
+                      resetForm()
+                      setFormDate(selectedDate.toISOString().slice(0, 10))
+                      setIsCreateOpen(true)
+                    }}
+                    className="mt-2"
+                  >
+                    <Plus size={14} />
+                    <span>Add item for this day</span>
+                  </Button>
                 </div>
-              ))}
+              ) : (
+                filteredEntries
+                  .filter((e) => new Date(e.startsAt).toDateString() === selectedDate.toDateString())
+                  .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime())
+                  .map((item) => {
+                    const meta = CALENDAR_SOURCE_METAS[item.sourceType] || {
+                      type: item.sourceType,
+                      label: item.sourceType,
+                      hex: '#6B7280',
+                      badgeClass: 'bg-surface-sunken text-ink-muted',
+                    }
 
-              {/* Red Current Time Line (if viewing today and in range) */}
-              {isSelectedDateToday && isNowInVisibleHours && (
-                <div
-                  className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
-                  style={{ top: `${nowTopPx}px` }}
-                >
-                  <div className="w-16 pr-2 text-right">
-                    <span className="px-1.5 py-0.5 rounded-xs bg-danger text-white text-[9px] font-mono font-bold">
-                      Now
-                    </span>
-                  </div>
-                  <div className="flex-1 h-[2px] bg-danger relative">
-                    <div className="w-2.5 h-2.5 rounded-full bg-danger absolute -left-1 -top-1" />
-                  </div>
-                </div>
-              )}
+                    const starts = new Date(item.startsAt)
+                    const ends = new Date(item.endsAt)
+                    const durationMin = Math.round((ends.getTime() - starts.getTime()) / 60000)
+                    const durationStr =
+                      durationMin >= 60
+                        ? `${Math.floor(durationMin / 60)}h ${durationMin % 60 ? `${durationMin % 60}m` : ''}`
+                        : `${durationMin}m`
+                    const timeRange = `${starts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} – ${ends.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`
 
-              {/* Event Blocks Placed on Canvas */}
-              {filteredEntries
-                .filter((e) => new Date(e.startsAt).toDateString() === selectedDate.toDateString())
-                .map((item) => {
-                  const meta = CALENDAR_SOURCE_METAS[item.sourceType] || {
-                    type: item.sourceType,
-                    label: item.sourceType,
-                    hex: '#6B7280',
-                    badgeClass: 'bg-surface-sunken text-ink-muted',
-                  }
+                    return (
+                      <div
+                        key={item.id}
+                        style={{ borderLeftColor: meta.hex }}
+                        className="bg-surface dark:bg-[#171D2B] border-l-4 border-t border-r border-b border-border dark:border-[#2A3347] rounded-r-md p-4 sm:p-4.5 transition-all hover:border-ink/60 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs"
+                      >
+                        {/* Time & Duration Column */}
+                        <div className="shrink-0 w-36 sm:border-r sm:border-border/80 sm:pr-4 space-y-1">
+                          <span className="text-small font-mono font-bold text-ink dark:text-white block">
+                            {starts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          </span>
+                          <span className="text-meta font-mono text-ink-muted dark:text-slate-400 block">
+                            to {ends.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}
+                          </span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-xs bg-surface-sunken dark:bg-slate-800 text-ink-muted dark:text-slate-300 border border-border dark:border-slate-700 inline-block mt-0.5">
+                            {durationStr}
+                          </span>
+                        </div>
 
-                  const starts = new Date(item.startsAt)
-                  const ends = new Date(item.endsAt)
-                  const startHour = starts.getHours() + starts.getMinutes() / 60
-                  const endHour = ends.getHours() + ends.getMinutes() / 60
-                  const duration = Math.max(0.75, endHour - startHour)
-
-                  const clampedStart = Math.max(8, Math.min(20, startHour))
-                  const top = (clampedStart - 8) * HOUR_HEIGHT
-                  const height = Math.max(48, Math.min(HOURS.length * HOUR_HEIGHT - top, duration * HOUR_HEIGHT - 4))
-
-                  const timeRange = `${starts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} – ${ends.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`
-
-                  return (
-                    <div
-                      key={item.id}
-                      style={{
-                        top: `${top}px`,
-                        height: `${height}px`,
-                        left: '72px',
-                        right: '16px',
-                        borderLeftColor: meta.hex,
-                      }}
-                      className="absolute z-10 bg-surface dark:bg-[#151D2F] border-l-4 border-t border-r border-b border-border rounded-r-md p-3 hover:border-ink transition-all flex flex-col justify-between overflow-hidden shadow-xs"
-                    >
-                      <div className="flex items-start justify-between gap-2 min-w-0">
-                        <div className="min-w-0 space-y-1">
+                        {/* Content Column */}
+                        <div className="flex-1 min-w-0 space-y-1.5">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
                               className={cn(
-                                'text-[10px] font-mono font-semibold px-2 py-0.5 rounded-xs border',
+                                'text-[10px] font-mono font-bold px-2 py-0.5 rounded-xs border',
                                 meta.badgeClass
                               )}
                             >
                               {meta.label}
                             </span>
-                            <span className="text-meta font-mono text-ink-muted font-medium flex items-center gap-1">
-                              <Clock size={12} /> {timeRange}
-                            </span>
+
+                            {item.isPersonal && (
+                              <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-xs bg-highlight/15 text-ink dark:text-yellow-300 border border-highlight/30">
+                                Personal
+                              </span>
+                            )}
                           </div>
 
-                          <h4 className="font-display text-small font-bold text-ink leading-tight">
+                          <h4 className="font-display text-base font-bold text-ink dark:text-white leading-snug">
                             {item.title}
                           </h4>
 
                           {item.description && (
-                            <p className="text-[12px] text-ink-muted line-clamp-2 leading-relaxed">
+                            <p className="text-small text-ink-muted dark:text-slate-300 leading-relaxed line-clamp-2">
                               {item.description}
+                            </p>
+                          )}
+
+                          {item.location && (
+                            <p className="text-meta font-mono text-ink-muted dark:text-slate-300 flex items-center gap-1.5 pt-0.5">
+                              <MapPin size={13} className="shrink-0 text-ink dark:text-slate-300" />
+                              <span>{item.location}</span>
                             </p>
                           )}
                         </div>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-1 shrink-0">
+                        {/* Actions Column */}
+                        <div className="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
                           {item.link && (
                             <Link
                               href={item.link}
-                              className="px-2 py-1 text-meta font-mono font-semibold rounded-xs bg-surface-sunken border border-border text-ink hover:bg-border transition-colors flex items-center gap-1"
+                              className="px-3 py-1.5 text-meta font-mono font-semibold rounded-sm bg-surface-sunken dark:bg-slate-800 border border-border dark:border-slate-700 text-ink dark:text-white hover:border-ink transition-colors flex items-center gap-1"
                             >
-                              <span>View</span>
-                              <ExternalLink size={10} />
+                              <span>Open</span>
+                              <ExternalLink size={11} />
                             </Link>
                           )}
 
                           {item.isPersonal && (
-                            <>
+                            <div className="flex items-center gap-1">
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  openEditModal(item)
-                                }}
-                                className="p-1 rounded-xs hover:bg-surface-sunken text-ink-muted hover:text-ink cursor-pointer"
-                                title="Edit"
+                                onClick={() => openEditModal(item)}
+                                className="p-1.5 rounded-sm hover:bg-surface-sunken dark:hover:bg-slate-800 text-ink-muted dark:text-slate-300 hover:text-ink dark:hover:text-white transition-colors cursor-pointer"
+                                title="Edit entry"
                               >
-                                <Edit2 size={13} />
+                                <Edit2 size={14} />
                               </button>
                               <button
                                 type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  handleDelete(item.id)
-                                }}
-                                className="p-1 rounded-xs hover:bg-danger/10 text-ink-muted hover:text-danger cursor-pointer"
-                                title="Delete"
+                                onClick={() => handleDelete(item.id)}
+                                className="p-1.5 rounded-sm hover:bg-danger/10 text-ink-muted dark:text-slate-400 hover:text-danger transition-colors cursor-pointer"
+                                title="Delete entry"
                               >
-                                <Trash2 size={13} />
+                                <Trash2 size={14} />
                               </button>
-                            </>
+                            </div>
                           )}
                         </div>
                       </div>
+                    )
+                  })
+              )}
 
-                      {item.location && (
-                        <p className="text-meta font-mono text-ink-muted flex items-center gap-1.5 pt-1 truncate">
-                          <MapPin size={12} /> {item.location}
-                        </p>
-                      )}
-                    </div>
-                  )
-                })}
+              {/* Add item shortcut */}
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetForm()
+                    setFormDate(selectedDate.toISOString().slice(0, 10))
+                    setIsCreateOpen(true)
+                  }}
+                  className="w-full py-2.5 rounded-md border border-dashed border-border dark:border-slate-700 text-meta font-mono text-ink-muted dark:text-slate-400 hover:text-ink dark:hover:text-white hover:border-ink transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Plus size={14} />
+                  <span>+ Schedule an item for {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                </button>
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Option B: Hourly Timeline Grid Canvas */}
+          {dayLayout === 'timeline' && (
+            <div
+              ref={timelineScrollRef}
+              className="relative overflow-x-auto overflow-y-auto max-h-[580px] scroll-smooth border-t border-border"
+            >
+              <div className="min-w-[650px] relative" style={{ height: `${HOURS.length * HOUR_HEIGHT}px` }}>
+                {/* Hour Grid Rows */}
+                {HOURS.map((hour, idx) => (
+                  <div
+                    key={hour}
+                    onClick={() => handleSlotClick(selectedDate.toISOString().slice(0, 10), hour)}
+                    className="group absolute left-0 right-0 border-b border-border/80 flex items-start hover:bg-surface-sunken/40 transition-colors cursor-pointer"
+                    style={{
+                      top: `${idx * HOUR_HEIGHT}px`,
+                      height: `${HOUR_HEIGHT}px`,
+                    }}
+                  >
+                    {/* Hour Gutter - Sticky on horizontal scroll */}
+                    <div className="w-16 shrink-0 pr-3 pt-1 text-right text-meta font-mono text-ink-muted dark:text-slate-400 select-none sticky left-0 bg-surface dark:bg-[#171D2B] z-10">
+                      {hour.toString().padStart(2, '0')}:00
+                    </div>
+
+                    {/* Half-hour dashed line */}
+                    <div className="flex-1 h-full border-l border-border relative">
+                      <div className="absolute top-1/2 left-0 right-0 border-b border-dashed border-border/30" />
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[11px] font-mono text-ink-muted pl-2 pt-1 inline-block select-none">
+                        + Add item at {hour.toString().padStart(2, '0')}:00
+                      </span>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Red Current Time Line (if viewing today and in range) */}
+                {isSelectedDateToday && isNowInVisibleHours && (
+                  <div
+                    className="absolute left-0 right-0 z-20 pointer-events-none flex items-center"
+                    style={{ top: `${nowTopPx}px` }}
+                  >
+                    <div className="w-16 pr-2 text-right">
+                      <span className="px-1.5 py-0.5 rounded-xs bg-danger text-white text-[9px] font-mono font-bold">
+                        Now
+                      </span>
+                    </div>
+                    <div className="flex-1 h-[2px] bg-danger relative">
+                      <div className="w-2.5 h-2.5 rounded-full bg-danger absolute -left-1 -top-1" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Event Blocks Placed on Canvas with High Contrast */}
+                {filteredEntries
+                  .filter((e) => new Date(e.startsAt).toDateString() === selectedDate.toDateString())
+                  .map((item) => {
+                    const meta = CALENDAR_SOURCE_METAS[item.sourceType] || {
+                      type: item.sourceType,
+                      label: item.sourceType,
+                      hex: '#6B7280',
+                      badgeClass: 'bg-surface-sunken text-ink-muted',
+                    }
+
+                    const starts = new Date(item.startsAt)
+                    const ends = new Date(item.endsAt)
+                    const startHour = starts.getHours() + starts.getMinutes() / 60
+                    const endHour = ends.getHours() + ends.getMinutes() / 60
+                    const duration = Math.max(0.75, endHour - startHour)
+
+                    const clampedStart = Math.max(8, Math.min(20, startHour))
+                    const top = (clampedStart - 8) * HOUR_HEIGHT
+                    const height = Math.max(68, Math.min(HOURS.length * HOUR_HEIGHT - top, duration * HOUR_HEIGHT - 4))
+
+                    const timeRange = `${starts.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} – ${ends.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`
+
+                    return (
+                      <div
+                        key={item.id}
+                        style={{
+                          top: `${top}px`,
+                          height: `${height}px`,
+                          left: '72px',
+                          right: '16px',
+                          borderLeftColor: meta.hex,
+                        }}
+                        className="absolute z-10 bg-surface dark:bg-[#1E293B] border-l-4 border-t border-r border-b border-border dark:border-[#334155] rounded-r-md p-3 hover:border-ink transition-all flex flex-col justify-between overflow-hidden shadow-xs"
+                      >
+                        <div className="flex items-start justify-between gap-2 min-w-0">
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className={cn(
+                                  'text-[10px] font-mono font-semibold px-2 py-0.5 rounded-xs border',
+                                  meta.badgeClass
+                                )}
+                              >
+                                {meta.label}
+                              </span>
+                              <span className="text-meta font-mono text-ink-muted dark:text-slate-300 font-medium flex items-center gap-1">
+                                <Clock size={12} /> {timeRange}
+                              </span>
+                            </div>
+
+                            <h4 className="font-display text-small font-bold text-ink dark:text-white leading-tight">
+                              {item.title}
+                            </h4>
+
+                            {item.description && (
+                              <p className="text-[12px] text-ink-muted dark:text-slate-300 line-clamp-2 leading-relaxed">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Actions */}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {item.link && (
+                              <Link
+                                href={item.link}
+                                className="px-2 py-1 text-meta font-mono font-semibold rounded-xs bg-surface-sunken dark:bg-slate-700 border border-border dark:border-slate-600 text-ink dark:text-white hover:bg-border transition-colors flex items-center gap-1"
+                              >
+                                <span>View</span>
+                                <ExternalLink size={10} />
+                              </Link>
+                            )}
+
+                            {item.isPersonal && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    openEditModal(item)
+                                  }}
+                                  className="p-1 rounded-xs hover:bg-surface-sunken dark:hover:bg-slate-700 text-ink-muted dark:text-slate-300 hover:text-ink dark:hover:text-white cursor-pointer"
+                                  title="Edit"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleDelete(item.id)
+                                  }}
+                                  className="p-1 rounded-xs hover:bg-danger/10 text-ink-muted dark:text-slate-400 hover:text-danger cursor-pointer"
+                                  title="Delete"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {item.location && (
+                          <p className="text-meta font-mono text-ink-muted dark:text-slate-300 flex items-center gap-1.5 pt-1 truncate">
+                            <MapPin size={12} /> {item.location}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -687,16 +884,16 @@ export function CalendarView({
                             if (ev.isPersonal) openEditModal(ev)
                           }}
                           style={{ borderLeftColor: meta?.hex || '#6B7280' }}
-                          className="border-l-3 bg-surface border border-border p-2 rounded-r-sm text-[11px] leading-tight hover:border-ink/40 transition-colors"
+                          className="border-l-3 bg-surface dark:bg-[#1E293B] border border-border dark:border-slate-700 p-2 rounded-r-sm text-[11px] leading-tight hover:border-ink/40 transition-colors"
                         >
-                          <span className="font-semibold block truncate text-ink">
+                          <span className="font-semibold block truncate text-ink dark:text-white">
                             {ev.title}
                           </span>
-                          <span className="text-[10px] font-mono text-ink-muted flex items-center gap-1 mt-0.5">
+                          <span className="text-[10px] font-mono text-ink-muted dark:text-slate-300 flex items-center gap-1 mt-0.5">
                             <Clock size={10} /> {timeStr}
                           </span>
                           {ev.location && (
-                            <span className="text-[10px] font-mono text-ink-muted block truncate mt-0.5">
+                            <span className="text-[10px] font-mono text-ink-muted dark:text-slate-400 block truncate mt-0.5">
                               {ev.location}
                             </span>
                           )}
@@ -785,18 +982,18 @@ export function CalendarView({
                             </span>
                           </div>
 
-                          <h3 className="font-display text-base font-bold text-ink leading-tight">
+                          <h3 className="font-display text-base font-bold text-ink dark:text-white leading-tight">
                             {item.title}
                           </h3>
 
                           {item.description && (
-                            <p className="text-small text-ink-muted mt-1 leading-snug">
+                            <p className="text-small text-ink-muted dark:text-slate-300 mt-1 leading-snug">
                               {item.description}
                             </p>
                           )}
 
                           {item.location && (
-                            <div className="mt-2 flex items-center gap-1 text-[11px] font-mono text-ink-muted">
+                            <div className="mt-2 flex items-center gap-1 text-[11px] font-mono text-ink-muted dark:text-slate-300">
                               <MapPin size={12} className="shrink-0" />
                               <span>{item.location}</span>
                             </div>

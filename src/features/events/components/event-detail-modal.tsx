@@ -17,6 +17,11 @@ import {
   AlertCircle,
   Flag,
   Building2,
+  Trophy,
+  Globe,
+  FileText,
+  Download,
+  GraduationCap,
 } from 'lucide-react'
 import type { EventItem, EventTeamItem, EventMessageItem } from '../schema'
 import {
@@ -321,7 +326,7 @@ export function EventDetailModal({
           )}
 
           {/* Navigation Tabs */}
-          <div className="flex border-b border-border -mb-5 pt-1 gap-2">
+          <div className="flex border-b border-border -mb-5 pt-1 gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => setActiveTab('details')}
@@ -334,6 +339,21 @@ export function EventDetailModal({
             >
               Overview & RSVP
             </button>
+
+            {event.stages && event.stages.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('stages' as any)}
+                className={cn(
+                  'py-2 px-3 text-small font-medium border-b-2 -mb-px transition-colors cursor-pointer',
+                  (activeTab as any) === 'stages'
+                    ? 'border-highlight text-ink font-bold'
+                    : 'border-transparent text-ink-muted hover:text-ink'
+                )}
+              >
+                Stages & Rounds ({event.stages.length})
+              </button>
+            )}
 
             <button
               type="button"
@@ -368,6 +388,74 @@ export function EventDetailModal({
           {/* TAB 1: OVERVIEW & RSVP */}
           {activeTab === 'details' && (
             <div className="space-y-6">
+              {/* Unstop Quick Actions Bar (Official Website & Brochure Download) */}
+              {(event.websiteUrl || event.brochureUrl) && (
+                <div className="flex flex-wrap items-center gap-2.5 p-3 rounded-md bg-surface-sunken border border-border">
+                  {event.websiteUrl && (
+                    <a
+                      href={event.websiteUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-sm bg-surface border border-border text-small font-semibold text-ink hover:bg-surface-sunken transition-colors cursor-pointer shadow-xs"
+                    >
+                      <Globe size={14} className="text-highlight shrink-0" />
+                      <span>Visit Official Website</span>
+                      <ExternalLink size={12} className="text-ink-muted ml-0.5" />
+                    </a>
+                  )}
+
+                  {event.brochureUrl && (
+                    <a
+                      href={event.brochureUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download
+                      className="inline-flex items-center gap-2 px-3.5 py-2 rounded-sm bg-surface border border-border text-small font-semibold text-ink hover:bg-surface-sunken transition-colors cursor-pointer shadow-xs"
+                    >
+                      <FileText size={14} className="text-highlight shrink-0" />
+                      <span>Download / View Brochure</span>
+                      <Download size={12} className="text-ink-muted ml-0.5" />
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Unstop Key Highlights: Prize Pool, Eligibility, Team Size */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {event.prizePool && (
+                  <div className="p-3.5 rounded-sm bg-surface-sunken border border-border space-y-1">
+                    <span className="text-[11px] font-mono text-ink-muted flex items-center gap-1.5 font-medium">
+                      <Trophy size={13} className="text-highlight" /> Prizes & Perks
+                    </span>
+                    <p className="font-display text-small font-bold text-ink leading-snug">
+                      {event.prizePool}
+                    </p>
+                  </div>
+                )}
+
+                {event.eligibility && (
+                  <div className="p-3.5 rounded-sm bg-surface-sunken border border-border space-y-1">
+                    <span className="text-[11px] font-mono text-ink-muted flex items-center gap-1.5 font-medium">
+                      <GraduationCap size={13} /> Eligibility
+                    </span>
+                    <p className="font-display text-small font-bold text-ink leading-snug">
+                      {event.eligibility}
+                    </p>
+                  </div>
+                )}
+
+                <div className="p-3.5 rounded-sm bg-surface-sunken border border-border space-y-1">
+                  <span className="text-[11px] font-mono text-ink-muted flex items-center gap-1.5 font-medium">
+                    <Users size={13} /> Participation
+                  </span>
+                  <p className="font-display text-small font-bold text-ink leading-snug">
+                    {event.allowTeams
+                      ? `Teams (${event.minTeamSize}–${event.maxTeamSize} members)`
+                      : 'Individual Participation'}
+                  </p>
+                </div>
+              </div>
+
               {/* Date, Time & Location Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="p-3.5 rounded-sm bg-surface-sunken border border-border space-y-1">
@@ -484,12 +572,36 @@ export function EventDetailModal({
               {/* Full Event Description (Comfortable reading typography) */}
               <div className="space-y-2">
                 <h3 className="font-display text-small font-bold text-ink">
-                  About Event
+                  About Event & Problem Statement
                 </h3>
                 <div className="p-4 rounded-sm bg-surface-sunken border border-border font-body text-body text-ink leading-relaxed whitespace-pre-wrap">
                   {event.description}
                 </div>
               </div>
+
+              {/* Brochure Image Preview if brochure is an image/flyer */}
+              {event.brochureUrl && (
+                <div className="space-y-2">
+                  <h3 className="font-display text-small font-bold text-ink flex items-center justify-between">
+                    <span>Event Brochure / Poster</span>
+                    <a
+                      href={event.brochureUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-meta font-mono text-ink underline hover:text-ink-muted"
+                    >
+                      Open full view
+                    </a>
+                  </h3>
+                  <div className="rounded-md border border-border overflow-hidden bg-surface-sunken">
+                    <img
+                      src={event.brochureUrl}
+                      alt={`${event.title} Brochure`}
+                      className="w-full max-h-72 object-cover hover:scale-[1.01] transition-transform duration-200"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Tags */}
               {event.tags && event.tags.length > 0 && (
@@ -564,6 +676,55 @@ export function EventDetailModal({
                   </form>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* TAB: STAGES & ROUNDS (UNSTOP TIMELINE STEPPER) */}
+          {(activeTab as any) === 'stages' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-display text-small font-bold text-ink">
+                    Stages & Rounds Timeline
+                  </h3>
+                  <p className="text-meta text-ink-muted">
+                    Follow the sequential milestones from registration to final presentation.
+                  </p>
+                </div>
+              </div>
+
+              {(!event.stages || event.stages.length === 0) ? (
+                <div className="p-8 text-center bg-surface-sunken border border-border rounded-md text-ink-muted text-small">
+                  No specific stages announced yet for this event.
+                </div>
+              ) : (
+                <div className="relative pl-6 space-y-6 before:absolute before:left-2.5 before:top-2 before:bottom-2 before:w-0.5 before:bg-border">
+                  {event.stages.map((stage, idx) => (
+                    <div key={idx} className="relative space-y-1">
+                      <div className="absolute -left-6 top-1 w-5 h-5 rounded-full bg-ink text-on-ink flex items-center justify-center font-mono text-[10px] font-bold border-2 border-surface">
+                        {idx + 1}
+                      </div>
+
+                      <div className="p-3.5 rounded-sm bg-surface-sunken border border-border space-y-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="font-display text-small font-bold text-ink">
+                            {stage.title}
+                          </h4>
+                          {stage.date && (
+                            <span className="text-[11px] font-mono text-ink-muted">
+                              {new Date(stage.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-small text-ink-muted leading-relaxed">
+                          {stage.description}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
