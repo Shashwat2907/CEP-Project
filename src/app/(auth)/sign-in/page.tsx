@@ -69,8 +69,7 @@ function SignInForm() {
     try {
       const res = await verifyCodeAction({ email, code })
       if (res.success) {
-        router.push('/')
-        router.refresh()
+        window.location.href = '/'
       } else {
         setErrorMessage(res.error || 'Invalid verification code.')
       }
@@ -268,7 +267,7 @@ function SignInForm() {
                     setLoading(true)
                     const res = await quickSwitchRoleAction('admin@campus.edu')
                     if (res.success) {
-                      window.location.href = '/'
+                      window.location.href = '/admin'
                     } else {
                       setLoading(false)
                     }

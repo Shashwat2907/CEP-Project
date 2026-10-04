@@ -44,7 +44,7 @@ export function AppShell({
         window.location.href = '/teacher/acad'
       } else if (nextRole === 'admin') {
         await quickSwitchRoleAction('admin@campus.edu')
-        window.location.href = '/admin/digital-id'
+        window.location.href = '/admin'
       } else {
         await quickSwitchRoleAction('student@campus.edu')
         window.location.href = '/'

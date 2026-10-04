@@ -80,14 +80,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Redirect authenticated user from sign-in to root unless explicitly switching accounts
-  const isSwitching = request.nextUrl.searchParams.get('switch') === 'true'
-  if (user && isAuthRoute && !isSwitching) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/'
-    return NextResponse.redirect(url)
-  }
-
   return supabaseResponse
 }
 

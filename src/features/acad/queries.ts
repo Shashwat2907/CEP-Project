@@ -181,14 +181,20 @@ export async function getMyPendingUploads(): Promise<Resource[]> {
         .eq('status', 'pending')
         .order('created_at', { ascending: false })
 
-      if (!error && data) {
+      if (!error && Array.isArray(data) && data.length > 0) {
         return data as Resource[]
       }
     } catch {
       // Offline
     }
   }
-  return []
+
+  try {
+    const { user } = await requireAuth()
+    return MOCK_RESOURCES.filter((r) => r.status === 'pending' && r.uploader_id === user.id)
+  } catch {
+    return MOCK_RESOURCES.filter((r) => r.status === 'pending')
+  }
 }
 
 // ---------------------------------------------------------------------------

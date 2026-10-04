@@ -26,19 +26,7 @@ export async function getSession() {
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  if (await isSupabaseOnline()) {
-    try {
-      const supabase = await createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (user) return user
-    } catch {
-      // Offline / Supabase unreachable
-    }
-  }
-
-  // Dev mock session fallback
+  // 1. Dev mock session fallback (local role and user switching)
   if (process.env.DEV_PRINT_OTP_TO_CONSOLE === 'true' || process.env.NODE_ENV !== 'production') {
     try {
       const cookieStore = await cookies()
@@ -63,6 +51,19 @@ export async function getCurrentUser(): Promise<User | null> {
     }
   }
 
+  // 2. Real Supabase Auth session
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) return user
+    } catch {
+      // Offline / Supabase unreachable
+    }
+  }
+
   return null
 }
 
@@ -75,22 +76,7 @@ export async function getCurrentProfile(): Promise<UserProfile | null> {
   const user = await getCurrentUser()
   if (!user) return null
 
-  if (await isSupabaseOnline()) {
-    try {
-      const supabase = await createClient()
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (profile) return profile as UserProfile
-    } catch {
-      // Offline / Supabase unreachable
-    }
-  }
-
-  // Dev mock profile fallback
+  // 1. Dev mock profile fallback (when using role switcher or local roster)
   if (process.env.DEV_PRINT_OTP_TO_CONSOLE === 'true' || process.env.NODE_ENV !== 'production') {
     const roster = MOCK_ROSTER.find(
       (r) =>
@@ -113,6 +99,22 @@ export async function getCurrentProfile(): Promise<UserProfile | null> {
         created_at: '2026-10-02T00:00:00Z',
         updated_at: '2026-10-02T00:00:00Z',
       }
+    }
+  }
+
+  // 2. Real Supabase profile table
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) return profile as UserProfile
+    } catch {
+      // Offline / Supabase unreachable
     }
   }
 

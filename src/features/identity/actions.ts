@@ -272,6 +272,19 @@ export async function verifyCodeAction(
     }
   }
 
+  // Set session cookie for local dev and mock roster consistency
+  try {
+    const cookieStore = await cookies()
+    cookieStore.set('dev_mock_user_email', rosterEntry.college_email, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7,
+    })
+  } catch {
+    // Safe outside request scope
+  }
+
   // 3. Provision profile and roles on first sign-in (if Supabase is available)
   try {
     const supabase = await createClient()
