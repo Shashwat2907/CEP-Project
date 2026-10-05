@@ -23,6 +23,20 @@ export const CreateEventInputSchema = z
     startsAt: z.string().datetime({ message: 'Start date must be a valid ISO datetime' }),
     endsAt: z.string().datetime({ message: 'End date must be a valid ISO datetime' }),
     registrationLink: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+    websiteUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+    brochureUrl: z.string().optional().or(z.literal('')),
+    prizePool: z.string().max(200).optional().or(z.literal('')),
+    eligibility: z.string().max(200).optional().or(z.literal('')),
+    opportunityType: z.string().optional(),
+    stages: z
+      .array(
+        z.object({
+          title: z.string(),
+          description: z.string(),
+          date: z.string(),
+        })
+      )
+      .optional(),
     capacity: z.coerce.number().int().positive('Capacity must be positive').optional().nullable(),
     bannerUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
     tags: z.array(z.string()).default([]),
@@ -64,6 +78,12 @@ export const PostEventMessageInputSchema = z.object({
 
 export type PostEventMessageInput = z.infer<typeof PostEventMessageInputSchema>
 
+export interface EventStage {
+  title: string
+  description: string
+  date: string
+}
+
 export interface EventItem {
   id: string
   kind: EventKind
@@ -77,6 +97,12 @@ export interface EventItem {
   endsAt: string
   status: EventStatus
   registrationLink?: string | null
+  websiteUrl?: string | null
+  brochureUrl?: string | null
+  prizePool?: string | null
+  eligibility?: string | null
+  opportunityType?: string | null
+  stages?: EventStage[]
   capacity?: number | null
   bannerUrl?: string | null
   tags: string[]

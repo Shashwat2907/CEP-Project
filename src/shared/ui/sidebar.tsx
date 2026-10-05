@@ -46,20 +46,19 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
   { label: 'Events', href: '/events', icon: Calendar },
   { label: 'Calendar', href: '/calendar', icon: CalendarDays },
   { label: 'Lost & Found', href: '/lost-found', icon: Search },
+  { label: 'Friends', href: '/friends', icon: Users },
 ]
 
 export const TEACHER_NAV_ITEMS: NavItem[] = [
-  { label: 'Home', href: '/', icon: Home },
-  { label: 'Sessions', href: '/sessions', icon: CalendarClock },
+  { label: 'Academic Resources', href: '/teacher/acad', icon: BookOpen },
+  { label: 'Appointments & Meet', href: '/meet', icon: CalendarClock },
   { label: 'Assigned Complaints', href: '/complaints/assigned', icon: ClipboardList },
-  { label: 'Resources', href: '/teacher/acad', icon: BookOpen },
   { label: 'Calendar', href: '/calendar', icon: CalendarDays },
   { label: 'Community', href: '/community', icon: MessageSquare },
 ]
 
 export const ADMIN_NAV_ITEMS: NavItem[] = [
-  { label: 'Home', href: '/', icon: Home },
-  { label: 'Overview', href: '/admin', icon: Shield },
+  { label: 'Console Overview', href: '/admin', icon: Shield },
   { label: 'Digital ID & Access', href: '/admin/digital-id', icon: ShieldAlert },
   { label: 'Roster Import', href: '/admin/roster', icon: Users },
   { label: 'Zone Management', href: '/admin/zones', icon: MapPin },
@@ -106,6 +105,9 @@ export function Sidebar({
     .join('')
     .slice(0, 2)
 
+  const homeHref =
+    role === 'admin' ? '/admin' : role === 'teacher' ? '/teacher/acad' : '/'
+
   return (
     <aside
       className={cn(
@@ -115,9 +117,9 @@ export function Sidebar({
     >
       {/* 1. Header: University Logo & Wordmark (DESIGN.MD §6) */}
       <Link
-        href="/"
+        href={homeHref}
         className="h-14 px-5 border-b border-border flex items-center gap-3 hover:bg-surface-sunken/70 transition-colors cursor-pointer group"
-        title="Return to Homepage"
+        title="Return to Dashboard"
       >
         <div className="w-8 h-8 rounded-sm bg-ink text-on-ink flex items-center justify-center font-display font-black text-lg tracking-wider border border-border group-hover:scale-105 transition-transform">
           C
@@ -126,17 +128,14 @@ export function Sidebar({
           <span className="font-display font-bold text-ink text-base leading-tight group-hover:text-primary transition-colors">
             Campus
           </span>
-          <span className="text-[11px] font-mono text-ink-muted leading-none">
-            {role.toUpperCase()} PORTAL
+          <span className="text-[11px] font-mono text-ink-muted leading-none capitalize">
+            {role} portal
           </span>
         </div>
       </Link>
 
       {/* 2. Middle: Role-based Navigation Links (DESIGN.MD §6) */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
-        <div className="px-3 pb-1.5 pt-1 text-[11px] font-mono font-medium text-ink-muted uppercase tracking-wider">
-          Navigation
-        </div>
+      <nav className="flex-1 overflow-y-auto py-2 space-y-0.5">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive =
@@ -149,10 +148,10 @@ export function Sidebar({
               key={item.href}
               href={item.href}
               className={cn(
-                'group flex items-center justify-between px-3 py-2 text-small rounded-sm transition-colors text-left',
+                'group flex items-center justify-between px-4 py-2.5 text-small transition-colors text-left border-l-[3px]',
                 isActive
-                  ? 'border-l-[3px] border-highlight bg-surface-sunken font-semibold text-ink pl-[9px]'
-                  : 'border-l-[3px] border-transparent text-ink-muted hover:text-ink hover:bg-surface-sunken/60 font-medium pl-[9px]'
+                  ? 'border-highlight bg-surface-sunken/40 font-semibold text-ink'
+                  : 'border-transparent text-ink-muted hover:text-ink hover:bg-surface-sunken/20 font-medium'
               )}
             >
               <div className="flex items-center gap-3">
@@ -160,7 +159,7 @@ export function Sidebar({
                   size={20}
                   strokeWidth={1.75}
                   className={cn(
-                    'transition-colors',
+                    'transition-colors shrink-0',
                     isActive ? 'text-ink' : 'text-ink-muted group-hover:text-ink'
                   )}
                 />
@@ -192,14 +191,14 @@ export function Sidebar({
                 role === 'student' ? 'teacher' : role === 'teacher' ? 'admin' : 'student'
               onRoleChange(nextRole)
             }}
-            className="w-full flex items-center justify-between px-2.5 py-1 text-meta font-mono rounded-sm border border-border bg-surface-sunken text-ink hover:border-ink transition-colors"
+            className="w-full flex items-center justify-between px-2.5 py-1 text-meta font-mono rounded-sm border border-border bg-surface-sunken text-ink hover:border-ink transition-colors cursor-pointer"
             title="Toggle between Student, Teacher and Admin roles"
           >
             <span className="flex items-center gap-1.5">
               <ArrowLeftRight size={14} strokeWidth={1.75} />
               Role:
             </span>
-            <span className="font-bold underline uppercase">{role}</span>
+            <span className="font-semibold underline capitalize">{role}</span>
           </button>
         )}
 

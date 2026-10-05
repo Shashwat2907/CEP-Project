@@ -97,7 +97,7 @@ export function DigitalIdCard({
           margin: 1,
           width: 160,
           color: {
-            dark: '#111827', // --ink
+            dark: '#16213E', // --ink (Navy Ink per DESIGN.MD §3)
             light: '#FFFFFF', // --surface
           },
         })
@@ -146,7 +146,7 @@ export function DigitalIdCard({
   return (
     <div
       className={cn(
-        'relative bg-surface rounded-lg border border-border shadow-lg overflow-hidden select-none max-w-sm sm:max-w-md w-full',
+        'relative bg-surface rounded-lg border border-border shadow-[var(--shadow-float)] overflow-hidden select-none max-w-sm sm:max-w-md w-full',
         className
       )}
     >
@@ -160,10 +160,10 @@ export function DigitalIdCard({
             C
           </div>
           <div>
-            <h3 className="font-display font-bold text-ink text-xs uppercase tracking-wider leading-tight">
+            <h3 className="font-display font-bold text-ink text-xs leading-tight">
               Campus University
             </h3>
-            <p className="text-[10px] font-mono text-ink-muted uppercase">
+            <p className="text-[10px] font-mono text-ink-muted">
               {studentInfo.role === 'teacher' ? 'Faculty Identity Card' : 'Official Student Identity Card'}
             </p>
           </div>
@@ -171,19 +171,19 @@ export function DigitalIdCard({
 
         {/* Real-time Status Badge */}
         {cardStatus === 'active' ? (
-          <div className="flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-sm bg-in-campus/10 text-in-campus border border-in-campus/30">
+          <div className="flex items-center gap-1 text-[11px] font-mono font-medium px-2 py-0.5 rounded-sm bg-in-campus/10 text-in-campus border border-in-campus/30">
             <ShieldCheck size={13} strokeWidth={2} />
-            VERIFIED
+            Verified
           </div>
         ) : cardStatus === 'suspended' ? (
-          <div className="flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-sm bg-warning/15 text-warning-border border border-warning">
+          <div className="flex items-center gap-1 text-[11px] font-mono font-medium px-2 py-0.5 rounded-sm bg-warning/15 text-warning border border-warning">
             <AlertTriangle size={13} strokeWidth={2} />
-            SUSPENDED
+            Suspended
           </div>
         ) : (
-          <div className="flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-sm bg-danger/10 text-danger border border-danger/30">
+          <div className="flex items-center gap-1 text-[11px] font-mono font-medium px-2 py-0.5 rounded-sm bg-danger/10 text-danger border border-danger/30">
             <AlertTriangle size={13} strokeWidth={2} />
-            REVOKED
+            Revoked
           </div>
         )}
       </div>
@@ -204,7 +204,7 @@ export function DigitalIdCard({
               ) : (
                 <>
                   <span>{initials}</span>
-                  <span className="text-[9px] font-mono text-ink-muted mt-1 uppercase">Photo</span>
+                  <span className="text-[9px] font-mono text-ink-muted mt-1">Photo</span>
                 </>
               )}
             </div>
@@ -219,7 +219,7 @@ export function DigitalIdCard({
 
           {/* Details */}
           <div className="flex-1 min-w-0">
-            <span className="text-[10px] font-mono font-medium text-ink-muted uppercase tracking-wider block">
+            <span className="text-[10px] font-mono font-medium text-ink-muted block">
               {studentInfo.role === 'teacher' ? 'Faculty ID' : 'Enrollment Roll'}
             </span>
             <h4 className="font-display text-base sm:text-h2 font-bold text-ink truncate leading-tight mt-0.5">
@@ -236,8 +236,8 @@ export function DigitalIdCard({
               {studentInfo.year && (
                 <span className="text-[11px] font-mono text-ink-muted">
                   Year {studentInfo.year}
-                  {studentInfo.division ? ` · Div ${studentInfo.division}` : ''}
-                  {studentInfo.batch ? ` · ${studentInfo.batch}` : ''}
+                  {studentInfo.division ? `, Div ${studentInfo.division}` : ''}
+                  {studentInfo.batch ? `, ${studentInfo.batch}` : ''}
                 </span>
               )}
             </div>
@@ -302,7 +302,7 @@ export function DigitalIdCard({
 
               <div>
                 <span className="text-ink font-semibold block text-[11px] leading-tight">
-                  LIVE VERIFICATION
+                  Live verification
                 </span>
                 <span className="text-[10px] text-ink-muted block">
                   Refreshes in {secondsRemaining}s
@@ -333,7 +333,7 @@ export function DigitalIdCard({
             <Clock size={13} strokeWidth={1.75} className="text-ink-muted" />
             <span>verified at {verifiedAtTime || '14:00'}</span>
           </span>
-          <span className="text-[10px] text-ink-muted uppercase">
+          <span className="text-[10px] text-ink-muted">
             30s Anti-Screenshot
           </span>
         </div>
@@ -341,13 +341,13 @@ export function DigitalIdCard({
         {/* 6. Desk & Clearance Info */}
         <div className="grid grid-cols-2 gap-2 text-meta font-mono p-2.5 rounded-sm bg-surface-sunken/60 border border-border">
           <div>
-            <span className="text-[9px] text-ink-muted uppercase block">Clearance</span>
+            <span className="text-[9px] text-ink-muted block">Clearance</span>
             <span className="font-semibold text-in-campus flex items-center gap-1 text-[11px]">
-              <CheckCircle size={11} strokeWidth={2} /> Full Campus
+              <CheckCircle size={11} strokeWidth={2} /> Full campus
             </span>
           </div>
           <div>
-            <span className="text-[9px] text-ink-muted uppercase block">Valid Thru</span>
+            <span className="text-[9px] text-ink-muted block">Valid thru</span>
             <span className="font-semibold text-ink text-[11px]">June 2027</span>
           </div>
         </div>
@@ -361,7 +361,7 @@ export function DigitalIdCard({
           rel="noreferrer"
           className="text-[11px] font-mono text-ink-muted hover:text-ink inline-flex items-center gap-1 transition-colors"
         >
-          <span>Open Guard Desk</span>
+          <span>Open guard desk</span>
           <ExternalLink size={11} />
         </a>
 

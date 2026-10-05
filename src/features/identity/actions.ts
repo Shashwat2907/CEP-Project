@@ -372,7 +372,7 @@ export async function quickSwitchRoleAction(
     const cookieStore = await cookies()
     cookieStore.set('dev_mock_user_email', found.college_email, {
       path: '/',
-      httpOnly: true,
+      httpOnly: false,
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 * 7,
     })

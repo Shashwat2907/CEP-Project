@@ -7,7 +7,7 @@ export function PwaRegister() {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
 
     // In development mode, unregister active service workers to prevent aggressive precaching lag
-    if (process.env.NODE_ENV !== 'production') {
+    if (process.env.NODE_ENV !== 'production' || window.location.hostname === 'localhost') {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         for (const registration of registrations) {
           registration.unregister()

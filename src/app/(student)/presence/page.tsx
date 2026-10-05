@@ -101,7 +101,7 @@ function MyTimeOnCampusContent() {
   const totalMinutesToday = todaySummary?.minutesOnCampus ?? (presenceState === 'in' ? 45 : 0)
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+    <div className="w-full py-2 space-y-8">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-border pb-6">
         <div>

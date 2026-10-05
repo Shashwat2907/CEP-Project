@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { cn } from '@/lib/utils'
 import {
   Building2,
   Calendar,
@@ -141,27 +142,27 @@ export default function OrganizerDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--surface-ground)] text-[var(--text-primary)]">
+    <div className="min-h-screen bg-bg text-ink">
       {/* Top Navbar */}
-      <header className="border-b border-[var(--border-subtle)] bg-[var(--surface-paper)] sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+      <header className="border-b border-border bg-surface sticky top-0 z-30">
+        <div className="w-full max-w-[1200px] px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-purple-600/10 text-purple-600 flex items-center justify-center font-bold">
-              <Building2 className="w-5 h-5" />
+            <div className="w-8 h-8 rounded-sm bg-surface-sunken text-ink border border-border flex items-center justify-center font-bold">
+              <Building2 className="w-4 h-4" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-sm font-bold text-[var(--text-primary)]">
+                <h1 className="font-display text-small font-bold text-ink">
                   {profile.organization}
                 </h1>
                 {profile.trusted && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/15 text-purple-700 dark:text-purple-300 border border-purple-500/30 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" />
+                  <span className="px-2 py-0.5 rounded-sm text-meta font-mono bg-surface-sunken text-ink border border-border flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3 text-highlight" />
                     Trusted Partner
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-[var(--text-secondary)]">
+              <p className="text-meta text-ink-muted font-mono">
                 External Organizer Portal · {profile.contactEmail}
               </p>
             </div>
@@ -170,7 +171,7 @@ export default function OrganizerDashboardPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/events"
-              className="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] flex items-center gap-1"
+              className="text-small text-ink-muted hover:text-ink flex items-center gap-1"
             >
               <span>View Public Events</span>
               <ExternalLink className="w-3 h-3" />
@@ -178,9 +179,9 @@ export default function OrganizerDashboardPage() {
 
             <Link
               href="/organizer/sign-in"
-              className="px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)] flex items-center gap-1"
+              className="px-3 py-1.5 rounded-sm border border-border text-small text-ink hover:bg-surface-sunken flex items-center gap-1 transition-colors"
             >
-              <LogOut className="w-3 h-3" />
+              <LogOut className="w-3.5 h-3.5" />
               <span>Sign Out</span>
             </Link>
           </div>
@@ -188,11 +189,11 @@ export default function OrganizerDashboardPage() {
       </header>
 
       {/* Main Body */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <main className="w-full max-w-[1200px] px-4 sm:px-6 py-6 space-y-6">
         {/* Status Notification Banner */}
         {profile.status === 'pending' && (
-          <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3 text-xs text-amber-900 dark:text-amber-200">
-            <Clock className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+          <div className="p-4 rounded-sm bg-warning/10 border border-warning/30 flex items-start gap-3 text-small text-ink">
+            <Clock className="w-5 h-5 text-warning shrink-0 mt-0.5" />
             <div>
               <p className="font-bold">Account Pending Campus Administrative Approval</p>
               <p className="mt-0.5 opacity-90 leading-relaxed">
@@ -204,8 +205,8 @@ export default function OrganizerDashboardPage() {
         )}
 
         {profile.status === 'suspended' && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-start gap-3 text-xs text-rose-900 dark:text-rose-200">
-            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+          <div className="p-4 rounded-sm bg-danger/10 border border-danger/30 flex items-start gap-3 text-small text-danger">
+            <AlertTriangle className="w-5 h-5 text-danger shrink-0 mt-0.5" />
             <div>
               <p className="font-bold">Organizer Account Suspended</p>
               <p className="mt-0.5 opacity-90 leading-relaxed">
@@ -217,8 +218,8 @@ export default function OrganizerDashboardPage() {
         )}
 
         {feedback && (
-          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-700 dark:text-emerald-300 font-medium flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 shrink-0" />
+          <div className="p-3.5 rounded-sm bg-surface-sunken border border-border text-small text-ink font-medium flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 shrink-0 text-in-campus" />
             <span>{feedback}</span>
           </div>
         )}
@@ -226,9 +227,9 @@ export default function OrganizerDashboardPage() {
         {/* Dashboard Header Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold text-[var(--text-primary)]">Hosted Events</h2>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              Manage your competitions, review attendee rosters, and submit new events
+            <h2 className="font-display text-h2 font-bold text-ink">Hosted Events</h2>
+            <p className="text-small text-ink-muted mt-0.5">
+              Manage your competitions, review attendee rosters, and submit new events.
             </p>
           </div>
 
@@ -236,7 +237,7 @@ export default function OrganizerDashboardPage() {
             type="button"
             disabled={profile.status !== 'approved'}
             onClick={() => setIsCreateOpen(true)}
-            className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-2 self-start sm:self-auto"
+            className="px-4 py-2 rounded-sm bg-ink text-on-ink text-small font-semibold hover:opacity-90 active:opacity-95 disabled:opacity-40 transition-opacity flex items-center gap-2 self-start sm:self-auto cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Post New Event</span>
@@ -245,10 +246,10 @@ export default function OrganizerDashboardPage() {
 
         {/* Events Grid */}
         {events.length === 0 ? (
-          <div className="p-12 text-center rounded-2xl border border-dashed border-[var(--border-subtle)] bg-[var(--surface-paper)] space-y-3">
-            <Calendar className="w-10 h-10 mx-auto text-[var(--text-secondary)] opacity-40" />
-            <h3 className="text-sm font-bold text-[var(--text-primary)]">No events hosted yet</h3>
-            <p className="text-xs text-[var(--text-secondary)] max-w-sm mx-auto">
+          <div className="p-12 text-center rounded-md border border-dashed border-border bg-surface space-y-3">
+            <Calendar className="w-10 h-10 mx-auto text-ink-muted opacity-40" />
+            <h3 className="font-display text-small font-bold text-ink">No events hosted yet</h3>
+            <p className="text-small text-ink-muted max-w-sm mx-auto">
               Click &quot;Post New Event&quot; to submit your first hackathon or technical workshop.
             </p>
           </div>
@@ -257,27 +258,28 @@ export default function OrganizerDashboardPage() {
             {events.map((ev) => (
               <div
                 key={ev.id}
-                className="p-5 rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-paper)] shadow-2xs hover:shadow-xs transition-shadow space-y-4"
+                className="p-5 rounded-md border border-border bg-surface space-y-4"
               >
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 flex-wrap mb-1">
-                      <span className="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                      <span className="px-2 py-0.5 text-meta font-mono font-medium rounded-sm bg-surface-sunken text-ink border border-border">
                         {ev.organizerName}
                       </span>
                       <span
-                        className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                        className={cn(
+                          'px-2 py-0.5 text-meta font-mono font-medium rounded-sm border',
                           ev.status === 'approved'
-                            ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20'
-                            : 'bg-amber-500/10 text-amber-600 border border-amber-500/20'
-                        }`}
+                            ? 'bg-success/10 text-success border-success/30'
+                            : 'bg-warning/10 text-warning border-warning/30'
+                        )}
                       >
                         {ev.status === 'approved' ? 'Published' : 'Pending College Review'}
                       </span>
                     </div>
 
-                    <h3 className="text-base font-bold text-[var(--text-primary)]">{ev.title}</h3>
-                    <p className="text-xs text-[var(--text-secondary)] mt-1 line-clamp-2 max-w-2xl">
+                    <h3 className="font-display text-base font-bold text-ink">{ev.title}</h3>
+                    <p className="text-small text-ink-muted mt-1 line-clamp-2 max-w-2xl">
                       {ev.description}
                     </p>
                   </div>
@@ -291,16 +293,16 @@ export default function OrganizerDashboardPage() {
                           attendees: ev.attendees,
                         })
                       }
-                      className="px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] hover:bg-[var(--surface-paper)] text-xs font-semibold text-[var(--text-primary)] flex items-center gap-1.5 transition-colors"
+                      className="px-3 py-1.5 rounded-sm border border-border bg-surface hover:bg-surface-sunken text-small font-medium text-ink flex items-center gap-1.5 transition-colors cursor-pointer"
                     >
-                      <Users className="w-3.5 h-3.5 text-purple-600" />
+                      <Users className="w-3.5 h-3.5 text-ink-muted" />
                       <span>{ev.rsvpCount || ev.attendees.length} RSVPs</span>
                     </button>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--text-secondary)] pt-2 border-t border-[var(--border-subtle)]">
-                  <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-4 text-small text-ink-muted pt-2 border-t border-border">
+                  <div className="flex items-center gap-1.5 font-mono text-meta">
                     <Clock className="w-3.5 h-3.5" />
                     <span>{new Date(ev.startsAt).toLocaleDateString()}</span>
                   </div>
@@ -313,7 +315,7 @@ export default function OrganizerDashboardPage() {
                       href={ev.registrationLink}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-purple-600 hover:underline flex items-center gap-1"
+                      className="text-ink hover:underline flex items-center gap-1"
                     >
                       <span>External Link</span>
                       <ExternalLink className="w-3 h-3" />
@@ -328,20 +330,21 @@ export default function OrganizerDashboardPage() {
 
       {/* Attendees Modal */}
       {selectedEventAttendees && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-[var(--surface-paper)] rounded-2xl border border-[var(--border-subtle)] shadow-2xl p-6 space-y-4 max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-xl bg-surface rounded-md border border-border shadow-[var(--shadow-float)] p-6 space-y-4 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
-                <h3 className="text-sm font-bold text-[var(--text-primary)]">
+                <h3 className="font-display text-small font-bold text-ink">
                   RSVP Attendee Roster
                 </h3>
-                <p className="text-xs text-[var(--text-secondary)]">
+                <p className="text-meta text-ink-muted">
                   {selectedEventAttendees.eventTitle}
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedEventAttendees(null)}
-                className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]"
+                className="p-1.5 rounded-sm text-ink-muted hover:text-ink hover:bg-surface-sunken cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -349,25 +352,25 @@ export default function OrganizerDashboardPage() {
 
             <div className="overflow-y-auto flex-1 space-y-2">
               {selectedEventAttendees.attendees.length === 0 ? (
-                <p className="text-center py-8 text-xs text-[var(--text-secondary)]">
+                <p className="text-center py-8 text-small text-ink-muted">
                   No attendees have RSVP&apos;d yet.
                 </p>
               ) : (
                 selectedEventAttendees.attendees.map((att) => (
                   <div
                     key={att.id}
-                    className="p-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-between text-xs"
+                    className="p-3 rounded-sm bg-surface-sunken border border-border flex items-center justify-between text-small"
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold text-xs">
+                      <div className="w-7 h-7 rounded-sm bg-surface border border-border text-ink flex items-center justify-center font-display font-bold text-xs">
                         {att.userName[0]}
                       </div>
                       <div>
-                        <p className="font-semibold text-[var(--text-primary)]">{att.userName}</p>
-                        <p className="text-[11px] text-[var(--text-secondary)]">{att.userEmail}</p>
+                        <p className="font-display font-bold text-ink">{att.userName}</p>
+                        <p className="text-meta font-mono text-ink-muted">{att.userEmail}</p>
                       </div>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300">
+                    <span className="px-2 py-0.5 rounded-sm text-meta font-mono font-medium bg-success/10 text-success border border-success/30">
                       Confirmed
                     </span>
                   </div>
@@ -380,33 +383,34 @@ export default function OrganizerDashboardPage() {
 
       {/* Create Event Modal */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-xl bg-[var(--surface-paper)] rounded-2xl border border-[var(--border-subtle)] shadow-2xl p-6 space-y-4 max-h-[90vh] flex flex-col">
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="w-full max-w-xl bg-surface rounded-md border border-border shadow-[var(--shadow-float)] p-6 space-y-4 max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between pb-3 border-b border-border">
               <div>
-                <h3 className="text-base font-bold text-[var(--text-primary)]">
+                <h3 className="font-display text-base font-bold text-ink">
                   Post External Event
                 </h3>
-                <p className="text-xs text-[var(--text-secondary)]">
+                <p className="text-meta text-ink-muted">
                   Published under: &quot;External organizer: {profile.organization}&quot;
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setIsCreateOpen(false)}
-                className="p-1.5 rounded-lg text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]"
+                className="p-1.5 rounded-sm text-ink-muted hover:text-ink hover:bg-surface-sunken cursor-pointer"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <form onSubmit={handleCreateEvent} className="overflow-y-auto flex-1 space-y-3.5">
               {formError && (
-                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600">
+                <div className="p-3 rounded-sm bg-danger/10 border border-danger/30 text-small text-danger">
                   {formError}
                 </div>
               )}
 
-              <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-900 dark:text-purple-200">
+              <div className="p-3 rounded-sm bg-surface-sunken border border-border text-small text-ink">
                 {profile.trusted ? (
                   <p>
                     <span className="font-bold">Trusted Organizer:</span> Your event will be
@@ -421,7 +425,7 @@ export default function OrganizerDashboardPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                <label className="block text-small font-semibold text-ink mb-1">
                   Event Title *
                 </label>
                 <input
@@ -430,12 +434,12 @@ export default function OrganizerDashboardPage() {
                   placeholder="e.g. National Hackathon 2026"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden focus:border-purple-600"
+                  className="w-full text-small px-3 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                <label className="block text-small font-semibold text-ink mb-1">
                   Venue / Location *
                 </label>
                 <input
@@ -444,13 +448,13 @@ export default function OrganizerDashboardPage() {
                   placeholder="e.g. City Tech Center / Online Zoom"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)] focus:outline-hidden focus:border-purple-600"
+                  className="w-full text-small px-3 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink focus-visible:outline-offset-2"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-primary)]">
+                  <label className="block text-small font-semibold text-ink">
                     Starts At *
                   </label>
                   <div className="flex gap-2">
@@ -459,20 +463,20 @@ export default function OrganizerDashboardPage() {
                       required
                       value={startDateStr}
                       onChange={(e) => setStartDateStr(e.target.value)}
-                      className="flex-1 text-xs px-2.5 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
+                      className="flex-1 text-small px-2.5 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink"
                     />
                     <input
                       type="time"
                       required
                       value={startTimeStr}
                       onChange={(e) => setStartTimeStr(e.target.value)}
-                      className="w-20 text-xs px-2 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
+                      className="w-24 text-small px-2 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-xs font-semibold text-[var(--text-primary)]">
+                  <label className="block text-small font-semibold text-ink">
                     Ends At *
                   </label>
                   <div className="flex gap-2">
@@ -481,21 +485,21 @@ export default function OrganizerDashboardPage() {
                       required
                       value={endDateStr}
                       onChange={(e) => setEndDateStr(e.target.value)}
-                      className="flex-1 text-xs px-2.5 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
+                      className="flex-1 text-small px-2.5 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink"
                     />
                     <input
                       type="time"
                       required
                       value={endTimeStr}
                       onChange={(e) => setEndTimeStr(e.target.value)}
-                      className="w-20 text-xs px-2 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
+                      className="w-24 text-small px-2 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                <label className="block text-small font-semibold text-ink mb-1">
                   Description *
                 </label>
                 <textarea
@@ -504,13 +508,13 @@ export default function OrganizerDashboardPage() {
                   placeholder="Outline topics, eligibility, prizes, and schedule..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full text-xs px-3.5 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
+                  className="w-full text-small px-3 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                  <label className="block text-small font-semibold text-ink mb-1">
                     Registration Link
                   </label>
                   <input
@@ -518,12 +522,12 @@ export default function OrganizerDashboardPage() {
                     placeholder="https://..."
                     value={registrationLink}
                     onChange={(e) => setRegistrationLink(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
+                    className="w-full text-small px-3 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[var(--text-primary)] mb-1">
+                  <label className="block text-small font-semibold text-ink mb-1">
                     Capacity
                   </label>
                   <input
@@ -531,7 +535,7 @@ export default function OrganizerDashboardPage() {
                     placeholder="e.g. 500"
                     value={capacity}
                     onChange={(e) => setCapacity(e.target.value)}
-                    className="w-full text-xs px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-primary)]"
+                    className="w-full text-small px-3 py-2 rounded-sm bg-surface-sunken border border-border text-ink focus-visible:outline-2 focus-visible:outline-ink"
                   />
                 </div>
               </div>
@@ -540,14 +544,14 @@ export default function OrganizerDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setIsCreateOpen(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-medium text-[var(--text-secondary)]"
+                  className="px-4 py-2 rounded-sm border border-border bg-surface text-small font-medium text-ink hover:bg-surface-sunken transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-sm"
+                  className="px-5 py-2 rounded-sm bg-ink text-on-ink text-small font-semibold hover:opacity-90 active:opacity-95 transition-opacity cursor-pointer disabled:opacity-50"
                 >
                   {isSubmitting ? 'Posting...' : 'Publish Event'}
                 </button>

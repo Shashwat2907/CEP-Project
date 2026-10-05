@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useRouter } from 'next/navigation'
 import { Bell, CheckCheck, ExternalLink, Inbox, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './dialog'
@@ -30,8 +31,8 @@ export const INITIAL_MOCK_NOTIFICATIONS: NotificationItem[] = [
     id: 'n-1',
     type: 'meet.accepted',
     title: 'Faculty Session Accepted',
-    body: 'Dr. Priya Patel confirmed your office hours session for Monday at 11:30 AM.',
-    link: '/meet/requests/1',
+    body: 'Prof. Rajesh Sharma confirmed your office hours appointment for tomorrow at 2:00 PM.',
+    link: '/meet',
     read: false,
     createdAt: '12m ago',
   },
@@ -39,17 +40,17 @@ export const INITIAL_MOCK_NOTIFICATIONS: NotificationItem[] = [
     id: 'n-2',
     type: 'complaint.escalated',
     title: 'Complaint Escalation Alert',
-    body: 'Complaint #104 "Library AC malfunction" exceeded Level 1 SLA and was moved to Level 2.',
-    link: '/complaints/104',
+    body: 'Complaint "Central Library 3rd Floor Quiet Zone AC" has been assigned to Estate Officer.',
+    link: '/complaints',
     read: false,
     createdAt: '1h ago',
   },
   {
     id: 'n-3',
     type: 'event.reminder',
-    title: 'Upcoming Hackathon',
+    title: 'Upcoming Campus Hackathon',
     body: 'Annual Smart Campus Hackathon starts tomorrow at 9:00 AM in Tech Block Auditorium.',
-    link: '/events/2',
+    link: '/events',
     read: false,
     createdAt: '4h ago',
   },
@@ -57,26 +58,75 @@ export const INITIAL_MOCK_NOTIFICATIONS: NotificationItem[] = [
     id: 'n-4',
     type: 'lostfound.matched',
     title: 'Potential Lost Item Match',
-    body: 'A calculator matching your lost report was handed in at Main Reception.',
-    link: '/lost-found/3',
+    body: 'A scientific calculator matching your report was handed in at Main Reception.',
+    link: '/lost-found',
     read: true,
     createdAt: 'Yesterday',
   },
 ]
 
+const STORAGE_KEY = 'cep_read_notifications_v1'
+
 export function NotificationPopover({
   notifications: initialNotifications = INITIAL_MOCK_NOTIFICATIONS,
-  unreadCount: unreadCountProp,
+  unreadCount: controlledUnreadCount,
   onMarkAsRead,
   onMarkAllAsRead,
   onSelectNotification,
   onBellClick,
   className,
 }: NotificationPopoverProps) {
+  let router: { push: (href: string) => void } | null = null
+  try {
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    router = useRouter()
+  } catch {
+    // App router not mounted (e.g. In unit tests)
+  }
+
   const [isOpen, setIsOpen] = React.useState(false)
   const [items, setItems] = React.useState<NotificationItem[]>(initialNotifications)
+  const [userModified, setUserModified] = React.useState(false)
 
-  const unreadCount = unreadCountProp ?? items.filter((n) => !n.read).length
+  // Sync when initialNotifications prop changes
+  React.useEffect(() => {
+    setItems(initialNotifications)
+  }, [initialNotifications])
+
+  // Load read status from localStorage on mount (for default mock notifications)
+  React.useEffect(() => {
+    try {
+      if (initialNotifications === INITIAL_MOCK_NOTIFICATIONS) {
+        const stored = localStorage.getItem(STORAGE_KEY)
+        if (stored) {
+          const readIds: string[] = JSON.parse(stored)
+          setItems((prev) =>
+            prev.map((item) =>
+              readIds.includes(item.id) ? { ...item, read: true } : item
+            )
+          )
+        }
+      }
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [initialNotifications])
+
+  // Dynamic unread count derived directly from current item states
+  const dynamicUnreadCount = items.filter((n) => !n.read).length
+  const unreadCount =
+    userModified || controlledUnreadCount === undefined
+      ? dynamicUnreadCount
+      : controlledUnreadCount
+
+  const persistReadIds = (newItems: NotificationItem[]) => {
+    try {
+      const readIds = newItems.filter((i) => i.read).map((i) => i.id)
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(readIds))
+    } catch {
+      // Ignore
+    }
+  }
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open)
@@ -86,22 +136,36 @@ export function NotificationPopover({
   }
 
   const handleMarkItemRead = (id: string) => {
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, read: true } : item))
-    )
+    setUserModified(true)
+    setItems((prev) => {
+      const next = prev.map((item) => (item.id === id ? { ...item, read: true } : item))
+      persistReadIds(next)
+      return next
+    })
     onMarkAsRead?.(id)
   }
 
   const handleMarkAllRead = () => {
-    setItems((prev) => prev.map((item) => ({ ...item, read: true })))
+    setUserModified(true)
+    setItems((prev) => {
+      const next = prev.map((item) => ({ ...item, read: true }))
+      persistReadIds(next)
+      return next
+    })
     onMarkAllAsRead?.()
   }
 
   const handleClickItem = (item: NotificationItem) => {
     handleMarkItemRead(item.id)
     onSelectNotification?.(item)
-    if (item.link && typeof window !== 'undefined') {
-      window.location.assign(item.link)
+    setIsOpen(false)
+
+    if (item.link) {
+      if (router) {
+        router.push(item.link)
+      } else if (typeof window !== 'undefined') {
+        window.location.assign(item.link)
+      }
     }
   }
 
@@ -112,7 +176,7 @@ export function NotificationPopover({
         type="button"
         onClick={() => handleOpenChange(true)}
         className={cn(
-          'relative w-9 h-9 rounded-sm border border-border bg-surface text-ink-muted hover:text-ink hover:bg-surface-sunken flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-ink',
+          'relative w-9 h-9 rounded-sm border border-border bg-surface text-ink-muted hover:text-ink hover:bg-surface-sunken flex items-center justify-center transition-colors focus-visible:outline-2 focus-visible:outline-ink cursor-pointer',
           className
         )}
         aria-label={
@@ -122,9 +186,9 @@ export function NotificationPopover({
         }
         title="Notifications"
       >
-        <Bell size={20} strokeWidth={1.75} />
+        <Bell size={18} strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-highlight text-ink text-[11px] font-bold font-mono rounded-full border border-surface flex items-center justify-center">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-highlight text-ink text-[11px] font-bold font-mono rounded-full border border-surface flex items-center justify-center pointer-events-none">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -154,7 +218,7 @@ export function NotificationPopover({
                 <button
                   type="button"
                   onClick={handleMarkAllRead}
-                  className="inline-flex items-center gap-1 text-meta text-ink-muted hover:text-ink font-medium px-2 py-1 rounded-sm hover:bg-surface-sunken transition-colors"
+                  className="inline-flex items-center gap-1 text-meta text-ink-muted hover:text-ink font-medium px-2 py-1 rounded-sm hover:bg-surface-sunken transition-colors cursor-pointer"
                   title="Mark all notifications as read"
                 >
                   <CheckCheck size={14} strokeWidth={1.75} />
@@ -164,7 +228,7 @@ export function NotificationPopover({
               <button
                 type="button"
                 onClick={() => handleOpenChange(false)}
-                className="rounded-sm p-1.5 text-ink-muted hover:text-ink hover:bg-surface-sunken transition-colors focus-visible:outline-2 focus-visible:outline-ink"
+                className="rounded-sm p-1.5 text-ink-muted hover:text-ink hover:bg-surface-sunken transition-colors focus-visible:outline-2 focus-visible:outline-ink cursor-pointer"
                 aria-label="Close notifications"
               >
                 <X size={16} strokeWidth={1.75} />

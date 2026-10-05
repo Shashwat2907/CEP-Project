@@ -80,7 +80,7 @@ function AdminZonesContent() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-10">
+    <div className="w-full py-2 space-y-10">
       <div>
         <h1 className="font-display text-h1 font-bold text-ink">Campus Zones & Boundaries</h1>
         <p className="text-small text-ink-muted mt-1">

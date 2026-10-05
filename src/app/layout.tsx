@@ -76,6 +76,18 @@ export default function RootLayout({
                   document.documentElement.classList.remove('dark');
                 }
               } catch (_) {}
+              if (typeof window !== 'undefined' && (location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+                if ('serviceWorker' in navigator) {
+                  navigator.serviceWorker.getRegistrations().then(function(regs) {
+                    for (var r of regs) { r.unregister(); }
+                  });
+                }
+                if ('caches' in window) {
+                  caches.keys().then(function(names) {
+                    for (var n of names) { caches.delete(n); }
+                  });
+                }
+              }
             `,
           }}
         />

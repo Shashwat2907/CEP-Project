@@ -377,7 +377,7 @@ Mark each branch as the team progresses. Status values: `not started`, `in progr
 | `feat/friends` | You | profile-and-roster-import | not started |
 | `feat/organizer-access` | You | events, auth-and-roles | not started |
 | `chore/pwa-and-performance` | You | all features | not started |
-| `feat/complaints-core` | Kushal | notifications-and-calendar-core | not started |
+| `feat/complaints-core` | Kushal | notifications-and-calendar-core | in progress |
 | `feat/complaints-escalation` | Kushal | complaints-core | not started |
 | `feat/complaints-tracker-and-upvotes` | Kushal | complaints-core | not started |
 | `feat/meet-availability` | Kushal | notifications-and-calendar-core | not started |

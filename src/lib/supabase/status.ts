@@ -11,8 +11,8 @@ export async function isSupabaseOnline(): Promise<boolean> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // Fast-path: if no URL, no key, or default demo dummy key, avoid blocking fetch
-  if (!url || !key || key.includes('dummy')) {
+  // Fast-path: if no URL, no key, placeholder, or default demo dummy key, avoid blocking fetch
+  if (!url || !key || key.includes('dummy') || url.includes('placeholder') || url.includes('demo-project')) {
     return false
   }
 

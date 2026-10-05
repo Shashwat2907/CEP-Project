@@ -1,14 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MOCK_CHUNKS, MOCK_RESOURCES } from '@/features/acad/mock-acad-data'
-
-export interface UploadedFileStore {
-  buffer: Buffer
-  fileName: string
-  contentType: string
-}
-
-// In-memory cache for files uploaded via mock-upload during development
-export const UPLOADED_FILES_MAP = new Map<string, UploadedFileStore>()
+import { UPLOADED_FILES_MAP } from '@/features/acad/upload-store'
 
 export async function PUT(request: NextRequest) {
   try {

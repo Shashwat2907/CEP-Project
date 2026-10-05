@@ -153,7 +153,7 @@ describe('Calendar Feature — UI Components (DESIGN.MD §8, PLAN.MD §5.11)', (
     expect(screen.getByText('CS302: Operating Systems')).toBeInTheDocument()
     expect(screen.getByText('1:1 Mentorship Session')).toBeInTheDocument()
     expect(screen.getByText('Assignment 3 Submission Deadline')).toBeInTheDocument()
-    expect(screen.getByText('Full Calendar')).toBeInTheDocument()
+    expect(screen.getByText('Full calendar')).toBeInTheDocument()
   })
 
   it('renders CalendarView with Day, Week, and Agenda modes', () => {

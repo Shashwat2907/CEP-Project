@@ -88,7 +88,7 @@ export function TodayScheduleBlock({
   return (
     <section
       className={cn(
-        'bg-surface border border-border rounded-lg p-5 sm:p-6 shadow-sm space-y-5',
+        'bg-surface border border-border rounded-md p-5 sm:p-6 space-y-5',
         className
       )}
     >
@@ -101,7 +101,7 @@ export function TodayScheduleBlock({
               Today on Campus
             </h2>
             <span className="text-small font-mono text-ink-muted">
-              · {formattedDate}
+              — {formattedDate}
             </span>
           </div>
           <p className="text-small text-ink-muted mt-0.5">
@@ -117,12 +117,12 @@ export function TodayScheduleBlock({
             className="text-small h-8"
           >
             <Plus size={14} />
-            <span>Add Item</span>
+            <span>Add personal item</span>
           </Button>
 
           <Link href="/calendar">
             <Button variant="ghost" size="sm" className="text-small h-8">
-              <span>Full Calendar</span>
+              <span>Full calendar</span>
               <ArrowRight size={14} />
             </Button>
           </Link>
@@ -147,7 +147,7 @@ export function TodayScheduleBlock({
               className="mt-3"
             >
               <Plus size={14} />
-              <span>Add Personal Item</span>
+              <span>Add personal item</span>
             </Button>
           </div>
         ) : (
@@ -174,7 +174,7 @@ export function TodayScheduleBlock({
                   <div className="flex items-center gap-2 mb-1">
                     <span
                       className={cn(
-                        'text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded-xs border',
+                        'text-[10px] font-mono font-medium px-1.5 py-0.5 rounded-xs border',
                         meta.badgeClass
                       )}
                     >
@@ -186,12 +186,12 @@ export function TodayScheduleBlock({
                     </span>
                   </div>
 
-                  <h3 className="font-display text-small sm:text-base font-bold text-ink truncate leading-snug">
+                  <h3 className="font-display text-small sm:text-base font-bold text-ink dark:text-white truncate leading-snug">
                     {item.title}
                   </h3>
 
                   {item.description && (
-                    <p className="text-[12px] text-ink-muted line-clamp-1 mt-0.5">
+                    <p className="text-[12px] text-ink-muted dark:text-slate-300 line-clamp-1 mt-0.5">
                       {item.description}
                     </p>
                   )}
@@ -200,7 +200,7 @@ export function TodayScheduleBlock({
                 {/* Location & Link */}
                 <div className="flex items-center gap-3 shrink-0 text-meta">
                   {item.location && (
-                    <span className="inline-flex items-center gap-1 text-ink-muted font-mono text-[11px]">
+                    <span className="inline-flex items-center gap-1 text-ink-muted dark:text-slate-300 font-mono text-[11px]">
                       <MapPin size={12} className="shrink-0" />
                       <span className="truncate max-w-[150px]">{item.location}</span>
                     </span>
@@ -209,7 +209,7 @@ export function TodayScheduleBlock({
                   {item.link && (
                     <Link
                       href={item.link}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 text-meta font-mono font-semibold rounded-sm bg-surface border border-border text-ink hover:bg-surface-sunken transition-colors"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 text-meta font-mono font-semibold rounded-sm bg-surface dark:bg-slate-800 border border-border dark:border-slate-700 text-ink dark:text-white hover:bg-surface-sunken transition-colors"
                     >
                       <span>Open</span>
                       <ExternalLink size={11} />
