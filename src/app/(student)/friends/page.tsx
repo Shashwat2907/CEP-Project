@@ -17,7 +17,7 @@ export default async function FriendsPage() {
       userEmail="shashwat@college.edu"
       activePath="/friends"
     >
-      <div className="max-w-4xl mx-auto py-2">
+      <div className="w-full py-2">
         <FriendsManager />
       </div>
     </AppShell>

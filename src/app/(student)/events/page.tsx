@@ -20,7 +20,7 @@ export default async function EventsPage() {
       userEmail="shashwat@college.edu"
       activePath="/events"
     >
-      <div className="max-w-6xl mx-auto py-2">
+      <div className="w-full py-2">
         <EventsList initialEvents={initialEvents} />
       </div>
     </AppShell>

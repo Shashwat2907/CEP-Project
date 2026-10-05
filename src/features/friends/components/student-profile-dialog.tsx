@@ -36,29 +36,32 @@ export function StudentProfileDialog({
   const isPendingReceived = profile.friendshipStatus === 'pending_received'
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="relative w-full max-w-md bg-[var(--surface-paper)] rounded-2xl border border-[var(--border-subtle)] shadow-2xl overflow-hidden animate-in fade-in duration-200 flex flex-col">
-        {/* Top Header Card */}
-        <div className="relative h-28 bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-800 p-4 flex justify-end">
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+      <div className="relative w-full max-w-md bg-surface rounded-md border border-border shadow-[var(--shadow-float)] overflow-hidden animate-in fade-in duration-150 flex flex-col">
+        {/* Top Header Strip with Pencil Yellow accent strip */}
+        <div className="relative h-16 bg-surface-sunken border-b border-border p-3 flex justify-between items-start">
+          <div className="h-1 w-12 rounded-full bg-highlight" />
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full bg-black/40 text-white hover:bg-black/60 transition-colors"
+            className="p-1 rounded-sm text-ink-muted hover:text-ink hover:bg-surface transition-colors cursor-pointer"
+            aria-label="Close dialog"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Profile Avatar overlapping */}
-        <div className="px-6 pb-6 pt-0 relative">
-          <div className="relative -mt-12 mb-3 inline-block">
+        <div className="px-5 pb-5 pt-0 relative">
+          <div className="relative -mt-8 mb-3 inline-block">
             {profile.photoUrl ? (
               <img
                 src={profile.photoUrl}
                 alt={profile.fullName}
-                className="w-20 h-20 rounded-2xl object-cover border-4 border-[var(--surface-paper)] shadow-md"
+                className="w-16 h-16 rounded-md object-cover border-2 border-surface shadow-xs"
               />
             ) : (
-              <div className="w-20 h-20 rounded-2xl bg-[var(--surface-sunken)] border-4 border-[var(--surface-paper)] flex items-center justify-center text-[var(--primary)] font-bold text-2xl shadow-md">
+              <div className="w-16 h-16 rounded-md bg-surface-sunken border-2 border-surface flex items-center justify-center text-ink font-display font-bold text-xl shadow-xs">
                 {profile.fullName[0]}
               </div>
             )}
@@ -67,37 +70,37 @@ export function StudentProfileDialog({
             {profile.presence.state === 'inside' && (
               <span
                 title="On Campus"
-                className="absolute bottom-1 right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-[var(--surface-paper)] shadow-xs"
+                className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-in-campus rounded-full border-2 border-surface"
               />
             )}
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-bold text-[var(--text-primary)]">{profile.fullName}</h2>
+              <h2 className="font-display text-h3 font-bold text-ink">{profile.fullName}</h2>
               {isFriend && (
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/15 text-blue-700 dark:text-blue-300">
+                <span className="px-2 py-0.5 rounded-sm text-meta font-mono font-medium bg-surface-sunken text-ink border border-border">
                   Friend
                 </span>
               )}
             </div>
 
-            <p className="text-xs text-[var(--text-secondary)] font-mono">{profile.collegeId}</p>
+            <p className="text-meta text-ink-muted font-mono">{profile.collegeId}</p>
           </div>
 
           {/* Presence info card */}
-          <div className="mt-4 p-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-xs">
+          <div className="mt-3.5 p-3 rounded-sm bg-surface-sunken border border-border text-small">
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-[var(--text-primary)]">Campus Presence:</span>
+              <span className="font-semibold text-ink">Campus Presence:</span>
               {profile.presence.state === 'inside' ? (
-                <span className="font-bold text-emerald-600 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-medium text-in-campus flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-in-campus animate-pulse" />
                   On Campus {profile.presence.zoneName ? `(${profile.presence.zoneName})` : ''}
                 </span>
               ) : profile.presence.state === 'outside' ? (
-                <span className="text-[var(--text-secondary)]">Outside Campus</span>
+                <span className="text-ink-muted">Outside Campus</span>
               ) : (
-                <span className="text-[var(--text-secondary)] flex items-center gap-1">
+                <span className="text-ink-muted flex items-center gap-1">
                   <Lock className="w-3 h-3 opacity-60" />
                   <span>Hidden by Privacy Setting</span>
                 </span>
@@ -106,16 +109,16 @@ export function StudentProfileDialog({
           </div>
 
           {/* Academic metadata */}
-          <div className="mt-4 space-y-2 text-xs text-[var(--text-secondary)]">
+          <div className="mt-3.5 space-y-1.5 text-small text-ink-muted">
             <div className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-[var(--primary)] shrink-0" />
+              <GraduationCap className="w-4 h-4 text-ink shrink-0" />
               <span>
                 Year {profile.year} · {profile.branch}
               </span>
             </div>
 
             <div className="flex items-center gap-2">
-              <Building className="w-4 h-4 text-purple-600 shrink-0" />
+              <Building className="w-4 h-4 text-ink-muted shrink-0" />
               <span>Campus Role: {profile.role}</span>
             </div>
           </div>
@@ -123,15 +126,15 @@ export function StudentProfileDialog({
           {/* Shared Communities */}
           {profile.sharedCommunities.length > 0 && (
             <div className="mt-4">
-              <h4 className="text-xs font-bold text-[var(--text-primary)] mb-1.5 flex items-center gap-1.5">
-                <Users className="w-3.5 h-3.5 text-[var(--primary)]" />
+              <h4 className="text-small font-bold text-ink mb-1.5 flex items-center gap-1.5 font-display">
+                <Users className="w-3.5 h-3.5 text-ink-muted" />
                 <span>Shared Communities ({profile.sharedCommunities.length})</span>
               </h4>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap gap-1">
                 {profile.sharedCommunities.map((c, i) => (
                   <span
                     key={i}
-                    className="px-2.5 py-1 text-[11px] rounded-lg bg-[var(--surface-sunken)] text-[var(--text-secondary)] border border-[var(--border-subtle)]"
+                    className="px-2 py-0.5 text-meta font-mono rounded-sm bg-surface-sunken text-ink-muted border border-border"
                   >
                     {c}
                   </span>
@@ -141,11 +144,11 @@ export function StudentProfileDialog({
           )}
 
           {/* Action buttons */}
-          <div className="mt-6 pt-3 border-t border-[var(--border-subtle)] flex items-center justify-end gap-2">
+          <div className="mt-5 pt-3 border-t border-border flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold rounded-xl text-[var(--text-secondary)] hover:bg-[var(--surface-sunken)]"
+              className="px-3.5 py-1.5 text-small font-medium rounded-sm border border-border bg-surface text-ink hover:bg-surface-sunken transition-colors cursor-pointer"
             >
               Close
             </button>
@@ -154,14 +157,14 @@ export function StudentProfileDialog({
               <button
                 type="button"
                 onClick={() => onSendRequest(profile.userId)}
-                className="px-4 py-2 text-xs font-bold rounded-xl bg-[var(--primary)] text-white hover:opacity-90 active:scale-95 transition-all shadow-sm"
+                className="px-4 py-1.5 text-small font-semibold rounded-sm bg-ink text-on-ink hover:opacity-90 active:opacity-95 transition-opacity cursor-pointer"
               >
                 Add Friend
               </button>
             )}
 
             {isPendingSent && (
-              <span className="px-3 py-1.5 text-xs font-medium rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+              <span className="px-3 py-1.5 text-small font-medium rounded-sm bg-warning/10 text-warning border border-warning/30">
                 Request Sent
               </span>
             )}
@@ -170,7 +173,7 @@ export function StudentProfileDialog({
               <button
                 type="button"
                 onClick={() => onRemoveFriend(profile.userId)}
-                className="px-3.5 py-1.5 text-xs font-medium rounded-xl text-rose-600 hover:bg-rose-500/10 transition-colors"
+                className="px-3 py-1.5 text-small font-medium rounded-sm text-danger hover:bg-danger/10 border border-danger/30 transition-colors cursor-pointer"
               >
                 Unfriend
               </button>

@@ -98,9 +98,12 @@ export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeTogg
       return
     }
 
-    // Circular clip-path transition originating from the clicked button
-    const x = event.clientX
-    const y = event.clientY
+    // Circular clip-path transition originating from the clicked coordinates
+    const target = event.currentTarget
+    const rect = target?.getBoundingClientRect?.() || { left: 0, top: 0, width: 0, height: 0 }
+    const x = event.clientX || (rect.left + rect.width / 2)
+    const y = event.clientY || (rect.top + rect.height / 2)
+
     const endRadius = Math.hypot(
       Math.max(x, window.innerWidth - x),
       Math.max(y, window.innerHeight - y)
@@ -113,30 +116,33 @@ export function ThemeToggle({ variant = 'icon', className, ...props }: ThemeTogg
       }
     }
 
-    const transition = docWithTransition.startViewTransition(() => {
-      applyTheme(nextTheme)
-    })
-
-    transition.ready
-      .then(() => {
-        document.documentElement.animate(
-          {
-            clipPath: [
-              `circle(0px at ${x}px ${y}px)`,
-              `circle(${endRadius}px at ${x}px ${y}px)`,
-            ],
-          },
-          {
-            duration: 450,
-            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-            pseudoElement: '::view-transition-new(root)',
-          }
-        )
-      })
-      .catch(() => {
-        // Fallback safely if browser animation fails
+    try {
+      const transition = docWithTransition.startViewTransition(() => {
         applyTheme(nextTheme)
       })
+
+      transition.ready
+        .then(() => {
+          document.documentElement.animate(
+            {
+              clipPath: [
+                `circle(0px at ${x}px ${y}px)`,
+                `circle(${endRadius}px at ${x}px ${y}px)`,
+              ],
+            },
+            {
+              duration: 450,
+              easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+              pseudoElement: '::view-transition-new(root)',
+            }
+          )
+        })
+        .catch(() => {
+          applyTheme(nextTheme)
+        })
+    } catch {
+      applyTheme(nextTheme)
+    }
   }
 
   // Sidebar variant: full-width bar with smooth sliding switch above profile

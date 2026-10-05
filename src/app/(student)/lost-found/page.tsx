@@ -20,7 +20,7 @@ export default async function LostFoundPage() {
       userEmail="shashwat@college.edu"
       activePath="/lost-found"
     >
-      <div className="max-w-5xl mx-auto py-2">
+      <div className="w-full py-2">
         <LostFoundDashboard initialItems={initialItems} currentCollegeId="23BCE1042" />
       </div>
     </AppShell>

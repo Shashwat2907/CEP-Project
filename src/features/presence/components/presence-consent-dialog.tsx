@@ -72,7 +72,7 @@ export function PresenceConsentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showClose={false} className="max-w-[480px] p-0 overflow-hidden border border-border bg-surface rounded-lg shadow-xl">
+      <DialogContent showClose={false} className="max-w-[480px] p-0 overflow-hidden border border-border bg-surface rounded-md shadow-[var(--shadow-float)]">
         <DialogHeader className="p-4 border-b border-border bg-surface-sunken/40 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <ShieldCheck size={20} strokeWidth={1.75} className="text-in-campus shrink-0" />
@@ -98,7 +98,7 @@ export function PresenceConsentDialog({
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Privacy Guarantees Box */}
           <div className="space-y-3">
-            <h4 className="font-display text-small font-bold text-ink uppercase tracking-wide">
+            <h4 className="font-display text-small font-bold text-ink">
               What we do and never do with your location:
             </h4>
 

@@ -257,7 +257,7 @@ describe('Events Feature — UI Components', () => {
 
     expect(screen.getByText('Annual Campus Hackathon 2026: InnovateX')).toBeDefined()
     expect(screen.getByText('Turing Computer Society')).toBeDefined()
-    expect(screen.getByText('College Event')).toBeDefined()
+    expect(screen.getByText('College event')).toBeDefined()
     expect(screen.getByText('85 attending')).toBeDefined()
 
     // Test selection
@@ -269,10 +269,10 @@ describe('Events Feature — UI Components', () => {
     render(<EventsList initialEvents={[mockEvent]} />)
 
     expect(screen.getByText('Campus Events & Hackathons')).toBeDefined()
-    expect(screen.getByText('Propose Event')).toBeDefined()
-    expect(screen.getByText('All Opportunities (1)')).toBeDefined()
-    expect(screen.getByText('College Events')).toBeDefined()
-    expect(screen.getByText('External Hackathons & Summits')).toBeDefined()
+    expect(screen.getByText('Propose event')).toBeDefined()
+    expect(screen.getByText(/All events/i)).toBeDefined()
+    expect(screen.getByText('College events')).toBeDefined()
+    expect(screen.getByText('External hackathons')).toBeDefined()
   })
 
   it('renders EventDetailModal with overview, teams, and discussion tabs', () => {

@@ -21,7 +21,7 @@ export default async function VerifyPage({ searchParams }: PageProps) {
     <div className="min-h-screen bg-bg text-ink flex flex-col">
       {/* Verifier Top Navigation Bar */}
       <header className="border-b border-border bg-surface sticky top-0 z-20">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="w-full max-w-[1200px] px-4 md:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/"
@@ -35,7 +35,7 @@ export default async function VerifyPage({ searchParams }: PageProps) {
                 C
               </div>
               <div>
-                <span className="font-display font-bold text-ink text-small tracking-tight uppercase">
+                <span className="font-display font-bold text-ink text-small tracking-tight">
                   Campus ID Verifier
                 </span>
                 <span className="hidden sm:inline text-[11px] font-mono text-ink-muted ml-2">
@@ -55,15 +55,15 @@ export default async function VerifyPage({ searchParams }: PageProps) {
       </header>
 
       {/* Main Verification Workspace */}
-      <main className="flex-1 max-w-4xl w-full mx-auto px-4 py-8">
+      <main className="flex-1 w-full max-w-[1200px] px-4 md:px-6 py-6">
         <VerifierDesk initialToken={initialToken} />
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border py-4 text-center text-[11px] font-mono text-ink-muted bg-surface/50">
-        <div className="max-w-4xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <footer className="border-t border-border py-4 text-[11px] font-mono text-ink-muted bg-surface/50">
+        <div className="w-full max-w-[1200px] px-4 md:px-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
           <span>Campus Security & Identity Verification Subsystem</span>
-          <span>Tokens rotate every 30 seconds · Anti-screenshot enforced</span>
+          <span>Tokens rotate every 30 seconds, anti-screenshot enforced</span>
         </div>
       </footer>
     </div>

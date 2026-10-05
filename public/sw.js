@@ -31,17 +31,12 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
+  const url = new URL(event.request.url)
+  if (url.hostname === 'localhost' || url.hostname === '127.0.0.1') {
+    return
+  }
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request).catch(() => {
-          if (event.request.mode === 'navigate') {
-            return caches.match('/')
-          }
-        })
-      )
-    })
+    fetch(event.request).catch(() => caches.match(event.request))
   )
 })
 

@@ -14,7 +14,7 @@ export default function AdminDigitalIdPage() {
       userEmail="admin@college.edu"
       activePath="/admin/digital-id"
     >
-      <div className="max-w-5xl mx-auto py-4">
+      <div className="w-full py-2">
         <AdminIdManagement />
       </div>
     </AppShell>

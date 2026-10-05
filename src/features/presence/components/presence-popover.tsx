@@ -67,7 +67,7 @@ export function PresencePopover({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent showClose={false} className="max-w-[380px] p-0 overflow-hidden border border-border bg-surface rounded-lg shadow-xl">
+      <DialogContent showClose={false} className="max-w-[380px] p-0 overflow-hidden border border-border bg-surface rounded-md shadow-[var(--shadow-float)]">
         <DialogHeader className="p-4 border-b border-border bg-surface-sunken/40 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <MapPin size={18} strokeWidth={1.75} className="text-ink shrink-0" />
