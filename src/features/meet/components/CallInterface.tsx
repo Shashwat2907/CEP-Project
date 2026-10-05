@@ -957,35 +957,13 @@ export function CallInterface({ access }: CallInterfaceProps) {
                       </div>
                     </div>
 
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 max-w-sm">
                       <h2 className="text-lg font-bold text-slate-100">
                         Waiting for {theirName} to join...
                       </h2>
                       <p className="text-slate-400 text-xs leading-relaxed">
-                        This call room is active. Open the link as <strong>{theirRoleLabel}</strong> in another tab or window to start video.
+                        This meeting room is active and secured. You will be connected automatically when {theirName} enters.
                       </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-2">
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={handleOpenOtherInNewTab}
-                        className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 text-xs shadow-md"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        <span>Open as {theirRoleLabel} in New Tab</span>
-                      </Button>
-
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleCopyOtherLink}
-                        className="border-slate-700 text-slate-300 hover:text-white gap-1.5 text-xs"
-                      >
-                        {isCopied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
-                        <span>{isCopied ? 'Link Copied!' : 'Copy Link'}</span>
-                      </Button>
                     </div>
                   </div>
                 )}
@@ -1109,17 +1087,8 @@ export function CallInterface({ access }: CallInterfaceProps) {
                       </div>
                       <div>
                         <h4 className="font-semibold text-slate-200 text-sm">Waiting for {theirName}...</h4>
-                        <p className="text-slate-400 text-xs mt-0.5">Click below to open other tab</p>
+                        <p className="text-slate-400 text-xs mt-0.5">Connecting automatically upon entry</p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="primary"
-                        onClick={handleOpenOtherInNewTab}
-                        className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 text-xs"
-                      >
-                        <ExternalLink className="h-3.5 w-3.5" />
-                        <span>Join as {theirRoleLabel}</span>
-                      </Button>
                     </div>
                   )}
                 </div>
