@@ -1,9 +1,15 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { isSupabaseOnline } from '@/lib/supabase/status'
 import { requireAuth } from '@/shared/auth/guards'
 import { notify } from '@/shared/notifications/notify'
 import { revalidatePath } from 'next/cache'
+import {
+  MOCK_COMPLAINT_DOMAINS,
+  mockComplaintsStore,
+  mockUpvotesStore,
+} from './mock-complaints-data'
 import {
   CreateComplaintSchema,
   ResolveComplaintSchema,
@@ -51,6 +57,52 @@ export async function submitComplaint(
   }
 
   const { domain_id, subcategory_id, title, body, anonymous, attachments } = parsed.data
+
+  if (!(await isSupabaseOnline())) {
+    const newId = `c-${Date.now()}`
+    const newComplaint = {
+      id: newId,
+      author_id: user.id,
+      domain_id,
+      subcategory_id: subcategory_id ?? null,
+      title,
+      body,
+      status: 'submitted' as const,
+      current_level: 1,
+      assigned_to: '00000000-0000-0000-0000-000000000002',
+      anonymous,
+      needs_admin_attention: false,
+      upvotes_count: 0,
+      has_upvoted: false,
+      due_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      domain: MOCK_COMPLAINT_DOMAINS.find((d) => d.id === domain_id) ?? {
+        id: domain_id,
+        name: 'Campus Infrastructure',
+        sensitive: false,
+        visibility: 'public' as const,
+      },
+      author: anonymous
+        ? { full_name: 'Anonymous Student', role_primary: 'student' }
+        : { full_name: 'Aarav Mehta', role_primary: 'student' },
+      events: [
+        {
+          id: `e-${Date.now()}`,
+          complaint_id: newId,
+          type: 'submitted' as const,
+          actor_id: user.id,
+          actor: { full_name: 'Aarav Mehta', role_primary: 'student' },
+          note: 'Complaint submitted by student',
+          created_at: new Date().toISOString(),
+        },
+      ],
+    }
+    mockComplaintsStore.unshift(newComplaint)
+    revalidatePath('/complaints')
+    return { ok: true, data: { complaintId: newId } }
+  }
+
   const supabase = await createClient()
 
   // 1. Determine Level 1 assignee and SLA hours for this domain
@@ -642,6 +694,27 @@ export async function toggleComplaintUpvote(
   }
 
   const { complaint_id } = parsed.data
+
+  if (!(await isSupabaseOnline())) {
+    const key = `${complaint_id}:${user.id}`
+    const target = mockComplaintsStore.find((c) => c.id === complaint_id)
+    if (!target) {
+      return { ok: false, error: { code: 'NOT_FOUND', message: 'Complaint not found' } }
+    }
+    let upvoted = false
+    if (mockUpvotesStore.has(key)) {
+      mockUpvotesStore.delete(key)
+      target.upvotes_count = Math.max(0, (target.upvotes_count ?? 1) - 1)
+      upvoted = false
+    } else {
+      mockUpvotesStore.add(key)
+      target.upvotes_count = (target.upvotes_count ?? 0) + 1
+      upvoted = true
+    }
+    revalidatePath('/complaints')
+    return { ok: true, data: { upvoted, count: target.upvotes_count ?? 0 } }
+  }
+
   const supabase = await createClient()
 
   // 1. Verify complaint exists, is not resolved/closed, and is not in a sensitive domain

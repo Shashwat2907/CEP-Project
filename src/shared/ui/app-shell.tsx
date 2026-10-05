@@ -38,19 +38,30 @@ export function AppShell({
 
   const handleRoleChange = async (nextRole: UserRole) => {
     setRole(nextRole)
+    const email =
+      nextRole === 'teacher'
+        ? 'sharma@campus.edu'
+        : nextRole === 'admin'
+        ? 'admin@campus.edu'
+        : 'student@campus.edu'
+
+    // Synchronously set cookie in browser so subsequent reload/navigation guarantees the role
+    if (typeof document !== 'undefined') {
+      document.cookie = `dev_mock_user_email=${encodeURIComponent(email)}; path=/; max-age=604800; SameSite=Lax`
+    }
+
     try {
-      if (nextRole === 'teacher') {
-        await quickSwitchRoleAction('sharma@campus.edu')
-        window.location.href = '/teacher/acad'
-      } else if (nextRole === 'admin') {
-        await quickSwitchRoleAction('admin@campus.edu')
-        window.location.href = '/admin'
-      } else {
-        await quickSwitchRoleAction('student@campus.edu')
-        window.location.href = '/'
-      }
+      await quickSwitchRoleAction(email)
     } catch {
       // Fallback
+    }
+
+    if (nextRole === 'teacher') {
+      window.location.href = '/teacher/acad'
+    } else if (nextRole === 'admin') {
+      window.location.href = '/admin'
+    } else {
+      window.location.href = '/'
     }
   }
 
@@ -109,6 +120,7 @@ export function AppShell({
             userName={userName}
             department={department}
             role={role}
+            onRoleChange={handleRoleChange}
             onMobileMenuOpen={() => setIsMobileMenuOpen(true)}
           />
 
@@ -126,7 +138,7 @@ export function AppShell({
           userName={userName}
           identifier={identifier}
           department={department}
-          onRoleChange={setRole}
+          onRoleChange={handleRoleChange}
           onSignOut={onSignOut}
           activePath={activePath}
         />

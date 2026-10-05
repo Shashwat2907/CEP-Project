@@ -1,8 +1,14 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { isSupabaseOnline } from '@/lib/supabase/status'
 import { requireAuth } from '@/shared/auth/guards'
 import { revalidatePath } from 'next/cache'
+import {
+  MOCK_TEACHERS,
+  mockAvailabilityRulesStore,
+  mockSessionRequestsStore,
+} from './mock-meet-data'
 import {
   SaveAvailabilityRuleSchema,
   AddExceptionSchema,
@@ -61,6 +67,37 @@ export async function saveAvailabilityRule(
   }
 
   const { id, weekday, start_time, end_time, slot_minutes } = parsed.data
+
+  if (!(await isSupabaseOnline())) {
+    if (id) {
+      const idx = mockAvailabilityRulesStore.findIndex((r) => r.id === id)
+      if (idx !== -1) {
+        mockAvailabilityRulesStore[idx] = {
+          ...mockAvailabilityRulesStore[idx],
+          weekday,
+          start_time,
+          end_time,
+          slot_minutes,
+        }
+      }
+      revalidatePath('/meet')
+      revalidatePath('/meet/availability')
+      return { ok: true, data: { ruleId: id } }
+    }
+    const newId = `r-${Date.now()}`
+    mockAvailabilityRulesStore.push({
+      id: newId,
+      teacher_id: user.id,
+      weekday,
+      start_time,
+      end_time,
+      slot_minutes,
+    })
+    revalidatePath('/meet')
+    revalidatePath('/meet/availability')
+    return { ok: true, data: { ruleId: newId } }
+  }
+
   const supabase = await createClient()
 
   if (id) {
@@ -255,6 +292,38 @@ export async function requestSession(
   }
 
   const { teacher_id, starts_at, ends_at, reason } = parsed.data
+
+  if (!(await isSupabaseOnline())) {
+    const newId = `s-${Date.now()}`
+    const teacher = MOCK_TEACHERS.find((t) => t.id === teacher_id) ?? {
+      full_name: 'Prof. Rajesh Sharma',
+      department: 'Computer Science & Engineering',
+      email: 'sharma@campus.edu',
+    }
+    mockSessionRequestsStore.unshift({
+      id: newId,
+      student_id: user.id,
+      teacher_id,
+      starts_at,
+      ends_at,
+      reason,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      teacher: {
+        full_name: teacher.full_name,
+        department: teacher.department ?? 'Computer Science & Engineering',
+        office_hours_text: null,
+      },
+      student: {
+        full_name: profile.full_name,
+        email: profile.college_email,
+      },
+    })
+    revalidatePath('/meet')
+    return { ok: true, data: { requestId: newId } }
+  }
+
   const supabase = await createClient()
 
   // Verify teacher exists

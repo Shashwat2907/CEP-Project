@@ -45,6 +45,20 @@ export async function getCurrentUser(): Promise<User | null> {
             created_at: '2026-10-02T00:00:00Z',
           } as unknown as User
         }
+      } else if (!(await isSupabaseOnline())) {
+        const defaultStudent = MOCK_ROSTER.find(
+          (r) => r.role === 'student' && r.status === 'active'
+        )
+        if (defaultStudent) {
+          return {
+            id: defaultStudent.id,
+            email: defaultStudent.college_email,
+            app_metadata: {},
+            user_metadata: { full_name: defaultStudent.full_name },
+            aud: 'authenticated',
+            created_at: '2026-10-02T00:00:00Z',
+          } as unknown as User
+        }
       }
     } catch {
       // Cookies not accessible

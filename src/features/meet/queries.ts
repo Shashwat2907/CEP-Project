@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { isSupabaseOnline } from '@/lib/supabase/status'
 import { requireAuth } from '@/shared/auth/guards'
 import type {
   AvailabilityRule,
@@ -11,6 +12,11 @@ import type {
   CallAccessResult,
   WhiteboardRecord,
 } from './schema'
+import {
+  MOCK_TEACHERS,
+  mockAvailabilityRulesStore,
+  mockSessionRequestsStore,
+} from './mock-meet-data'
 
 /**
  * Read-side queries and slot generation engine for Campus Meet.
@@ -23,36 +29,46 @@ import type {
 
 /** Fetch all verified teachers available for student booking. */
 export async function getTeachersList(): Promise<TeacherSummary[]> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, full_name, department, office_hours_text, avatar_url, email')
-    .eq('role_primary', 'teacher')
-    .order('full_name', { ascending: true })
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, department, office_hours_text, avatar_url, email')
+        .eq('role_primary', 'teacher')
+        .order('full_name', { ascending: true })
 
-  if (error) {
-    console.error('[meet/queries] getTeachersList error:', error.message)
-    return []
+      if (!error && Array.isArray(data) && data.length > 0) {
+        return (data as TeacherSummary[]) ?? []
+      }
+    } catch {
+      // Offline fallback
+    }
   }
 
-  return (data as TeacherSummary[]) ?? []
+  return MOCK_TEACHERS
 }
 
 /** Fetch specific teacher summary. */
 export async function getTeacherProfile(teacherId: string): Promise<TeacherSummary | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('id, full_name, department, office_hours_text, avatar_url, email')
-    .eq('id', teacherId)
-    .single()
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, full_name, department, office_hours_text, avatar_url, email')
+        .eq('id', teacherId)
+        .single()
 
-  if (error || !data) {
-    console.error('[meet/queries] getTeacherProfile error:', error?.message)
-    return null
+      if (!error && data) {
+        return data as TeacherSummary
+      }
+    } catch {
+      // Offline fallback
+    }
   }
 
-  return data as TeacherSummary
+  return MOCK_TEACHERS.find((t) => t.id === teacherId) ?? null
 }
 
 // ---------------------------------------------------------------------------
@@ -63,20 +79,25 @@ export async function getTeacherProfile(teacherId: string): Promise<TeacherSumma
 export async function getTeacherAvailabilityRules(
   teacherId: string
 ): Promise<AvailabilityRule[]> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('availability_rules')
-    .select('*')
-    .eq('teacher_id', teacherId)
-    .order('weekday', { ascending: true })
-    .order('start_time', { ascending: true })
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from('availability_rules')
+        .select('*')
+        .eq('teacher_id', teacherId)
+        .order('weekday', { ascending: true })
+        .order('start_time', { ascending: true })
 
-  if (error) {
-    console.error('[meet/queries] getTeacherAvailabilityRules error:', error.message)
-    return []
+      if (!error && Array.isArray(data)) {
+        return data as AvailabilityRule[]
+      }
+    } catch {
+      // Offline fallback
+    }
   }
 
-  return (data as AvailabilityRule[]) ?? []
+  return mockAvailabilityRulesStore.filter((r) => r.teacher_id === teacherId)
 }
 
 /** Fetch date exceptions for a teacher within a date range. */
@@ -85,27 +106,32 @@ export async function getTeacherExceptions(
   startDate?: string,
   endDate?: string
 ): Promise<AvailabilityException[]> {
-  const supabase = await createClient()
-  let query = supabase
-    .from('availability_exceptions')
-    .select('*')
-    .eq('teacher_id', teacherId)
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      let query = supabase
+        .from('availability_exceptions')
+        .select('*')
+        .eq('teacher_id', teacherId)
 
-  if (startDate) {
-    query = query.gte('date', startDate)
+      if (startDate) {
+        query = query.gte('date', startDate)
+      }
+      if (endDate) {
+        query = query.lte('date', endDate)
+      }
+
+      const { data, error } = await query.order('date', { ascending: true })
+
+      if (!error && Array.isArray(data)) {
+        return (data as AvailabilityException[]) ?? []
+      }
+    } catch {
+      // Offline fallback
+    }
   }
-  if (endDate) {
-    query = query.lte('date', endDate)
-  }
 
-  const { data, error } = await query.order('date', { ascending: true })
-
-  if (error) {
-    console.error('[meet/queries] getTeacherExceptions error:', error.message)
-    return []
-  }
-
-  return (data as AvailabilityException[]) ?? []
+  return []
 }
 
 // ---------------------------------------------------------------------------
@@ -277,24 +303,34 @@ export async function generateTeacherSlots(
 
 /** Fetch session requests for the currently logged-in student. */
 export async function getMySessionRequests(): Promise<SessionRequest[]> {
-  const { user } = await requireAuth()
-  const supabase = await createClient()
+  const { user, profile } = await requireAuth()
 
-  const { data, error } = await supabase
-    .from('session_requests')
-    .select(`
-      *,
-      teacher:profiles!session_requests_teacher_id_fkey(full_name, department, office_hours_text)
-    `)
-    .eq('student_id', user.id)
-    .order('starts_at', { ascending: false })
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from('session_requests')
+        .select(`
+          *,
+          teacher:profiles!session_requests_teacher_id_fkey(full_name, department, office_hours_text)
+        `)
+        .eq('student_id', user.id)
+        .order('starts_at', { ascending: false })
 
-  if (error) {
-    console.error('[meet/queries] getMySessionRequests error:', error.message)
-    return []
+      if (!error && Array.isArray(data)) {
+        return (data as unknown as SessionRequest[]) ?? []
+      }
+    } catch {
+      // Offline fallback
+    }
   }
 
-  return (data as unknown as SessionRequest[]) ?? []
+  return mockSessionRequestsStore.filter(
+    (s) =>
+      s.student_id === user.id ||
+      s.student?.email === user.email ||
+      s.student?.full_name === profile.full_name
+  )
 }
 
 /** Fetch incoming session requests for the currently logged-in teacher. */
@@ -304,43 +340,53 @@ export async function getTeacherSessionRequests(): Promise<SessionRequest[]> {
     return []
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('session_requests')
-    .select(`
-      *,
-      student:profiles!session_requests_student_id_fkey(full_name, email)
-    `)
-    .eq('teacher_id', user.id)
-    .order('starts_at', { ascending: true })
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from('session_requests')
+        .select(`
+          *,
+          student:profiles!session_requests_student_id_fkey(full_name, email)
+        `)
+        .eq('teacher_id', user.id)
+        .order('starts_at', { ascending: true })
 
-  if (error) {
-    console.error('[meet/queries] getTeacherSessionRequests error:', error.message)
-    return []
+      if (!error && Array.isArray(data)) {
+        return (data as unknown as SessionRequest[]) ?? []
+      }
+    } catch {
+      // Offline fallback
+    }
   }
 
-  return (data as unknown as SessionRequest[]) ?? []
+  return mockSessionRequestsStore
 }
 
 /** Fetch specific session request by ID. */
 export async function getSessionRequestById(id: string): Promise<SessionRequest | null> {
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('session_requests')
-    .select(`
-      *,
-      student:profiles!session_requests_student_id_fkey(full_name, email),
-      teacher:profiles!session_requests_teacher_id_fkey(full_name, department, office_hours_text)
-    `)
-    .eq('id', id)
-    .single()
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from('session_requests')
+        .select(`
+          *,
+          student:profiles!session_requests_student_id_fkey(full_name, email),
+          teacher:profiles!session_requests_teacher_id_fkey(full_name, department, office_hours_text)
+        `)
+        .eq('id', id)
+        .single()
 
-  if (error || !data) {
-    console.error('[meet/queries] getSessionRequestById error:', error?.message)
-    return null
+      if (!error && data) {
+        return data as unknown as SessionRequest
+      }
+    } catch {
+      // Offline fallback
+    }
   }
 
-  return data as unknown as SessionRequest
+  return mockSessionRequestsStore.find((s) => s.id === id) ?? null
 }
 
 // ---------------------------------------------------------------------------
@@ -481,19 +527,24 @@ export async function getWhiteboardBySessionId(
     return null
   }
 
-  const supabase = await createClient()
-  const { data, error } = await supabase
-    .from('meeting_whiteboards')
-    .select('*')
-    .eq('session_id', sessionId)
-    .maybeSingle()
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data, error } = await supabase
+        .from('meeting_whiteboards')
+        .select('*')
+        .eq('session_id', sessionId)
+        .maybeSingle()
 
-  if (error) {
-    console.error('[meet/queries] getWhiteboardBySessionId error:', error.message)
-    return null
+      if (!error && data) {
+        return (data as unknown as WhiteboardRecord) ?? null
+      }
+    } catch {
+      // Offline fallback
+    }
   }
 
-  return (data as unknown as WhiteboardRecord) ?? null
+  return null
 }
 
 

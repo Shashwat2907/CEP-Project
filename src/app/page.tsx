@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import {
   AlertCircle,
   CalendarClock,
@@ -19,10 +20,17 @@ import { getTodayCalendarEntriesAction } from '@/features/calendar/actions'
 import { getCurrentProfile } from '@/shared/auth/session'
 
 export default async function Home() {
-  const [todayEntries, profile] = await Promise.all([
-    getTodayCalendarEntriesAction(),
-    getCurrentProfile(),
-  ])
+  const profile = await getCurrentProfile()
+
+  // RBAC routing: Redirect teachers and admins to their respective primary workspaces
+  if (profile?.role_primary === 'admin') {
+    redirect('/admin')
+  }
+  if (profile?.role_primary === 'teacher') {
+    redirect('/teacher/acad')
+  }
+
+  const todayEntries = await getTodayCalendarEntriesAction()
 
   return (
     <AppShell
@@ -164,7 +172,7 @@ export default async function Home() {
                 </h3>
               </div>
               <span className="font-mono text-meta text-ink-muted">
-                Roll: 23BCE1042
+                Roll: {profile?.college_id ?? '23BCE1001'}
               </span>
             </div>
             <p className="text-small text-ink-muted leading-relaxed">
