@@ -18,6 +18,7 @@ import {
   MOCK_AVAILABILITY_EXCEPTIONS,
   MOCK_SESSION_REQUESTS,
   MOCK_WHITEBOARDS,
+  ADMITTED_MEET_SESSIONS,
 } from './mock-meet-data'
 
 /**
@@ -558,6 +559,22 @@ export async function getSessionCallAccess(
       startsAt: session.starts_at,
       endsAt: session.ends_at,
       session,
+    }
+  }
+
+  // 4. Faculty Admission Check:
+  // Students must wait in the lobby until the teacher admits them.
+  if (userRole === 'student') {
+    const isAdmitted = ADMITTED_MEET_SESSIONS.has(sessionId) || Boolean(session.is_admitted)
+    if (!isAdmitted) {
+      return {
+        ok: false,
+        code: 'WAITING_FOR_TEACHER',
+        message: 'Waiting for faculty member to admit you to the meeting room.',
+        startsAt: session.starts_at,
+        endsAt: session.ends_at,
+        session,
+      }
     }
   }
 

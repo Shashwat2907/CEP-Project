@@ -84,3 +84,5 @@ export const MOCK_AVAILABILITY_EXCEPTIONS: AvailabilityException[] = []
 export const MOCK_SESSION_REQUESTS: SessionRequest[] = []
 
 export const MOCK_WHITEBOARDS = new Map<string, WhiteboardRecord>()
+
+export const ADMITTED_MEET_SESSIONS = new Set<string>()

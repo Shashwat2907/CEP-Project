@@ -29,13 +29,10 @@ import {
   AlertTriangle,
   PenTool,
   LayoutGrid,
-  ExternalLink,
-  Copy,
   Check,
-  Radio,
-  Sparkles,
 } from 'lucide-react'
 import { WhiteboardCanvas } from './WhiteboardCanvas'
+import { admitStudentToCall } from '../actions'
 
 interface CallInterfaceProps {
   access: Extract<CallAccessResult, { ok: true }>
@@ -141,18 +138,51 @@ export function CallInterface({ access }: CallInterfaceProps) {
   // Unique ID for this browser tab to prevent message reflection
   const myTabId = useRef(`tab-${Math.random().toString(36).slice(2, 9)}`).current
 
-  // Active identity in this tab
-  const [activeRole, setActiveRole] = useState<'teacher' | 'student' | 'admin'>(initialRole)
+  // Active identity in this tab (strictly derived from authenticated session)
+  const activeRole = initialRole
 
   // Participant display resolution
   const teacherFullName = session.teacher?.full_name || 'Prof. Rajesh Sharma'
   const studentFullName = session.student?.full_name || 'Aarav Mehta'
 
-  const myName = activeRole === 'teacher' ? teacherFullName : studentFullName
+  const myName = access.currentUserName || (activeRole === 'teacher' ? teacherFullName : studentFullName)
   const myRoleLabel = activeRole === 'teacher' ? 'Faculty Member' : 'Student'
-  const theirName = activeRole === 'teacher' ? studentFullName : teacherFullName
-  const theirRoleLabel = activeRole === 'teacher' ? 'Student' : 'Faculty Member'
+  const theirName = access.otherParticipantName || (activeRole === 'teacher' ? studentFullName : teacherFullName)
+  const theirRoleLabel = access.otherParticipantRole || (activeRole === 'teacher' ? 'Student' : 'Faculty Member')
   const otherRole = activeRole === 'teacher' ? 'student' : 'teacher'
+
+  // Host Admission Prompt (for teacher when student knocks/waits in lobby)
+  const [pendingKnockStudent, setPendingKnockStudent] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (activeRole !== 'teacher') return
+
+    let admissionBc: BroadcastChannel | null = null
+    try {
+      admissionBc = new BroadcastChannel(`meet-admission-${session.id}`)
+      admissionBc.onmessage = (e) => {
+        if (e.data?.type === 'KNOCK') {
+          setPendingKnockStudent(e.data.studentName || theirName)
+        }
+      }
+    } catch {}
+
+    return () => {
+      admissionBc?.close()
+    }
+  }, [activeRole, session.id, theirName])
+
+  const handleAdmitStudent = async () => {
+    try {
+      await admitStudentToCall(session.id)
+      const ch = new BroadcastChannel(`meet-admission-${session.id}`)
+      ch.postMessage({ type: 'ADMITTED', sessionId: session.id })
+      ch.close()
+    } catch (err) {
+      console.error('Error admitting student:', err)
+    }
+    setPendingKnockStudent(null)
+  }
 
   // View & Layout states
   const [viewMode, setViewMode] = useState<'video' | 'whiteboard' | 'split'>('video')
@@ -167,7 +197,6 @@ export function CallInterface({ access }: CallInterfaceProps) {
   const [isPipExpanded, setIsPipExpanded] = useState(true)
   const [showLeaveDialog, setShowLeaveDialog] = useState(false)
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
-  const [isCopied, setIsCopied] = useState(false)
 
   // Remote peer state
   const [isRemoteConnected, setIsRemoteConnected] = useState(false)
@@ -627,28 +656,6 @@ export function CallInterface({ access }: CallInterfaceProps) {
     }
   }
 
-  // Switch Role in this tab (instant dev test switch)
-  const handleSwitchRole = (targetRole: 'teacher' | 'student') => {
-    if (targetRole === activeRole) return
-    setActiveRole(targetRole)
-    window.location.search = `?force=true&as=${targetRole}`
-  }
-
-  // Copy other participant's join URL
-  const handleCopyOtherLink = () => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    const url = `${origin}/meet/${session.id}?force=true&as=${otherRole}`
-    navigator.clipboard.writeText(url)
-    setIsCopied(true)
-    setTimeout(() => setIsCopied(false), 2500)
-  }
-
-  // Open other participant in a new tab
-  const handleOpenOtherInNewTab = () => {
-    const origin = typeof window !== 'undefined' ? window.location.origin : ''
-    window.open(`${origin}/meet/${session.id}?force=true&as=${otherRole}`, '_blank')
-  }
-
   // Leave Call action
   const handleLeaveCall = () => {
     if (localStreamRef.current) {
@@ -685,19 +692,11 @@ export function CallInterface({ access }: CallInterfaceProps) {
             </Chip>
           </div>
 
-          {/* Role Badge with Instant Switch Button for pair testing */}
+          {/* User Account Display */}
           <div className="hidden lg:flex items-center gap-1.5 bg-slate-900/80 border border-slate-700/70 rounded-full px-2.5 py-1 text-xs">
             <span className="text-slate-400">You:</span>
             <span className="font-medium text-emerald-400">{myName}</span>
-            <span className="text-slate-600">•</span>
-            <button
-              type="button"
-              onClick={() => handleSwitchRole(otherRole as 'teacher' | 'student')}
-              className="text-blue-400 hover:text-blue-300 underline font-medium"
-              title={`Switch this tab to ${theirRoleLabel}`}
-            >
-              Switch to {theirRoleLabel}
-            </button>
+            <span className="text-slate-500">({myRoleLabel})</span>
           </div>
         </div>
 
@@ -793,7 +792,40 @@ export function CallInterface({ access }: CallInterfaceProps) {
         </div>
       </header>
 
-      {/* ── Sub-header Banner: Pair Test Helper & Audio Protection ── */}
+      {/* ── Teacher Admission Request Banner ── */}
+      {pendingKnockStudent && activeRole === 'teacher' && (
+        <div className="bg-emerald-950/95 border-b border-emerald-500/50 px-4 py-2 flex items-center justify-between text-xs text-emerald-200 z-30 shadow-lg animate-in slide-in-from-top duration-300">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>
+              <strong className="text-white font-semibold">{pendingKnockStudent}</strong> is in the waiting room asking to join.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold h-7 px-3 text-xs gap-1 shadow"
+              onClick={handleAdmitStudent}
+            >
+              <Check className="h-3.5 w-3.5" />
+              <span>Admit to Call</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-emerald-300 hover:text-white hover:bg-emerald-900/60 h-7 px-2 text-xs"
+              onClick={() => setPendingKnockStudent(null)}
+            >
+              Ignore
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Sub-header Banner: Meeting Info & Audio Protection ── */}
       <div className="bg-[#121A2B] border-b border-slate-800/80 px-4 py-1.5 text-xs flex flex-wrap items-center justify-between gap-2 z-10 text-slate-300">
         <div className="flex items-center gap-2">
           <span className="inline-flex items-center gap-1 font-medium text-emerald-400">
@@ -827,17 +859,6 @@ export function CallInterface({ access }: CallInterfaceProps) {
               </>
             )}
           </button>
-
-          {!isRemoteConnected && (
-            <button
-              type="button"
-              onClick={handleOpenOtherInNewTab}
-              className="inline-flex items-center gap-1 text-[11px] px-2.5 py-0.5 rounded-full bg-blue-600/20 border border-blue-500/40 text-blue-300 hover:bg-blue-600/30 font-medium"
-            >
-              <ExternalLink className="h-3 w-3" />
-              <span>Join as {theirRoleLabel} in New Tab</span>
-            </button>
-          )}
         </div>
       </div>
 

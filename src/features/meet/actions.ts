@@ -36,6 +36,7 @@ import {
   MOCK_AVAILABILITY_EXCEPTIONS,
   MOCK_SESSION_REQUESTS,
   MOCK_WHITEBOARDS,
+  ADMITTED_MEET_SESSIONS,
 } from './mock-meet-data'
 
 /**
@@ -816,3 +817,60 @@ export async function saveWhiteboardSnapshot(
     },
   }
 }
+
+// ---------------------------------------------------------------------------
+// 12. Faculty Admission Control for Live Meeting Room
+// ---------------------------------------------------------------------------
+
+/**
+ * Admits student waiting in the lobby into the active video call room.
+ * Required before student can enter the meeting.
+ */
+export async function admitStudentToCall(
+  sessionId: string
+): Promise<ActionResult<{ admitted: boolean }>> {
+  ADMITTED_MEET_SESSIONS.add(sessionId)
+
+  const session = MOCK_SESSION_REQUESTS.find((s) => s.id === sessionId)
+  if (session) {
+    session.is_admitted = true
+  }
+
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      await supabase
+        .from('session_requests')
+        .update({ is_admitted: true, updated_at: new Date().toISOString() })
+        .eq('id', sessionId)
+    } catch {
+      // ignore
+    }
+  }
+
+  if (session) {
+    await notify({
+      userId: session.student_id,
+      type: 'meet.accepted',
+      title: 'Faculty Admitted You to Video Call',
+      body: `${session.teacher?.full_name || 'Faculty Member'} has admitted you to the video room. Entering call...`,
+      link: `/meet/${sessionId}`,
+      payload: { sessionId },
+    }).catch(() => {})
+  }
+
+  revalidatePath(`/meet/${sessionId}`)
+  return { ok: true, data: { admitted: true } }
+}
+
+/**
+ * Checks whether faculty has admitted the student to the live call.
+ */
+export async function checkSessionAdmission(
+  sessionId: string
+): Promise<{ admitted: boolean }> {
+  const session = MOCK_SESSION_REQUESTS.find((s) => s.id === sessionId)
+  const isAdmitted = ADMITTED_MEET_SESSIONS.has(sessionId) || Boolean(session?.is_admitted)
+  return { admitted: isAdmitted }
+}
+

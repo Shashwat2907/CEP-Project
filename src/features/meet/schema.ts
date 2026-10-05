@@ -159,6 +159,7 @@ export const SessionRequestSchema = z.object({
   mode:           SessionModeSchema.nullable().optional(),
   location:       z.string().nullable().optional(),
   room_id:        z.string().nullable().optional(),
+  is_admitted:    z.boolean().optional(),
   created_at:     z.string(),
   updated_at:     z.string(),
   // Joined relational data
@@ -217,6 +218,7 @@ export type CallAccessErrorCode =
   | 'TOO_EARLY'
   | 'EXPIRED'
   | 'NOT_FOUND'
+  | 'WAITING_FOR_TEACHER'
 
 export type CallAccessResult =
   | {

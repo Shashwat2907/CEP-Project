@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { getSessionCallAccess } from '@/features/meet/queries'
 import { CallInterface } from '@/features/meet/components/CallInterface'
 import { MeetingCountdown } from '@/features/meet/components/MeetingCountdown'
+import { StudentWaitingLobby } from '@/features/meet/components/StudentWaitingLobby'
 import { Card, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import {
@@ -34,6 +35,18 @@ export default async function SessionCallPage({ params, searchParams }: SessionC
 
   if (access.ok) {
     return <CallInterface access={access} />
+  }
+
+  // Pre-meeting waiting screen if student is waiting for faculty admission
+  if (access.code === 'WAITING_FOR_TEACHER' && access.session) {
+    return (
+      <StudentWaitingLobby
+        session={access.session}
+        teacherName={access.session.teacher?.full_name || 'Faculty Member'}
+        startsAt={access.startsAt}
+        endsAt={access.endsAt}
+      />
+    )
   }
 
   // Pre-meeting waiting screen if user arrives before 10-min window

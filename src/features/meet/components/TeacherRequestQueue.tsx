@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/shared/ui/card'
 import { Button } from '@/shared/ui/button'
 import { Chip } from '@/shared/ui/chip'
@@ -14,7 +15,7 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/shared/ui/dialog'
-import { respondToSessionRequest, cancelSessionRequest } from '../actions'
+import { respondToSessionRequest, cancelSessionRequest, admitStudentToCall } from '../actions'
 import type { SessionRequest, SessionStatus } from '../schema'
 import {
   Calendar,
@@ -60,6 +61,7 @@ function formatSessionDate(startsAt: string): { dateStr: string; timeStr: string
 }
 
 export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProps) {
+  const router = useRouter()
   const [requests, setRequests] = React.useState<SessionRequest[]>(initialRequests)
   const [tab, setTab] = React.useState<'pending' | 'confirmed' | 'history'>('pending')
 
@@ -191,6 +193,23 @@ export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProp
     } catch {
       setActionError('Failed to cancel session. Please try again.')
       setIsCancelling(false)
+    }
+  }
+
+  const handleAdmitAndJoin = async (sessionId: string) => {
+    setActingId(sessionId)
+    try {
+      await admitStudentToCall(sessionId)
+      try {
+        const bc = new BroadcastChannel(`meet-admission-${sessionId}`)
+        bc.postMessage({ type: 'ADMITTED', sessionId })
+        bc.close()
+      } catch {}
+      router.push(`/meet/${sessionId}?force=true&as=teacher`)
+    } catch {
+      router.push(`/meet/${sessionId}?force=true&as=teacher`)
+    } finally {
+      setActingId(null)
     }
   }
 
@@ -381,12 +400,15 @@ export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProp
                       )}
 
                       {isConfirmed && (r.mode === 'online' || r.status === 'online_selected') && (
-                        <Link href={`/meet/${r.id}?force=true&as=teacher`}>
-                          <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium">
-                            <Video className="h-3.5 w-3.5" />
-                            <span>Join Video Call</span>
-                          </Button>
-                        </Link>
+                        <Button
+                          size="sm"
+                          className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
+                          disabled={actingId === r.id}
+                          onClick={() => handleAdmitAndJoin(r.id)}
+                        >
+                          <Video className="h-3.5 w-3.5" />
+                          <span>{actingId === r.id ? 'Admitting...' : 'Admit & Join Video Call'}</span>
+                        </Button>
                       )}
 
                       {r.status === 'completed' && (
