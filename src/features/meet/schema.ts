@@ -223,6 +223,7 @@ export type CallAccessResult =
       ok: true
       session: SessionRequest
       currentUserId: string
+      currentUserName?: string
       userRole: 'teacher' | 'student' | 'admin'
       otherParticipantName: string
       otherParticipantRole: string

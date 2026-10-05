@@ -7,6 +7,7 @@ import { Button } from '@/shared/ui/button'
 import { Chip } from '@/shared/ui/chip'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog'
 import { Clock, CheckCircle2, RotateCcw, Shield, ArrowLeft, User, AlertTriangle, ThumbsUp, GitMerge } from 'lucide-react'
+import { formatDeterministicDate } from '@/features/meet/date-format'
 import { confirmResolution, reopenComplaint, resolveComplaint, toggleComplaintUpvote, markComplaintDuplicate } from '../actions'
 import { ComplaintTimeline } from './ComplaintTimeline'
 import type { Complaint } from '../schema'
@@ -208,7 +209,7 @@ export function ComplaintDetail({
                 : complaint.author?.full_name ?? 'Student'}
             </span>
             <span>•</span>
-            <span>Created {new Date(complaint.created_at).toLocaleDateString()}</span>
+            <span suppressHydrationWarning>Created {formatDeterministicDate(complaint.created_at, 'date-only')}</span>
             {complaint.anonymous && (
               <span className="inline-flex items-center gap-1 text-ink">
                 <Shield className="h-3.5 w-3.5 text-ink-muted" /> Anonymous Submission

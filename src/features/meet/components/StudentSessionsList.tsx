@@ -341,7 +341,7 @@ export function StudentSessionsList({ initialSessions }: StudentSessionsListProp
 
                     <div className="flex items-center gap-2">
                       {(s.mode === 'online' || s.status === 'online_selected') && (
-                        <Link href={`/meet/${s.id}?force=true`}>
+                        <Link href={`/meet/${s.id}?force=true&as=student`}>
                           <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium">
                             <Video className="h-3.5 w-3.5" />
                             <span>Join Video Call</span>
@@ -350,7 +350,7 @@ export function StudentSessionsList({ initialSessions }: StudentSessionsListProp
                       )}
 
                       {s.status === 'completed' && (
-                        <Link href={`/meet/${s.id}/whiteboard`}>
+                        <Link href={`/meet/${s.id}/whiteboard?as=student`}>
                           <Button size="sm" variant="outline" className="gap-1.5 font-medium text-ink">
                             <PenTool className="h-3.5 w-3.5 text-accent" />
                             <span>View Whiteboard</span>

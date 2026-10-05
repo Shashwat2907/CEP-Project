@@ -22,6 +22,8 @@ import {
   type SimilarComplaint,
 } from './schema'
 import { searchSimilarComplaints } from './queries'
+import { isSupabaseOnline } from '@/lib/supabase/status'
+import { addMockComplaint, updateMockComplaintStatus, MOCK_COMPLAINTS } from './mock-complaints-data'
 
 /**
  * Server Actions for the Complaints feature.
@@ -51,6 +53,47 @@ export async function submitComplaint(
   }
 
   const { domain_id, subcategory_id, title, body, anonymous, attachments } = parsed.data
+
+  if (!(await isSupabaseOnline())) {
+    const newId = `c-mock-${Date.now()}`
+    addMockComplaint({
+      id: newId,
+      author_id: user.id,
+      domain_id,
+      subcategory_id: subcategory_id ?? null,
+      title,
+      body,
+      status: 'submitted',
+      current_level: 1,
+      assigned_to: '00000000-0000-0000-0000-000000000002',
+      escalation_level: 1,
+      sla_breach_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+      needs_admin_attention: false,
+      anonymous,
+      upvotes_count: 0,
+      has_upvoted: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      author: { full_name: anonymous ? 'Anonymous Student' : 'Aarav Mehta', role_primary: 'student' },
+      assignee: { full_name: 'Prof. Rajesh Sharma', role_primary: 'teacher' },
+      domain: { id: domain_id, name: 'Campus Grievance', sensitive: false, visibility: 'public' },
+      events: [
+        {
+          id: `e-${Date.now()}`,
+          complaint_id: newId,
+          event_type: 'submitted',
+          actor_id: user.id,
+          note: 'Grievance ticket created.',
+          created_at: new Date().toISOString(),
+          actor: { full_name: 'Aarav Mehta', role_primary: 'student' },
+        },
+      ],
+    })
+    revalidatePath('/complaints')
+    revalidatePath('/complaints/assigned')
+    return { ok: true, data: { complaintId: newId } }
+  }
+
   const supabase = await createClient()
 
   // 1. Determine Level 1 assignee and SLA hours for this domain
@@ -153,6 +196,15 @@ export async function resolveComplaint(
   }
 
   const { complaint_id, resolution_note } = parsed.data
+
+  if (!(await isSupabaseOnline())) {
+    updateMockComplaintStatus(complaint_id, 'resolved', resolution_note, profile.full_name ?? 'Authority')
+    revalidatePath('/complaints')
+    revalidatePath(`/complaints/${complaint_id}`)
+    revalidatePath('/complaints/assigned')
+    return { ok: true, data: undefined }
+  }
+
   const supabase = await createClient()
 
   // Fetch complaint to verify permissions and get author for notification
@@ -229,6 +281,15 @@ export async function confirmResolution(
   complaintId: string
 ): Promise<ActionResult> {
   const { user } = await requireAuth()
+
+  if (!(await isSupabaseOnline())) {
+    updateMockComplaintStatus(complaintId, 'closed', 'Student confirmed the issue has been resolved')
+    revalidatePath('/complaints')
+    revalidatePath(`/complaints/${complaintId}`)
+    revalidatePath('/complaints/assigned')
+    return { ok: true, data: undefined }
+  }
+
   const supabase = await createClient()
 
   const { data: complaint } = await supabase
@@ -291,6 +352,15 @@ export async function reopenComplaint(
   }
 
   const { complaint_id, reopen_note } = parsed.data
+
+  if (!(await isSupabaseOnline())) {
+    updateMockComplaintStatus(complaint_id, 'reopened', reopen_note)
+    revalidatePath('/complaints')
+    revalidatePath(`/complaints/${complaint_id}`)
+    revalidatePath('/complaints/assigned')
+    return { ok: true, data: undefined }
+  }
+
   const supabase = await createClient()
 
   const { data: complaint } = await supabase
@@ -368,6 +438,15 @@ export async function updateComplaintStatus(
   }
 
   const { complaint_id, status, note } = parsed.data
+
+  if (!(await isSupabaseOnline())) {
+    updateMockComplaintStatus(complaint_id, status, note, profile.full_name ?? 'Authority')
+    revalidatePath('/complaints')
+    revalidatePath(`/complaints/${complaint_id}`)
+    revalidatePath('/complaints/assigned')
+    return { ok: true, data: undefined }
+  }
+
   const supabase = await createClient()
 
   const { data: complaint } = await supabase
@@ -642,6 +721,18 @@ export async function toggleComplaintUpvote(
   }
 
   const { complaint_id } = parsed.data
+
+  if (!(await isSupabaseOnline())) {
+    const item = MOCK_COMPLAINTS.find((c) => c.id === complaint_id)
+    if (item) {
+      item.has_upvoted = !item.has_upvoted
+      item.upvotes_count = Math.max(0, item.upvotes_count + (item.has_upvoted ? 1 : -1))
+      revalidatePath('/complaints')
+      return { ok: true, data: { upvoted: item.has_upvoted, count: item.upvotes_count } }
+    }
+    return { ok: true, data: { upvoted: true, count: 1 } }
+  }
+
   const supabase = await createClient()
 
   // 1. Verify complaint exists, is not resolved/closed, and is not in a sensitive domain

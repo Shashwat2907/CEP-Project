@@ -8,6 +8,7 @@ import { Chip } from '@/shared/ui/chip'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog'
 import { Clock, CheckCircle2, Play, User } from 'lucide-react'
+import { formatDeterministicDate, formatDeterministicTime } from '@/features/meet/date-format'
 import { resolveComplaint, updateComplaintStatus } from '../actions'
 import type { Complaint } from '../schema'
 
@@ -101,12 +102,9 @@ export function AuthorityQueue({ complaints }: AuthorityQueueProps) {
             const isEscalated = c.status === 'escalated'
             const isReopened = c.status === 'reopened'
             const isResolved = c.status === 'resolved' || c.status === 'closed'
-            const dueTime = c.due_at ? new Date(c.due_at).toLocaleDateString(undefined, {
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            }) : null
+            const dueTime = c.due_at
+              ? `${formatDeterministicDate(c.due_at, 'short-no-year')}, ${formatDeterministicTime(c.due_at)}`
+              : null
 
             return (
               <Card key={c.id} className={isEscalated ? 'border-danger/40 bg-surface' : 'bg-surface'}>
@@ -127,7 +125,7 @@ export function AuthorityQueue({ complaints }: AuthorityQueueProps) {
                     </div>
 
                     {c.due_at && !isResolved && (
-                      <div className="flex items-center gap-1 text-meta text-ink-muted">
+                      <div className="flex items-center gap-1 text-meta text-ink-muted" suppressHydrationWarning>
                         <Clock className="h-3.5 w-3.5 text-warning" />
                         <span>SLA: {dueTime}</span>
                       </div>
@@ -154,11 +152,11 @@ export function AuthorityQueue({ complaints }: AuthorityQueueProps) {
 
                   {/* Footer & Action Controls */}
                   <div className="mt-4 flex flex-col gap-2 pt-3 border-t border-border/50 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-2 text-meta text-ink-muted">
+                    <div className="flex items-center gap-2 text-meta text-ink-muted" suppressHydrationWarning>
                       <User className="h-3.5 w-3.5" />
                       <span>{c.anonymous ? 'Anonymous Student' : c.author?.full_name ?? 'Student'}</span>
                       <span>•</span>
-                      <span>{new Date(c.created_at).toLocaleDateString()}</span>
+                      <span>{formatDeterministicDate(c.created_at, 'date-only')}</span>
                     </div>
 
                     {!isResolved && (

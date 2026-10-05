@@ -17,7 +17,7 @@ import {
 
 interface SessionCallPageProps {
   params: Promise<{ sessionId: string }>
-  searchParams?: Promise<{ force?: string }>
+  searchParams?: Promise<{ force?: string; as?: string }>
 }
 
 export const metadata: Metadata = {
@@ -29,7 +29,8 @@ export default async function SessionCallPage({ params, searchParams }: SessionC
   const { sessionId } = await params
   const sp = searchParams ? await searchParams : {}
   const force = sp.force === 'true'
-  const access = await getSessionCallAccess(sessionId, Date.now(), force)
+  const asRole = sp.as === 'teacher' || sp.as === 'student' ? (sp.as as 'teacher' | 'student') : undefined
+  const access = await getSessionCallAccess(sessionId, Date.now(), force, asRole)
 
   if (access.ok) {
     return <CallInterface access={access} />

@@ -82,9 +82,26 @@ export function WhiteboardCanvas({
   const canvasRef = useRef<SVGSVGElement | null>(null)
   const supabase = createClient()
 
-  // ── 1. Realtime Broadcast Synchronization ──
+  // ── 1. Realtime Broadcast Synchronization (Supabase + Local BroadcastChannel fallback) ──
   useEffect(() => {
     if (readOnly || !sessionId) return
+
+    const bc = new BroadcastChannel(`meet-wb-local-${sessionId}`)
+    bc.onmessage = (e) => {
+      const { event, payload } = e.data || {}
+      if (event === 'new-stroke' && payload?.stroke) {
+        setStrokes((prev) => [...prev, payload.stroke])
+      } else if (event === 'clear') {
+        setStrokes([])
+        setRedoStack([])
+      } else if (event === 'cursor' && payload?.x !== undefined) {
+        setRemoteCursor({
+          x: payload.x,
+          y: payload.y,
+          userName: payload.userName || 'Peer',
+        })
+      }
+    }
 
     const channel = supabase.channel(`meet-wb-${sessionId}`, {
       config: { broadcast: { self: false } },
@@ -112,6 +129,7 @@ export function WhiteboardCanvas({
       .subscribe()
 
     return () => {
+      bc.close()
       supabase.removeChannel(channel)
     }
   }, [sessionId, readOnly, supabase])
@@ -120,6 +138,13 @@ export function WhiteboardCanvas({
   const broadcastEvent = useCallback(
     (event: string, payload: Record<string, unknown>) => {
       if (readOnly) return
+      try {
+        const bc = new BroadcastChannel(`meet-wb-local-${sessionId}`)
+        bc.postMessage({ event, payload })
+        bc.close()
+      } catch {
+        // ignore
+      }
       const channel = supabase.channel(`meet-wb-${sessionId}`)
       channel.send({
         type: 'broadcast',

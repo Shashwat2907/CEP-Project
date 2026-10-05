@@ -381,7 +381,7 @@ export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProp
                       )}
 
                       {isConfirmed && (r.mode === 'online' || r.status === 'online_selected') && (
-                        <Link href={`/meet/${r.id}?force=true`}>
+                        <Link href={`/meet/${r.id}?force=true&as=teacher`}>
                           <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium">
                             <Video className="h-3.5 w-3.5" />
                             <span>Join Video Call</span>
@@ -390,7 +390,7 @@ export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProp
                       )}
 
                       {r.status === 'completed' && (
-                        <Link href={`/meet/${r.id}/whiteboard`}>
+                        <Link href={`/meet/${r.id}/whiteboard?as=teacher`}>
                           <Button size="sm" variant="outline" className="gap-1.5 font-medium text-ink">
                             <PenTool className="h-3.5 w-3.5 text-accent" />
                             <span>View Whiteboard</span>

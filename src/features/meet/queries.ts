@@ -446,7 +446,8 @@ export async function getSessionRequestById(id: string): Promise<SessionRequest 
 export async function getSessionCallAccess(
   sessionId: string,
   currentTimeMs: number = Date.now(),
-  force: boolean = false
+  force: boolean = false,
+  asRole?: 'teacher' | 'student'
 ): Promise<CallAccessResult> {
   const { user, profile } = await requireAuth()
   const session = await getSessionRequestById(sessionId)
@@ -461,17 +462,63 @@ export async function getSessionCallAccess(
 
   const isDev = process.env.NODE_ENV !== 'production'
 
-  // 1. Participant check: user must be student, teacher, or admin
-  const isStudent = session.student_id === user.id
-  const isTeacher = session.teacher_id === user.id
-  const isAdmin = profile.role_primary === 'admin'
+  // Resolve role and participant names based on explicit asRole or user session
+  const studentName = session.student?.full_name || 'Student'
+  const teacherName = session.teacher?.full_name || 'Faculty Member'
 
-  if (!isStudent && !isTeacher && !isAdmin && !isDev && !force) {
-    return {
-      ok: false,
-      code: 'UNAUTHORIZED',
-      message: 'You are not a participant in this scheduled meeting.',
-      session,
+  let userRole: 'teacher' | 'student' | 'admin'
+  let currentUserId: string
+  let currentUserName: string
+  let otherParticipantName: string
+  let otherParticipantRole: string
+
+  if (asRole === 'teacher') {
+    userRole = 'teacher'
+    currentUserId = session.teacher_id || user.id
+    currentUserName = teacherName
+    otherParticipantName = studentName
+    otherParticipantRole = 'Student'
+  } else if (asRole === 'student') {
+    userRole = 'student'
+    currentUserId = session.student_id || user.id
+    currentUserName = studentName
+    otherParticipantName = teacherName
+    otherParticipantRole = 'Faculty Member'
+  } else {
+    // Participant check: user must be student, teacher, or admin
+    const isStudent = session.student_id === user.id
+    const isTeacher = session.teacher_id === user.id
+    const isAdmin = profile.role_primary === 'admin'
+
+    if (!isStudent && !isTeacher && !isAdmin && !isDev && !force) {
+      return {
+        ok: false,
+        code: 'UNAUTHORIZED',
+        message: 'You are not a participant in this scheduled meeting.',
+        session,
+      }
+    }
+
+    userRole = isTeacher
+      ? 'teacher'
+      : isStudent
+      ? 'student'
+      : isAdmin
+      ? 'admin'
+      : profile.role_primary === 'teacher'
+      ? 'teacher'
+      : 'student'
+
+    if (userRole === 'teacher') {
+      currentUserId = session.teacher_id || user.id
+      currentUserName = teacherName
+      otherParticipantName = studentName
+      otherParticipantRole = 'Student'
+    } else {
+      currentUserId = session.student_id || user.id
+      currentUserName = studentName
+      otherParticipantName = teacherName
+      otherParticipantRole = 'Faculty Member'
     }
   }
 
@@ -514,27 +561,12 @@ export async function getSessionCallAccess(
     }
   }
 
-  const userRole: 'teacher' | 'student' | 'admin' = isTeacher
-    ? 'teacher'
-    : isStudent
-    ? 'student'
-    : isAdmin
-    ? 'admin'
-    : profile.role_primary === 'teacher'
-    ? 'teacher'
-    : 'student'
-
-  const studentName = session.student?.full_name || 'Student'
-  const teacherName = session.teacher?.full_name || 'Faculty Member'
-  const otherParticipantName = isStudent ? teacherName : studentName
-  const otherParticipantRole = isStudent ? 'Faculty Member' : 'Student'
-
   const roomName = session.room_id || `meet-${session.id.slice(0, 8)}`
   const token = Buffer.from(
     JSON.stringify({
       room: roomName,
-      userId: user.id,
-      userName: profile.full_name,
+      userId: currentUserId,
+      userName: currentUserName,
       role: userRole,
       exp: Math.floor(Math.max(endsAtMs, Date.now() + 3600000) / 1000),
     })
@@ -543,7 +575,8 @@ export async function getSessionCallAccess(
   return {
     ok: true,
     session,
-    currentUserId: user.id,
+    currentUserId,
+    currentUserName,
     userRole,
     otherParticipantName,
     otherParticipantRole,

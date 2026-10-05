@@ -8,6 +8,7 @@ import { Chip } from '@/shared/ui/chip'
 import { EmptyState } from '@/shared/ui/empty-state'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/shared/ui/dialog'
 import { Clock, CheckCircle2, RotateCcw, Shield, ArrowRight } from 'lucide-react'
+import { formatDeterministicDate, formatDeterministicTime } from '@/features/meet/date-format'
 import { confirmResolution, reopenComplaint } from '../actions'
 import type { Complaint, ComplaintStatus } from '../schema'
 
@@ -75,12 +76,9 @@ export function MyComplaintsList({ complaints }: MyComplaintsListProps) {
       {complaints.map((c) => {
         const isResolved = c.status === 'resolved'
         const isClosed = c.status === 'closed'
-        const dueTime = c.due_at ? new Date(c.due_at).toLocaleDateString(undefined, {
-          month: 'short',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit',
-        }) : null
+        const dueTime = c.due_at
+          ? `${formatDeterministicDate(c.due_at, 'short-no-year')}, ${formatDeterministicTime(c.due_at)}`
+          : null
 
         return (
           <Card key={c.id} className="transition-colors hover:border-ink/20">
@@ -100,7 +98,7 @@ export function MyComplaintsList({ complaints }: MyComplaintsListProps) {
                 </div>
 
                 {c.due_at && !isResolved && !isClosed && (
-                  <div className="flex items-center gap-1 text-meta text-ink-muted">
+                  <div className="flex items-center gap-1 text-meta text-ink-muted" suppressHydrationWarning>
                     <Clock className="h-3.5 w-3.5" />
                     <span>SLA due: {dueTime}</span>
                   </div>
@@ -152,7 +150,7 @@ export function MyComplaintsList({ complaints }: MyComplaintsListProps) {
               )}
 
               <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/50 text-meta text-ink-muted">
-                <span>Submitted {new Date(c.created_at).toLocaleDateString()}</span>
+                <span suppressHydrationWarning>Submitted {formatDeterministicDate(c.created_at, 'date-only')}</span>
                 <Link
                   href={`/complaints/${c.id}`}
                   className="inline-flex items-center gap-1 text-ink hover:underline font-medium"
