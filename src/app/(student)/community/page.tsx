@@ -1,82 +1,192 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
-import { MessageSquare, ArrowLeft, Clock } from 'lucide-react'
+import { ArrowLeft, Users, Sparkles, Search, BookOpen, Layers } from 'lucide-react'
+import { requireAuth } from '@/shared/auth/guards'
+import { getCurrentProfile } from '@/shared/auth/session'
+import { getCommunities } from '@/features/community/queries'
+import { CommunityCard } from '@/features/community/components/CommunityCard'
+import { CreateCommunityModal } from '@/features/community/components/CreateCommunityModal'
 import { AppShell } from '@/shared/ui/app-shell'
+import type { Metadata } from 'next'
+import type { CommunityKind } from '@/features/community/schema'
 
-export const metadata = {
-  title: 'Campus Community | Campus Portal',
-  description: 'Subject discussion channels and campus forums.',
+export const metadata: Metadata = {
+  title: 'Campus Communities',
+  description: 'Join official academic communities and student interest groups, resolve doubts, and earn reputation badges.',
 }
 
-export default function CommunityPage() {
+interface CommunityPageProps {
+  searchParams: Promise<{
+    tab?: string
+    q?: string
+    kind?: string
+  }>
+}
+
+export default async function CommunityPage({ searchParams }: CommunityPageProps) {
+  await requireAuth()
+  const profile = await getCurrentProfile()
+  const sp = await searchParams
+
+  const activeTab = sp.tab || 'all'
+  const searchQuery = sp.q || ''
+  const kindFilter = sp.kind as CommunityKind | undefined
+
+  const communities = await getCommunities({
+    kind: kindFilter,
+    search: searchQuery || undefined,
+    myOnly: activeTab === 'my',
+  })
+
+  // Filter tab logic
+  let filteredCommunities = communities
+  if (activeTab === 'official') {
+    filteredCommunities = communities.filter((c) => c.official)
+  } else if (activeTab === 'unofficial') {
+    filteredCommunities = communities.filter((c) => !c.official)
+  }
+
+  const myJoinedCount = communities.filter((c) => c.is_member).length
+
   return (
     <AppShell
-      initialRole="student"
-      userName="Shashwat Choudhary"
-      identifier="23BCE1042"
-      department="Computer Science & Engineering"
-      userEmail="shashwat@college.edu"
+      initialRole={profile?.role_primary ?? 'student'}
+      userName={profile?.full_name ?? 'Aarav Mehta'}
+      identifier={profile?.college_id ?? '23BCE1001'}
+      department={profile?.branch ? `${profile.branch} (Year ${profile.year ?? 2})` : 'Computer Science'}
+      userEmail={profile?.college_email ?? 'student@campus.edu'}
       activePath="/community"
     >
-      <div className="w-full max-w-2xl py-6 space-y-6">
-        <div className="border-b border-border pb-4">
-          <Link
-            href="/"
-            className="text-small text-ink-muted hover:text-ink flex items-center gap-1.5 mb-3 transition-colors"
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Campus Life</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-highlight" />
-            <h1 className="font-display text-h1 font-bold text-ink">
-              Student Communities & Discussions
-            </h1>
-          </div>
-          <p className="text-small text-ink-muted mt-1">
-            Subject-level real-time discussion channels and peer upvoting.
-          </p>
-        </div>
-
-        <div className="p-6 rounded-md border border-border bg-surface space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-sm bg-highlight/15 border border-highlight/30 flex items-center justify-center text-ink shrink-0">
-              <MessageSquare size={20} />
-            </div>
-            <div>
-              <h2 className="font-display text-small font-bold text-ink">
-                Academic & Social Communities
-              </h2>
-              <p className="text-meta font-mono text-ink-muted mt-0.5">
-                Feature branch: feat/community-threads · Owner: Kedar
-              </p>
-            </div>
-          </div>
-
-          <p className="text-small text-ink-muted leading-relaxed">
-            Real-time community channels and chat are being developed per TEAM_TASKS.md. Once live, class-wise and club channels will appear here with peer upvoting.
-          </p>
-
-          <div className="p-3.5 rounded-sm bg-surface-sunken border border-border flex items-center gap-2 text-meta font-mono text-ink-muted">
-            <Clock size={14} className="text-ink" />
-            <span>Scheduled for release in Phase 2 integration sprint.</span>
-          </div>
-
-          <div className="pt-2 flex items-center gap-3">
-            <Link
-              href="/friends"
-              className="px-4 py-2 rounded-sm bg-ink text-on-ink text-small font-semibold hover:opacity-90 transition-opacity"
-            >
-              Open Campus Friends & Chat
-            </Link>
+      <main className="p-4 md:p-6 max-w-6xl mx-auto w-full">
+        {/* Navigation Breadcrumb / Return to Homepage */}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+          <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="px-4 py-2 rounded-sm border border-border bg-surface text-small font-medium text-ink hover:bg-surface-sunken transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-sm border border-border bg-surface hover:bg-surface-sunken text-ink transition-colors"
             >
-              Return to Overview
+              <ArrowLeft size={14} />
+              <span>Return to Homepage</span>
             </Link>
+            <div className="h-4 w-px bg-border" />
+            <span className="text-xs text-ink-muted">Campus Communities & Groups</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
+              {myJoinedCount} {myJoinedCount === 1 ? 'Community Joined' : 'Communities Joined'}
+            </span>
           </div>
         </div>
-      </div>
+
+        {/* Page Hero */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold font-display text-ink flex items-center gap-2.5">
+              <span>Campus Communities</span>
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                Peer Doubts & Discussions
+              </span>
+            </h1>
+            <p className="text-xs md:text-sm text-ink-muted mt-1 max-w-2xl">
+              Connect with classmates, course cohorts, and student study groups. Post questions, answer doubts, and earn community recognition badges like <strong>Helper</strong> and <strong>Doubt Solver</strong>.
+            </p>
+          </div>
+
+          <div className="shrink-0">
+            <CreateCommunityModal />
+          </div>
+        </div>
+
+        {/* Filters and Tabs */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
+          {/* Tab buttons */}
+          <div className="flex items-center gap-1 bg-surface border border-border p-1 rounded-lg overflow-x-auto text-xs">
+            <Link
+              href="/community?tab=all"
+              className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'all'
+                  ? 'bg-primary text-white font-semibold shadow-xs'
+                  : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              All Rooms
+            </Link>
+            <Link
+              href="/community?tab=official"
+              className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'official'
+                  ? 'bg-primary text-white font-semibold shadow-xs'
+                  : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              Official (Classes & Subjects)
+            </Link>
+            <Link
+              href="/community?tab=unofficial"
+              className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'unofficial'
+                  ? 'bg-primary text-white font-semibold shadow-xs'
+                  : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              Student Groups
+            </Link>
+            <Link
+              href="/community?tab=my"
+              className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
+                activeTab === 'my'
+                  ? 'bg-primary text-white font-semibold shadow-xs'
+                  : 'text-ink-muted hover:text-ink'
+              }`}
+            >
+              My Communities
+            </Link>
+          </div>
+
+          {/* Search Bar */}
+          <form method="GET" action="/community" className="relative w-full sm:w-64">
+            {activeTab !== 'all' && <input type="hidden" name="tab" value={activeTab} />}
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
+            <input
+              type="text"
+              name="q"
+              defaultValue={searchQuery}
+              placeholder="Search rooms..."
+              className="w-full pl-9 pr-3 py-1.5 text-xs bg-surface border border-border rounded-lg text-ink placeholder:text-ink-muted focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </form>
+        </div>
+
+        {/* Communities Grid */}
+        {filteredCommunities.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-border bg-surface p-12 text-center">
+            <div className="w-12 h-12 rounded-full bg-surface-sunken flex items-center justify-center mx-auto mb-3 text-ink-muted">
+              <Users size={24} />
+            </div>
+            <h3 className="font-semibold text-base text-ink mb-1">No communities found</h3>
+            <p className="text-xs text-ink-muted max-w-sm mx-auto mb-4">
+              {searchQuery
+                ? `No communities matching "${searchQuery}". Try a different keyword.`
+                : activeTab === 'my'
+                ? 'You have not joined any student communities yet. Explore the All Rooms tab to join!'
+                : 'No communities available in this category.'}
+            </p>
+            <Link
+              href="/community"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold rounded-md border border-border text-ink hover:bg-surface-sunken transition-colors"
+            >
+              Reset Filters
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredCommunities.map((community) => (
+              <CommunityCard key={community.id} community={community} />
+            ))}
+          </div>
+        )}
+      </main>
     </AppShell>
   )
 }

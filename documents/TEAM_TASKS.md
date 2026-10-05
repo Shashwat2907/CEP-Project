@@ -174,60 +174,60 @@ Kedar: `docs/acad-and-community-spec`
 ## Kushal: branches (start after Stage 0 is merged)
 
 ### `feat/complaints-core`
-- [ ] Migrations: `complaint_domains`, `domain_assignees`, `complaints`, `complaint_events`, `complaint_attachments` with RLS
-- [ ] Seed domains and an example chain per domain (clearly labelled seed values)
-- [ ] Raise complaint form: domain picker (nested), problem description, attachments, anonymous option
-- [ ] "My complaints" list with status chips
-- [ ] Handler view for complaints assigned to the logged-in authority
-- [ ] Resolve flow with note; student confirm or reopen; auto-close after the confirmation window
-- [ ] Notifications on every state change using `notify()`
+- [x] Migrations: `complaint_domains`, `domain_assignees`, `complaints`, `complaint_events`, `complaint_attachments` with RLS
+- [x] Seed domains and an example chain per domain (clearly labelled seed values)
+- [x] Raise complaint form: domain picker (nested), problem description, attachments, anonymous option
+- [x] "My complaints" list with status chips
+- [x] Handler view for complaints assigned to the logged-in authority
+- [x] Resolve flow with note; student confirm or reopen; auto-close after the confirmation window
+- [x] Notifications on every state change using `notify()`
 
 ### `feat/complaints-escalation`
-- [ ] Edge Function plus scheduled job that escalates overdue complaints to the next level (idempotent: running twice never escalates twice)
-- [ ] Complaint timeline component showing every level and time
-- [ ] Top-level behaviour: flag "needs admin attention" and notify admin
-- [ ] Sensitive domains (ragging, harassment) route directly to the committee and never appear on the public tracker
-- [ ] Tests with shortened SLAs covering each level, resolved before due, and double-run safety
+- [x] Edge Function plus scheduled job that escalates overdue complaints to the next level (idempotent: running twice never escalates twice)
+- [x] Complaint timeline component showing every level and time
+- [x] Top-level behaviour: flag "needs admin attention" and notify admin
+- [x] Sensitive domains (ragging, harassment) route directly to the committee and never appear on the public tracker
+- [x] Tests with shortened SLAs covering each level, resolved before due, and double-run safety
 
 ### `feat/complaints-tracker-and-upvotes`
-- [ ] Migration: `complaint_upvotes` with unique constraint per user and complaint
-- [ ] Similar-complaint suggestions while typing (full text search and similarity)
-- [ ] Upvote button; upvotes raise priority and shorten the next SLA slightly
-- [ ] Public tracker: sorted by longest pending by default, filters by domain and status
-- [ ] Duplicate handling: handler can mark "closed as duplicate" and merge upvotes
+- [x] Migration: `complaint_upvotes` with unique constraint per user and complaint
+- [x] Similar-complaint suggestions while typing (full text search and similarity)
+- [x] Upvote button; upvotes raise priority and shorten the next SLA slightly
+- [x] Public tracker: sorted by longest pending by default, filters by domain and status
+- [x] Duplicate handling: handler can mark "closed as duplicate" and merge upvotes
 
 ### `feat/meet-availability`
-- [ ] Migrations: `availability_rules`, `availability_exceptions`
-- [ ] Teacher screen: weekly slots and one-off exceptions
-- [ ] Slot generation on read with short caching
-- [ ] Student view: browse teachers and open slots
+- [x] Migrations: `availability_rules`, `availability_exceptions`
+- [x] Teacher screen: weekly slots and one-off exceptions
+- [x] Slot generation on read with short caching
+- [x] Student view: browse teachers and open slots
 
 ### `feat/meet-booking`
-- [ ] Migration: `session_requests` with an exclusion constraint preventing overlapping accepted sessions per teacher
-- [ ] Student request with reason; teacher accept or decline; student chooses offline (location) or online after acceptance
-- [ ] Calendar entries for both and notifications through shared helpers
-- [ ] Reminders job; cancel and reschedule rules from the spec
-- [ ] Test: two simultaneous requests for one slot, exactly one succeeds and the other gets a clear message
+- [x] Migration: `session_requests` with an exclusion constraint preventing overlapping accepted sessions per teacher
+- [x] Student request with reason; teacher accept or decline; student chooses offline (location) or online after acceptance
+- [x] Calendar entries for both and notifications through shared helpers
+- [x] Reminders job; cancel and reschedule rules from the spec
+- [x] Test: two simultaneous requests for one slot, exactly one succeeds and the other gets a clear message
 
 ### `feat/meet-online-call`
-- [ ] LiveKit room created on accept; join page restricted to the two participants within the time window
-- [ ] Call UI (camera, mic, leave) following `DESIGN.md`
-- [ ] Early version may use an embedded room link; replace with LiveKit components
+- [x] LiveKit room created on accept; join page restricted to the two participants within the time window
+- [x] Call UI (camera, mic, leave) following `DESIGN.md`
+- [x] Early version may use an embedded room link; replace with LiveKit components
 
 ### `feat/meet-whiteboard`
-- [ ] tldraw room per booking with multiplayer sync
-- [ ] Save snapshot when the session ends; view past whiteboards from the booking
-- [ ] Permission check: only participants can open the room
+- [x] tldraw room per booking with multiplayer sync
+- [x] Save snapshot when the session ends; view past whiteboards from the booking
+- [x] Permission check: only participants can open the room
 
 ---
 
 ## Kedar: branches (start after Stage 0 is merged)
 
 ### `feat/acad-resources-core`
-- [ ] Migrations: subjects, `resources` with RLS and a storage bucket with policies
-- [ ] Upload form for teachers and students (year, branch, subject, type, file)
-- [ ] Student uploads start as `pending`; teacher approval queue with approve and reject reason
-- [ ] Signed URL download and view
+- [x] Migrations: subjects, `resources` with RLS and a storage bucket with policies
+- [x] Upload form for teachers and students (year, branch, subject, type, file)
+- [x] Student uploads start as `pending`; teacher approval queue with approve and reject reason
+- [x] Signed URL download and view
 
 ### `feat/acad-browse-and-filter`
 - [x] Resource list defaulting to the student's own year and branch
@@ -242,32 +242,32 @@ Kedar: `docs/acad-and-community-spec`
 
 
 ### `feat/flashcards`
-- [ ] Migrations: `flashcard_decks`, `flashcards`, `flashcard_reviews`
-- [ ] Generate a deck from a selected resource with Gemini, grounded in chunks, each card linked to its source page
-- [ ] Study view with flip and rating; simple spaced repetition scheduling
-- [ ] Edit, delete and regenerate cards; daily limit respected
+- [x] Migrations: `flashcard_decks`, `flashcards`, `flashcard_reviews`
+- [x] Generate a deck from a selected resource with Gemini, grounded in chunks, each card linked to its source page
+- [x] Study view with flip and rating; simple spaced repetition scheduling
+- [x] Edit, delete and regenerate cards; daily limit respected
 
 ### `feat/doubt-chat`
-- [ ] Retrieval-augmented chat scoped to one resource or one subject
-- [ ] Answers show citations to resource and page; if retrieval is weak the bot says it could not find it
-- [ ] Chat history per user and resource; limit and error states
+- [x] Retrieval-augmented chat scoped to one resource or one subject
+- [x] Answers show citations to resource and page; if retrieval is weak the bot says it could not find it
+- [x] Chat history per user and resource; limit and error states
 
 ### `feat/community-core`
-- [ ] Migrations: `communities`, `community_members` with RLS
-- [ ] Auto-create official communities from the roster: year, subject, batch; teacher-moderated
-- [ ] Unofficial communities created by students; join, leave, member list
-- [ ] Community list and discovery with filters
+- [x] Migrations: `communities`, `community_members` with RLS
+- [x] Auto-create official communities from the roster: year, subject, batch; teacher-moderated
+- [x] Unofficial communities created by students; join, leave, member list
+- [x] Community list and discovery with filters
 
 ### `feat/community-chat`
-- [ ] Migrations: `messages`, `message_votes`
-- [ ] Realtime chat with replies, reactions, attachments, unread counts
-- [ ] Reusable chat component exported through `shared/` for events and clubs
-- [ ] Report message, mute, moderator actions, rate limiting
+- [x] Migrations: `messages`, `message_votes`
+- [x] Realtime chat with replies, reactions, attachments, unread counts
+- [x] Reusable chat component exported through `shared/` for events and clubs
+- [x] Report message, mute, moderator actions, rate limiting
 
 ### `feat/community-tags`
-- [ ] Migration: `community_tags`
-- [ ] Upvote on replies; database trigger awards tags (for example Helper, Doubt solver) at configurable thresholds per community
-- [ ] Tags shown next to names in chat and on profiles
+- [x] Migration: `community_tags`
+- [x] Upvote on replies; database trigger awards tags (for example Helper, Doubt solver) at configurable thresholds per community
+- [x] Tags shown next to names in chat and on profiles
 
 ### `feat/clubs-core`
 - [ ] Migrations: `clubs`, `club_members`, `club_notices` with RLS

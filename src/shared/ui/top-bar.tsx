@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Link from 'next/link'
 import { Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { StatusCluster, type PresenceState } from './status-cluster'
@@ -49,9 +50,13 @@ export function TopBar({
         </button>
 
         {/* Mobile brand monogram */}
-        <span className="md:hidden font-display font-bold text-ink text-base tracking-tight">
-          Campus
-        </span>
+        <Link
+          href="/"
+          className="md:hidden font-display font-bold text-ink text-base tracking-tight hover:text-primary transition-colors flex items-center gap-1.5"
+        >
+          <span className="w-6 h-6 rounded-sm bg-ink text-on-ink text-xs font-bold flex items-center justify-center">C</span>
+          <span>Campus</span>
+        </Link>
       </div>
 
       {/* Right side: Signature status cluster (DESIGN.MD §6 & §7) */}

@@ -1,82 +1,92 @@
 import Link from 'next/link'
-import { Flag, ArrowLeft, Clock } from 'lucide-react'
+import { ArrowLeft, Flag, Users, Search, Star } from 'lucide-react'
+import { requireAuth } from '@/shared/auth/guards'
+import { getCurrentProfile } from '@/shared/auth/session'
+import { getClubs } from '@/features/clubs/queries'
 import { AppShell } from '@/shared/ui/app-shell'
+import { ClubDirectoryClient } from './ClubDirectoryClient'
+import type { Metadata } from 'next'
 
-export const metadata = {
-  title: 'Student Clubs & Chapters | Campus Portal',
-  description: 'Explore campus student organizations and technical societies.',
+export const metadata: Metadata = {
+  title: 'Clubs — Campus App',
+  description: 'Browse and join campus clubs. From coding and robotics to literary society and entrepreneurship.',
 }
 
-export default function ClubsPage() {
+export default async function ClubsPage() {
+  const { user } = await requireAuth()
+  const profile = await getCurrentProfile()
+
+  const clubs = await getClubs()
+  const myClubs = clubs.filter((c) => c.user_status === 'member')
+
   return (
     <AppShell
-      initialRole="student"
-      userName="Shashwat Choudhary"
-      identifier="23BCE1042"
-      department="Computer Science & Engineering"
-      userEmail="shashwat@college.edu"
+      initialRole={profile?.role_primary ?? 'student'}
+      userName={profile?.full_name ?? 'Student'}
+      identifier={profile?.college_id ?? '23BCE1001'}
+      department={profile?.branch ? `${profile.branch} (Year ${profile.year ?? 2})` : 'Computer Science'}
+      userEmail={profile?.college_email ?? 'student@campus.edu'}
       activePath="/clubs"
     >
-      <div className="w-full max-w-2xl py-6 space-y-6">
-        <div className="border-b border-border pb-4">
-          <Link
-            href="/"
-            className="text-small text-ink-muted hover:text-ink flex items-center gap-1.5 mb-3 transition-colors"
-          >
-            <ArrowLeft size={14} />
-            <span>Back to Campus Life</span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-color-clubs" />
-            <h1 className="font-display text-h1 font-bold text-ink">
-              Student Clubs & Technical Chapters
-            </h1>
-          </div>
-          <p className="text-small text-ink-muted mt-1">
-            Registered collegiate societies, recruitment cycles, and club events.
-          </p>
-        </div>
-
-        <div className="p-6 rounded-md border border-border bg-surface space-y-4">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 rounded-sm bg-color-clubs/10 border border-color-clubs/30 flex items-center justify-center text-color-clubs shrink-0">
-              <Flag size={20} />
-            </div>
-            <div>
-              <h2 className="font-display text-small font-bold text-ink">
-                Clubs & Chapters Module
-              </h2>
-              <p className="text-meta font-mono text-ink-muted mt-0.5">
-                Feature branch: feat/clubs-directory · Owner: Kedar
-              </p>
-            </div>
-          </div>
-
-          <p className="text-small text-ink-muted leading-relaxed">
-            Club directory, membership applications, and announcement boards are being built per TEAM_TASKS.md. In the meantime, you can explore all upcoming club-organized hackathons and technical workshops in the Events directory.
-          </p>
-
-          <div className="p-3.5 rounded-sm bg-surface-sunken border border-border flex items-center gap-2 text-meta font-mono text-ink-muted">
-            <Clock size={14} className="text-ink" />
-            <span>Scheduled for release in Phase 2 integration sprint.</span>
-          </div>
-
-          <div className="pt-2 flex items-center gap-3">
-            <Link
-              href="/events"
-              className="px-4 py-2 rounded-sm bg-ink text-on-ink text-small font-semibold hover:opacity-90 transition-opacity"
-            >
-              Explore Club Events & Hackathons
-            </Link>
+      <main className="p-4 md:p-6 max-w-6xl mx-auto w-full">
+        {/* Breadcrumb */}
+        <div className="flex items-center justify-between mb-6 pb-4 border-b border-border">
+          <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="px-4 py-2 rounded-sm border border-border bg-surface text-small font-medium text-ink hover:bg-surface-sunken transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-sm border border-border bg-surface hover:bg-surface-sunken text-ink transition-colors"
             >
-              Return to Overview
+              <ArrowLeft size={14} />
+              <span>Return to Homepage</span>
             </Link>
+            <div className="h-4 w-px bg-border" />
+            <span className="text-xs text-ink-muted flex items-center gap-1.5">
+              <Flag size={13} />
+              Campus Clubs
+            </span>
           </div>
+          <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-primary/10 text-primary border border-primary/20">
+            {myClubs.length} {myClubs.length === 1 ? 'Club Joined' : 'Clubs Joined'}
+          </span>
         </div>
-      </div>
+
+        {/* Hero */}
+        <div className="mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold font-display text-ink flex items-center gap-2.5 mb-2">
+            <Flag size={28} className="text-primary" />
+            Campus Clubs
+          </h1>
+          <p className="text-sm text-ink-muted max-w-2xl">
+            Join clubs that match your interests — coding, photography, robotics, writing, and more.
+            Free clubs require lead approval. Paid clubs activate membership only after verified payment.
+          </p>
+        </div>
+
+        {/* My Clubs quick section */}
+        {myClubs.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-sm font-semibold text-ink-muted uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Star size={14} className="text-amber-500" />
+              My Clubs
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {myClubs.map((club) => (
+                <Link
+                  key={club.id}
+                  href={`/clubs/${club.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-full border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                >
+                  <Flag size={11} />
+                  {club.name}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Client-side directory with search and filters */}
+        <ClubDirectoryClient clubs={clubs} currentUserId={user.id} />
+      </main>
     </AppShell>
   )
 }

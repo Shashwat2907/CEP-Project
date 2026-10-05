@@ -6,7 +6,7 @@ export function PwaRegister() {
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
 
-    // Never run or cache service worker in development mode (prevents stale HMR / chunk conflicts)
+    // In development mode, unregister active service workers to prevent aggressive precaching lag
     if (process.env.NODE_ENV !== 'production' || window.location.hostname === 'localhost') {
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         for (const registration of registrations) {
@@ -14,9 +14,9 @@ export function PwaRegister() {
         }
       })
       if ('caches' in window) {
-        caches.keys().then((names) => {
-          for (const name of names) {
-            caches.delete(name)
+        caches.keys().then((keys) => {
+          for (const key of keys) {
+            caches.delete(key)
           }
         })
       }
@@ -25,12 +25,8 @@ export function PwaRegister() {
 
     navigator.serviceWorker
       .register('/sw.js')
-      .then(() => {
-        // Registered service worker in production
-      })
-      .catch(() => {
-        // Registration non-blocking
-      })
+      .then(() => {})
+      .catch(() => {})
   }, [])
 
   return null

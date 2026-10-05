@@ -163,3 +163,45 @@ ON CONFLICT (code, branch) DO NOTHING;
 -- Run this manually after seeding sign-ins, or handle in a migration trigger.
 -- Placeholder: left empty until real teacher profile UUIDs are known.
 -- INSERT INTO public.teacher_subjects (teacher_id, subject_id) VALUES (...) ON CONFLICT DO NOTHING;
+
+-- ==============================================================================
+-- 4. Complaint Domains & Escalation Chains (Kushal)
+-- Source of truth: src/features/complaints/README.md
+-- SEED VALUES: Confirm with college administration before production.
+-- ==============================================================================
+INSERT INTO public.complaint_domains (id, name, description, parent_id, sensitive, routing_mode, visibility) VALUES
+  ('10000000-0000-0000-0000-000000000001', 'Academic – Subject', 'Syllabus doubt, teaching-related issue', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000002', 'Academic – Class', 'Timetable clash, class-level scheduling', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000003', 'Academic – Department', 'Department-level academic issue', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000004', 'Lab / Practical', 'Equipment issue, computer or instrument not working', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000005', 'Hostel – Cleanliness & Maintenance', 'Room cleanliness, broken furniture, water or electrical issue', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000006', 'Hostel – Rules & Conduct', 'Hostel rules violation, student conduct or dispute', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000007', 'Mess / Food', 'Food quality, hygiene, service or catering issue', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000008', 'Infrastructure', 'Classroom furniture, electrical, campus facility', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000009', 'Administrative – Scholarship & Fees', 'Scholarship application, fee status, finance desk', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000010', 'Administrative – ID Card & Docs', 'New ID card, loss, replacement, bonafide certificate', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000011', 'Club / Student Activity', 'Club membership, event scheduling, club resources', NULL, false, 'chain', 'public'),
+  ('10000000-0000-0000-0000-000000000012', 'Harassment & Ragging', 'Anti-Ragging and campus safety (Strictly private and anonymous)', NULL, true, 'direct', 'private')
+ON CONFLICT (id) DO NOTHING;
+
+-- Seed Domain Assignees (Level 1: 24h, Level 2: 48h, Level 3: 72h)
+INSERT INTO public.domain_assignees (domain_id, level, role_name, sla_hours, escalation_condition) VALUES
+  -- Academic – Subject
+  ('10000000-0000-0000-0000-000000000001', 1, 'Subject Teacher', 24, 'on_sla_breach'),
+  ('10000000-0000-0000-0000-000000000001', 2, 'Class Coordinator', 48, 'on_sla_breach'),
+  ('10000000-0000-0000-0000-000000000001', 3, 'HOD', 72, 'on_sla_breach'),
+
+  -- Hostel – Cleanliness & Maintenance
+  ('10000000-0000-0000-0000-000000000005', 1, 'Cleaning Staff / Hostel Caretaker', 24, 'on_sla_breach'),
+  ('10000000-0000-0000-0000-000000000005', 2, 'Hostel Warden', 48, 'on_sla_breach'),
+  ('10000000-0000-0000-0000-000000000005', 3, 'Management Team', 72, 'on_sla_breach'),
+
+  -- Mess / Food
+  ('10000000-0000-0000-0000-000000000007', 1, 'Mess In-charge', 24, 'on_sla_breach'),
+  ('10000000-0000-0000-0000-000000000007', 2, 'Hostel Warden', 48, 'on_sla_breach'),
+  ('10000000-0000-0000-0000-000000000007', 3, 'Management Team', 72, 'on_sla_breach'),
+
+  -- Harassment & Ragging (Direct route to Anti-Ragging Committee)
+  ('10000000-0000-0000-0000-000000000012', 1, 'Anti-Ragging Committee', 24, 'on_sla_breach'),
+  ('10000000-0000-0000-0000-000000000012', 2, 'Principal / Director', 48, 'on_sla_breach')
+ON CONFLICT (domain_id, level) DO NOTHING;

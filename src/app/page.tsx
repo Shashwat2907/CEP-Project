@@ -16,17 +16,21 @@ import { AppShell } from '@/shared/ui/app-shell'
 import { CampusNoticeBoard } from '@/shared/ui/campus-notice-board'
 import { TodayScheduleBlock } from '@/features/calendar/components/today-schedule-block'
 import { getTodayCalendarEntriesAction } from '@/features/calendar/actions'
+import { getCurrentProfile } from '@/shared/auth/session'
 
 export default async function Home() {
-  const todayEntries = await getTodayCalendarEntriesAction()
+  const [todayEntries, profile] = await Promise.all([
+    getTodayCalendarEntriesAction(),
+    getCurrentProfile(),
+  ])
 
   return (
     <AppShell
-      initialRole="student"
-      userName="Shashwat Choudhary"
-      identifier="23BCE1042"
-      department="Computer Science & Engineering"
-      userEmail="shashwat@college.edu"
+      initialRole={profile?.role_primary ?? 'student'}
+      userName={profile?.full_name ?? 'Aarav Mehta'}
+      identifier={profile?.college_id ?? '23BCE1001'}
+      department={profile?.branch ? `${profile.branch} (Year ${profile.year ?? 2})` : 'Computer Science'}
+      userEmail={profile?.college_email ?? 'student@campus.edu'}
       activePath="/"
     >
       <div className="w-full space-y-8">
