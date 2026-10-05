@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { cookies } from 'next/headers'
 import {
   RequestCodeSchema,
@@ -42,8 +43,9 @@ export async function requestCodeAction(
   // 1. Verify against roster_import (with local mock roster fallback)
   let rosterEntry: { id: string; college_email: string; status: string; role: string } | null = null
   try {
-    const supabase = await createClient()
-    const { data } = await supabase
+    const admin = createAdminClient()
+    const client = admin || (await createClient())
+    const { data } = await client
       .from('roster_import')
       .select('id, college_email, status, role')
       .eq('college_email', normalizedEmail)
@@ -73,8 +75,9 @@ export async function requestCodeAction(
 
   if (!rosterEntry || rosterEntry.status === 'inactive') {
     try {
-      const supabase = await createClient()
-      await supabase.from('login_attempts').insert({
+      const admin = createAdminClient()
+      const client = admin || (await createClient())
+      await client.from('login_attempts').insert({
         email: normalizedEmail,
         kind: 'code_request',
         success: false,
@@ -105,7 +108,9 @@ export async function requestCodeAction(
 
     if (!otpError) {
       otpSent = true
-      await supabase.from('login_attempts').insert({
+      const admin = createAdminClient()
+      const client = admin || supabase
+      await client.from('login_attempts').insert({
         email: normalizedEmail,
         kind: 'code_request',
         success: true,
@@ -208,8 +213,9 @@ export async function verifyCodeAction(
 
   if (!verifiedUserId) {
     try {
-      const supabase = await createClient()
-      await supabase.from('login_attempts').insert({
+      const admin = createAdminClient()
+      const client = admin || (await createClient())
+      await client.from('login_attempts').insert({
         email: normalizedEmail,
         kind: 'code_verify',
         success: false,
@@ -228,8 +234,9 @@ export async function verifyCodeAction(
   // 2. Check if roster entry is still active
   let rosterEntry: MockRosterEntry | null = null
   try {
-    const supabase = await createClient()
-    const { data } = await supabase
+    const admin = createAdminClient()
+    const client = admin || (await createClient())
+    const { data } = await client
       .from('roster_import')
       .select('*')
       .eq('college_email', normalizedEmail)
@@ -249,7 +256,9 @@ export async function verifyCodeAction(
     try {
       const supabase = await createClient()
       await supabase.auth.signOut({ scope: 'global' })
-      await supabase.from('login_attempts').insert({
+      const admin = createAdminClient()
+      const client = admin || supabase
+      await client.from('login_attempts').insert({
         email: normalizedEmail,
         kind: 'code_verify',
         success: false,
@@ -287,15 +296,16 @@ export async function verifyCodeAction(
 
   // 3. Provision profile and roles on first sign-in (if Supabase is available)
   try {
-    const supabase = await createClient()
-    const { data: existingProfile } = await supabase
+    const admin = createAdminClient()
+    const client = admin || (await createClient())
+    const { data: existingProfile } = await client
       .from('profiles')
       .select('id, status')
       .eq('id', verifiedUserId)
       .single()
 
     if (!existingProfile) {
-      await supabase.from('profiles').insert({
+      await client.from('profiles').insert({
         id: verifiedUserId,
         college_email: rosterEntry.college_email,
         college_id: rosterEntry.college_id,
@@ -308,18 +318,18 @@ export async function verifyCodeAction(
         status: 'active',
       })
 
-      await supabase.from('user_roles').insert({
+      await client.from('user_roles').insert({
         user_id: verifiedUserId,
         role: rosterEntry.role,
       })
 
-      await supabase
+      await client
         .from('roster_import')
         .update({ status: 'active', updated_at: new Date().toISOString() })
         .eq('id', rosterEntry.id)
     }
 
-    await supabase.from('login_attempts').insert({
+    await client.from('login_attempts').insert({
       email: normalizedEmail,
       kind: 'code_verify',
       success: true,

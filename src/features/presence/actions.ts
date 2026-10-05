@@ -23,6 +23,8 @@ import { isPointInPolygon, calculateConfidence } from './polygon'
 import { writeAudit } from '@/shared/audit/audit'
 import { emitEvent } from '@/shared/outbox/outbox'
 import { createClient } from '@/lib/supabase/server'
+import { isSupabaseOnline } from '@/lib/supabase/status'
+import { getCurrentUser } from '@/shared/auth/session'
 
 export type PresenceActionResult<T> =
   | { ok: true; data: T }
@@ -49,6 +51,19 @@ export interface PresenceDbClient {
   from: (table: string) => PresenceDbQuery
 }
 
+async function resolveDbClient(providedClient?: PresenceDbClient): Promise<PresenceDbClient | undefined> {
+  if (providedClient) return providedClient
+  if (await isSupabaseOnline()) {
+    try {
+      const client = await createClient()
+      return client as unknown as PresenceDbClient
+    } catch {
+      return undefined
+    }
+  }
+  return undefined
+}
+
 interface RawConsentData {
   user_id: string
   consent_given?: boolean
@@ -72,11 +87,13 @@ interface RawStatusData {
 async function resolveUserId(userId?: string): Promise<string | null> {
   if (userId) return userId
   try {
+    const user = await getCurrentUser()
+    if (user?.id) return user.id
     const supabase = await createClient()
     const {
-      data: { user },
+      data: { user: authUser },
     } = await supabase.auth.getUser()
-    return user?.id ?? null
+    return authUser?.id ?? null
   } catch {
     return null
   }
@@ -93,6 +110,7 @@ export async function getPresenceState(
   consent: PresenceConsentRecord | null
   status: PresenceEvaluationResult | null
 }>> {
+  client = await resolveDbClient(client)
   const userId = await resolveUserId(providedUserId)
   if (!userId) {
     // Return empty state for unauthenticated visitor
@@ -198,6 +216,7 @@ export async function updatePresenceConsent(
     }
   }
 
+  client = await resolveDbClient(client)
   const userId = await resolveUserId(providedUserId)
   if (!userId) {
     return {
@@ -285,6 +304,7 @@ export async function togglePresencePause(
   client?: PresenceDbClient,
   providedUserId?: string
 ): Promise<PresenceActionResult<{ isPaused: boolean }>> {
+  client = await resolveDbClient(client)
   const userId = await resolveUserId(providedUserId)
   if (!userId) {
     return {
@@ -355,6 +375,7 @@ export async function verifyPresence(
     }
   }
 
+  client = await resolveDbClient(client)
   const userId = await resolveUserId(providedUserId)
   if (!userId) {
     return {
@@ -575,6 +596,7 @@ export async function saveCampusZone(
 export async function getCampusZones(
   client?: PresenceDbClient
 ): Promise<PresenceActionResult<CampusZone[]>> {
+  client = await resolveDbClient(client)
   if (!client) {
     return { ok: true, data: [DEFAULT_CAMPUS_ZONE] }
   }
@@ -688,6 +710,7 @@ export async function appendHeartbeat(
   }
   const { latitude, longitude, accuracy, source } = parse.data
 
+  client = await resolveDbClient(client)
   // 2. Auth
   const userId = await resolveUserId(providedUserId)
   if (!userId) {

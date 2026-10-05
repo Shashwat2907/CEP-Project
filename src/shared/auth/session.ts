@@ -90,7 +90,23 @@ export async function getCurrentProfile(): Promise<UserProfile | null> {
   const user = await getCurrentUser()
   if (!user) return null
 
-  // 1. Dev mock profile fallback (when using role switcher or local roster)
+  // 1. Real Supabase profile table
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) return profile as UserProfile
+    } catch {
+      // Offline / Supabase unreachable
+    }
+  }
+
+  // 2. Dev mock profile fallback (when using role switcher or local roster)
   if (process.env.DEV_PRINT_OTP_TO_CONSOLE === 'true' || process.env.NODE_ENV !== 'production') {
     const roster = MOCK_ROSTER.find(
       (r) =>
@@ -116,22 +132,6 @@ export async function getCurrentProfile(): Promise<UserProfile | null> {
     }
   }
 
-  // 2. Real Supabase profile table
-  if (await isSupabaseOnline()) {
-    try {
-      const supabase = await createClient()
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      if (profile) return profile as UserProfile
-    } catch {
-      // Offline / Supabase unreachable
-    }
-  }
-
   return null
 }
 
@@ -139,6 +139,7 @@ export async function getCurrentRoles(): Promise<UserRole[]> {
   const user = await getCurrentUser()
   if (!user) return []
 
+  // 1. Real Supabase user_roles table
   if (await isSupabaseOnline()) {
     try {
       const supabase = await createClient()
@@ -153,7 +154,7 @@ export async function getCurrentRoles(): Promise<UserRole[]> {
     }
   }
 
-  // Dev mock roles fallback
+  // 2. Dev mock roles fallback
   if (process.env.DEV_PRINT_OTP_TO_CONSOLE === 'true' || process.env.NODE_ENV !== 'production') {
     const roster = MOCK_ROSTER.find(
       (r) =>

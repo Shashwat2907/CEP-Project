@@ -28,8 +28,8 @@ export async function isSupabaseOnline(): Promise<boolean> {
   inFlightCheck = (async () => {
     try {
       const controller = new AbortController()
-      const timer = setTimeout(() => controller.abort(), 350)
-      const res = await fetch(`${url}/rest/v1/`, {
+      const timer = setTimeout(() => controller.abort(), 2000)
+      const res = await fetch(`${url}/auth/v1/health`, {
         headers: {
           apikey: key,
         },
@@ -37,14 +37,14 @@ export async function isSupabaseOnline(): Promise<boolean> {
       }).catch(() => null)
       clearTimeout(timer)
 
-      const online = Boolean(res && res.status !== 0)
+      const online = Boolean(res && res.status >= 200 && res.status < 500)
       cache = {
         online,
-        expiresAt: Date.now() + (online ? 30000 : 30000),
+        expiresAt: Date.now() + (online ? 60000 : 5000),
       }
       return online
     } catch {
-      cache = { online: false, expiresAt: Date.now() + 30000 }
+      cache = { online: false, expiresAt: Date.now() + 5000 }
       return false
     } finally {
       inFlightCheck = null
