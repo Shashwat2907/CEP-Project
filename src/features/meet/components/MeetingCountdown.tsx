@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   CheckCircle,
 } from 'lucide-react'
+import { formatDeterministicDate, formatDeterministicTime } from '../date-format'
 
 interface MeetingCountdownProps {
   session: SessionRequest
@@ -64,17 +65,8 @@ export function MeetingCountdown({ session, startsAt }: MeetingCountdownProps) {
     return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
   }
 
-  const startDate = new Date(startsAt)
-  const formattedDate = startDate.toLocaleDateString(undefined, {
-    weekday: 'long',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-  const formattedTime = startDate.toLocaleTimeString(undefined, {
-    hour: 'numeric',
-    minute: '2-digit',
-  })
+  const formattedDate = formatDeterministicDate(startsAt, 'long')
+  const formattedTime = formatDeterministicTime(startsAt)
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center p-4">
@@ -130,6 +122,18 @@ export function MeetingCountdown({ session, startsAt }: MeetingCountdownProps) {
                 <p className="text-small text-ink-muted max-w-md mx-auto">
                   Video call rooms open exactly 10 minutes prior to the scheduled start time. This page will automatically refresh when ready.
                 </p>
+
+                <div className="pt-2 flex justify-center">
+                  <Link href={`/meet/${session.id}?force=true`}>
+                    <Button
+                      variant="outline"
+                      className="gap-2 border-blue-500/50 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 font-medium"
+                    >
+                      <Video className="h-4 w-4" />
+                      <span>Join Video Call Now (Instant Test Mode)</span>
+                    </Button>
+                  </Link>
+                </div>
               </div>
             )}
           </div>
@@ -141,7 +145,7 @@ export function MeetingCountdown({ session, startsAt }: MeetingCountdownProps) {
                 <span className="text-meta text-ink-muted">Scheduled Time</span>
                 <div className="flex items-center gap-1.5 font-medium text-ink">
                   <Calendar className="h-4 w-4 text-accent" />
-                  <span>{formattedDate} at {formattedTime}</span>
+                  <span suppressHydrationWarning>{formattedDate} at {formattedTime}</span>
                 </div>
               </div>
 

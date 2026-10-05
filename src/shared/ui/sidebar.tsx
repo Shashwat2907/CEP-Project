@@ -50,7 +50,7 @@ export const STUDENT_NAV_ITEMS: NavItem[] = [
 
 export const TEACHER_NAV_ITEMS: NavItem[] = [
   { label: 'Home', href: '/', icon: Home },
-  { label: 'Sessions', href: '/sessions', icon: CalendarClock },
+  { label: 'Meet', href: '/meet', icon: CalendarClock },
   { label: 'Assigned Complaints', href: '/complaints/assigned', icon: ClipboardList },
   { label: 'Resources', href: '/teacher/acad', icon: BookOpen },
   { label: 'Calendar', href: '/calendar', icon: CalendarDays },

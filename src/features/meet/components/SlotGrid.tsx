@@ -8,6 +8,7 @@ import { EmptyState } from '@/shared/ui/empty-state'
 import { Clock, Calendar, Sparkles } from 'lucide-react'
 import { fetchSlotsAction } from '../actions'
 import type { GeneratedSlot } from '../schema'
+import { formatDeterministicDate } from '../date-format'
 
 interface SlotGridProps {
   teacherId: string
@@ -21,11 +22,7 @@ interface SlotGridProps {
 function formatDateDisplay(dateStr: string): string {
   const [y, m, d] = dateStr.split('-').map(Number)
   const dt = new Date(y, m - 1, d)
-  return dt.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  })
+  return formatDeterministicDate(dt, 'short-no-year')
 }
 
 function getNext7Days(): string[] {
@@ -131,7 +128,7 @@ export function SlotGrid({
                 <div className="text-meta opacity-80">
                   {idx === 0 ? 'Today' : idx === 1 ? 'Tomorrow' : dateStr.slice(5)}
                 </div>
-                <div className="font-semibold text-small leading-tight">
+                <div className="font-semibold text-small leading-tight" suppressHydrationWarning>
                   {formatDateDisplay(dateStr)}
                 </div>
               </button>

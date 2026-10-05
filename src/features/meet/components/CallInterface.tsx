@@ -60,24 +60,29 @@ export function CallInterface({ access }: CallInterfaceProps) {
 
   // Session Time Remaining Calculation
   const endsAtMs = new Date(session.ends_at).getTime()
+  const initialDiffSec = Math.floor((endsAtMs - Date.now()) / 1000)
+  const isExpiredInitially = initialDiffSec <= 0
   const [remainingSec, setRemainingSec] = useState(() =>
-    Math.max(0, Math.floor((endsAtMs - Date.now()) / 1000))
+    isExpiredInitially ? 30 * 60 : initialDiffSec
   )
   const [isTimeExpired, setIsTimeExpired] = useState(false)
 
   // Timer countdown
   useEffect(() => {
     const timer = setInterval(() => {
-      const remaining = Math.max(0, Math.floor((endsAtMs - Date.now()) / 1000))
-      setRemainingSec(remaining)
-      if (remaining <= 0) {
-        setIsTimeExpired(true)
-        clearInterval(timer)
-      }
+      setRemainingSec((prev) => {
+        const next = prev - 1
+        if (next <= 0) {
+          setIsTimeExpired(true)
+          clearInterval(timer)
+          return 0
+        }
+        return next
+      })
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [endsAtMs])
+  }, [])
 
   // Media initialization
   useEffect(() => {

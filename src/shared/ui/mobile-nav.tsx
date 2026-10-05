@@ -71,9 +71,9 @@ export function MobileNav({
         ]
       : role === 'teacher'
       ? [
-          { label: 'Sessions', href: '/sessions', icon: CalendarClock },
+          { label: 'Meet', href: '/meet', icon: CalendarClock },
           { label: 'Assigned Complaints', href: '/complaints/assigned', icon: ClipboardList },
-          { label: 'Resources', href: '/resources', icon: BookOpen },
+          { label: 'Resources', href: '/teacher/acad', icon: BookOpen },
           { label: 'Calendar', href: '/calendar', icon: CalendarDays },
         ]
       : [

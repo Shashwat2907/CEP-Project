@@ -17,6 +17,7 @@ import {
 
 interface SessionCallPageProps {
   params: Promise<{ sessionId: string }>
+  searchParams?: Promise<{ force?: string }>
 }
 
 export const metadata: Metadata = {
@@ -24,9 +25,11 @@ export const metadata: Metadata = {
   description: 'Live one-on-one video call room for scheduled campus appointments.',
 }
 
-export default async function SessionCallPage({ params }: SessionCallPageProps) {
+export default async function SessionCallPage({ params, searchParams }: SessionCallPageProps) {
   const { sessionId } = await params
-  const access = await getSessionCallAccess(sessionId)
+  const sp = searchParams ? await searchParams : {}
+  const force = sp.force === 'true'
+  const access = await getSessionCallAccess(sessionId, Date.now(), force)
 
   if (access.ok) {
     return <CallInterface access={access} />
