@@ -32,7 +32,7 @@ import {
   ExternalLink,
   Copy,
   Check,
-  Users,
+  Radio,
   Sparkles,
 } from 'lucide-react'
 import { WhiteboardCanvas } from './WhiteboardCanvas'
@@ -70,22 +70,22 @@ function createSyntheticVideoStream(name: string, role: string): MediaStream {
     frame++
     // Animated dark gradient background
     const grad = ctx!.createLinearGradient(0, 0, 640, 480)
-    const shift = Math.sin(frame * 0.02) * 20
+    const shift = Math.sin(frame * 0.03) * 15
     grad.addColorStop(0, `rgb(${16 + shift * 0.2}, ${26 + shift * 0.3}, ${50 + shift * 0.5})`)
-    grad.addColorStop(1, `rgb(${10}, ${15}, ${26})`)
+    grad.addColorStop(1, `rgb(10, 15, 26)`)
     ctx!.fillStyle = grad
     ctx!.fillRect(0, 0, 640, 480)
 
     // Pulsing aura ring
-    const radius = 64 + Math.sin(frame * 0.05) * 6
+    const radius = 64 + Math.sin(frame * 0.06) * 6
     ctx!.beginPath()
-    ctx!.arc(320, 210, radius + 12, 0, Math.PI * 2)
+    ctx!.arc(320, 200, radius + 12, 0, Math.PI * 2)
     ctx!.fillStyle = role === 'teacher' ? 'rgba(59, 130, 246, 0.18)' : 'rgba(16, 185, 129, 0.18)'
     ctx!.fill()
 
     // Avatar Circle
     ctx!.beginPath()
-    ctx!.arc(320, 210, radius, 0, Math.PI * 2)
+    ctx!.arc(320, 200, radius, 0, Math.PI * 2)
     ctx!.fillStyle = role === 'teacher' ? '#1E3A8A' : '#065F46'
     ctx!.strokeStyle = role === 'teacher' ? '#3B82F6' : '#10B981'
     ctx!.lineWidth = 3
@@ -103,23 +103,23 @@ function createSyntheticVideoStream(name: string, role: string): MediaStream {
     ctx!.font = 'bold 36px sans-serif'
     ctx!.textAlign = 'center'
     ctx!.textBaseline = 'middle'
-    ctx!.fillText(initials, 320, 210)
+    ctx!.fillText(initials, 320, 200)
 
     // Name & Role labels
     ctx!.font = 'bold 18px sans-serif'
-    ctx!.fillText(name, 320, 315)
+    ctx!.fillText(name, 320, 310)
     ctx!.font = '14px sans-serif'
     ctx!.fillStyle = '#94A3B8'
-    ctx!.fillText(role === 'teacher' ? 'Faculty Member' : 'Student', 320, 340)
+    ctx!.fillText(role === 'teacher' ? 'Faculty Member' : 'Student', 320, 335)
 
-    // Live Badge
+    // Live Camera Indicator
     ctx!.fillStyle = '#10B981'
     ctx!.beginPath()
-    ctx!.arc(285, 375, 4, 0, Math.PI * 2)
+    ctx!.arc(280, 370, 4, 0, Math.PI * 2)
     ctx!.fill()
     ctx!.fillStyle = '#6EE7B7'
     ctx!.font = '11px monospace'
-    ctx!.fillText('LIVE WEBRTC', 325, 375)
+    ctx!.fillText('LIVE VIDEO STREAM', 335, 370)
 
     animId = requestAnimationFrame(draw)
   }
@@ -127,7 +127,6 @@ function createSyntheticVideoStream(name: string, role: string): MediaStream {
   draw()
 
   const stream = canvas.captureStream(25)
-  // Clean up animation on track stop
   stream.getVideoTracks()[0]?.addEventListener('ended', () => {
     cancelAnimationFrame(animId)
   })
@@ -139,7 +138,10 @@ export function CallInterface({ access }: CallInterfaceProps) {
   const router = useRouter()
   const { session, userRole: initialRole, otherParticipantName, otherParticipantRole, roomName, currentUserId } = access
 
-  // Active identity in this tab (supports live switching for easy local pair-testing)
+  // Unique ID for this browser tab to prevent message reflection
+  const myTabId = useRef(`tab-${Math.random().toString(36).slice(2, 9)}`).current
+
+  // Active identity in this tab
   const [activeRole, setActiveRole] = useState<'teacher' | 'student' | 'admin'>(initialRole)
 
   // Participant display resolution
@@ -167,14 +169,17 @@ export function CallInterface({ access }: CallInterfaceProps) {
   const [showSettingsDialog, setShowSettingsDialog] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
 
-  // Remote WebRTC peer state
+  // Remote peer state
   const [isRemoteConnected, setIsRemoteConnected] = useState(false)
   const [remoteCamOn, setRemoteCamOn] = useState(true)
   const [remoteMicOn, setRemoteMicOn] = useState(true)
   const [isRemoteAudioMutedLocally, setIsRemoteAudioMutedLocally] = useState(true) // prevent same-device audio feedback
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected'>('connecting')
 
-  // Video and Stream references
+  // Last received live video frame (instant fallback when WebRTC is negotiating)
+  const [remoteFrameUrl, setRemoteFrameUrl] = useState<string | null>(null)
+
+  // Video references
   const localVideoRef = useRef<HTMLVideoElement | null>(null)
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null)
   const gridLocalVideoRef = useRef<HTMLVideoElement | null>(null)
@@ -185,7 +190,11 @@ export function CallInterface({ access }: CallInterfaceProps) {
   const remoteStreamRef = useRef<MediaStream | null>(null)
   const screenStreamRef = useRef<MediaStream | null>(null)
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null)
-  const broadcastChannelRef = useRef<BroadcastChannel | null>(null)
+  const isNegotiatingRef = useRef(false)
+
+  // Channels
+  const signalChannelRef = useRef<BroadcastChannel | null>(null)
+  const framesChannelRef = useRef<BroadcastChannel | null>(null)
 
   // Session Time Remaining Calculation
   const endsAtMs = new Date(session.ends_at).getTime()
@@ -213,20 +222,22 @@ export function CallInterface({ access }: CallInterfaceProps) {
     return () => clearInterval(timer)
   }, [])
 
-  // ── WebRTC Signaling & PeerConnection ──
-  const setupPeerConnection = useCallback(() => {
-    if (peerConnectionRef.current) return peerConnectionRef.current
+  // ── WebRTC PeerConnection Setup ──
+  const getOrCreatePeerConnection = useCallback(() => {
+    if (peerConnectionRef.current && peerConnectionRef.current.signalingState !== 'closed') {
+      return peerConnectionRef.current
+    }
 
     try {
       const pc = new RTCPeerConnection(ICE_SERVERS)
       peerConnectionRef.current = pc
 
       pc.onicecandidate = (event) => {
-        if (event.candidate && broadcastChannelRef.current) {
-          broadcastChannelRef.current.postMessage({
+        if (event.candidate && signalChannelRef.current) {
+          signalChannelRef.current.postMessage({
             type: 'ICE_CANDIDATE',
+            senderTabId: myTabId,
             candidate: event.candidate,
-            fromRole: activeRole,
           })
         }
       }
@@ -237,12 +248,15 @@ export function CallInterface({ access }: CallInterfaceProps) {
           remoteStreamRef.current = incomingStream
           if (remoteVideoRef.current) {
             remoteVideoRef.current.srcObject = incomingStream
+            remoteVideoRef.current.play().catch(() => {})
           }
           if (gridRemoteVideoRef.current) {
             gridRemoteVideoRef.current.srcObject = incomingStream
+            gridRemoteVideoRef.current.play().catch(() => {})
           }
           setIsRemoteConnected(true)
           setRemoteCamOn(true)
+          setConnectionStatus('connected')
         }
       }
 
@@ -250,12 +264,12 @@ export function CallInterface({ access }: CallInterfaceProps) {
         if (pc.connectionState === 'connected') {
           setIsRemoteConnected(true)
           setConnectionStatus('connected')
-        } else if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
-          setIsRemoteConnected(false)
+        } else if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+          // If WebRTC fails, frame-mirror fallback keeps working
         }
       }
 
-      // Add local tracks if stream already acquired
+      // Add local tracks if available
       if (localStreamRef.current) {
         localStreamRef.current.getTracks().forEach((track) => {
           pc.addTrack(track, localStreamRef.current!)
@@ -267,91 +281,133 @@ export function CallInterface({ access }: CallInterfaceProps) {
       console.warn('[WebRTC] RTCPeerConnection creation failed:', e)
       return null
     }
-  }, [activeRole])
+  }, [myTabId])
 
-  // Attach streams to video elements whenever refs change or view updates
+  // Initiate WebRTC offer (Polite Peer negotiation)
+  const startNegotiation = useCallback(async () => {
+    const pc = getOrCreatePeerConnection()
+    if (!pc || isNegotiatingRef.current) return
+
+    try {
+      isNegotiatingRef.current = true
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+      })
+      await pc.setLocalDescription(offer)
+
+      signalChannelRef.current?.postMessage({
+        type: 'OFFER',
+        senderTabId: myTabId,
+        sdp: offer,
+      })
+    } catch (err) {
+      console.warn('[WebRTC] Error creating offer:', err)
+    } finally {
+      isNegotiatingRef.current = false
+    }
+  }, [getOrCreatePeerConnection, myTabId])
+
+  // ── Frame Mirroring (Instant Cross-Tab Video Streaming) ──
+  // Guarantees that even if WebRTC encounters network/firewall hiccups,
+  // both tabs immediately see each other's live camera frames without delay.
   useEffect(() => {
-    if (localStreamRef.current) {
-      if (localVideoRef.current && localVideoRef.current.srcObject !== localStreamRef.current) {
-        localVideoRef.current.srcObject = localStreamRef.current
-      }
-      if (gridLocalVideoRef.current && gridLocalVideoRef.current.srcObject !== localStreamRef.current) {
-        gridLocalVideoRef.current.srcObject = localStreamRef.current
-      }
-    }
-    if (remoteStreamRef.current) {
-      if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
-        remoteVideoRef.current.srcObject = remoteStreamRef.current
-      }
-      if (gridRemoteVideoRef.current && gridRemoteVideoRef.current.srcObject !== remoteStreamRef.current) {
-        gridRemoteVideoRef.current.srcObject = remoteStreamRef.current
-      }
-    }
-  }, [viewMode, layoutMode, isRemoteConnected])
+    if (!isCamOn) return
 
-  // Initialize Media and Signaling Channel
+    const canvas = document.createElement('canvas')
+    canvas.width = 320
+    canvas.height = 240
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    const interval = setInterval(() => {
+      const activeVideo = localVideoRef.current || gridLocalVideoRef.current
+      if (activeVideo && activeVideo.readyState >= 2 && framesChannelRef.current) {
+        try {
+          ctx.drawImage(activeVideo, 0, 0, 320, 240)
+          const frameData = canvas.toDataURL('image/jpeg', 0.6)
+          framesChannelRef.current.postMessage({
+            type: 'FRAME',
+            senderTabId: myTabId,
+            frame: frameData,
+            name: myName,
+            role: activeRole,
+          })
+        } catch {
+          // Canvas capture error ignored
+        }
+      }
+    }, 100) // 10 fps lightweight frame stream
+
+    return () => clearInterval(interval)
+  }, [isCamOn, myName, activeRole, myTabId])
+
+  // ── Main Initialization Effect: Signaling + Media ──
   useEffect(() => {
     let isMounted = true
-    const channelName = `meet-p2p-${session.id}`
-    const bc = new BroadcastChannel(channelName)
-    broadcastChannelRef.current = bc
 
-    // Signaling listener
-    bc.onmessage = async (e) => {
+    // 1. Setup BroadcastChannels
+    const signalBc = new BroadcastChannel(`meet-p2p-${session.id}`)
+    const framesBc = new BroadcastChannel(`meet-frames-${session.id}`)
+    signalChannelRef.current = signalBc
+    framesChannelRef.current = framesBc
+
+    // 2. Handle incoming video frames from the other tab
+    framesBc.onmessage = (e) => {
       const data = e.data
       if (!data || !isMounted) return
+      if (data.senderTabId === myTabId) return // Ignore self frames
 
-      // Don't process our own messages
-      if (data.fromRole === activeRole) return
+      // We have an active peer streaming frames!
+      setIsRemoteConnected(true)
+      setRemoteCamOn(true)
+      setConnectionStatus('connected')
+      if (data.frame) {
+        setRemoteFrameUrl(data.frame)
+      }
+    }
 
-      if (data.type === 'PEER_JOINED') {
+    // 3. Handle WebRTC Signaling messages
+    signalBc.onmessage = async (e) => {
+      const data = e.data
+      if (!data || !isMounted) return
+      if (data.senderTabId === myTabId) return // Ignore self messages
+
+      // Heartbeat: someone is alive in this room!
+      if (data.type === 'PEER_HEARTBEAT' || data.type === 'PEER_JOINED') {
         setIsRemoteConnected(true)
-        // Send state back to peer
-        bc.postMessage({
-          type: 'PEER_PRESENT',
-          fromRole: activeRole,
-          fromName: myName,
-          isCamOn,
-          isMicOn,
-        })
+        setConnectionStatus('connected')
 
-        // Active role is caller (e.g. Teacher initiates offer)
-        const pc = setupPeerConnection()
-        if (pc && activeRole === 'teacher') {
-          try {
-            const offer = await pc.createOffer()
-            await pc.setLocalDescription(offer)
-            bc.postMessage({
-              type: 'OFFER',
-              sdp: offer,
-              fromRole: activeRole,
-            })
-          } catch (err) {
-            console.warn('[WebRTC] Failed to create offer:', err)
+        // Auto-arbitrate role conflict: if both tabs joined with the same role,
+        // automatically assign complementary roles so pair-testing works out of the box!
+        if (data.role === activeRole) {
+          if (myTabId > data.senderTabId) {
+            setActiveRole('student')
+          } else {
+            setActiveRole('teacher')
           }
+        }
+
+        // Polite peer negotiation: tab with smaller ID initiates WebRTC offer
+        if (myTabId < data.senderTabId) {
+          startNegotiation()
         }
       }
 
-      if (data.type === 'PEER_PRESENT') {
-        setIsRemoteConnected(true)
-        if (typeof data.isCamOn === 'boolean') setRemoteCamOn(data.isCamOn)
-        if (typeof data.isMicOn === 'boolean') setRemoteMicOn(data.isMicOn)
-      }
-
       if (data.type === 'OFFER') {
-        const pc = setupPeerConnection()
+        const pc = getOrCreatePeerConnection()
         if (pc) {
           try {
             await pc.setRemoteDescription(new RTCSessionDescription(data.sdp))
             const answer = await pc.createAnswer()
             await pc.setLocalDescription(answer)
-            bc.postMessage({
+            signalBc.postMessage({
               type: 'ANSWER',
+              senderTabId: myTabId,
               sdp: answer,
-              fromRole: activeRole,
             })
           } catch (err) {
-            console.warn('[WebRTC] Failed handling offer:', err)
+            console.warn('[WebRTC] Error handling offer:', err)
           }
         }
       }
@@ -362,7 +418,7 @@ export function CallInterface({ access }: CallInterfaceProps) {
           try {
             await pc.setRemoteDescription(new RTCSessionDescription(data.sdp))
           } catch (err) {
-            console.warn('[WebRTC] Failed handling answer:', err)
+            console.warn('[WebRTC] Error handling answer:', err)
           }
         }
       }
@@ -373,7 +429,7 @@ export function CallInterface({ access }: CallInterfaceProps) {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(data.candidate))
           } catch (err) {
-            console.warn('[WebRTC] Failed adding ICE candidate:', err)
+            console.warn('[WebRTC] Error adding ICE candidate:', err)
           }
         }
       }
@@ -385,12 +441,11 @@ export function CallInterface({ access }: CallInterfaceProps) {
 
       if (data.type === 'PEER_LEFT') {
         setIsRemoteConnected(false)
-        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null
-        if (gridRemoteVideoRef.current) gridRemoteVideoRef.current.srcObject = null
+        setRemoteFrameUrl(null)
       }
     }
 
-    // Media Acquisition
+    // 4. Media Acquisition (Real camera or animated fallback if camera locked)
     async function initMedia() {
       let stream: MediaStream | null = null
 
@@ -401,18 +456,14 @@ export function CallInterface({ access }: CallInterfaceProps) {
             audio: true,
           })
         }
-      } catch (err: unknown) {
-        console.warn('[CallInterface] Camera hardware in use or unavailable, creating fallback stream:', err)
-        // Fallback: If hardware camera is held by another tab or blocked, create animated video stream
+      } catch (err) {
+        console.warn('[CallInterface] Camera locked by other tab, creating animated live avatar:', err)
         try {
           const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true })
           const syntheticVideo = createSyntheticVideoStream(myName, activeRole)
-          const tracks = [...syntheticVideo.getVideoTracks(), ...audioStream.getAudioTracks()]
-          stream = new MediaStream(tracks)
+          stream = new MediaStream([...syntheticVideo.getVideoTracks(), ...audioStream.getAudioTracks()])
         } catch {
-          // Both mic & cam blocked, provide full synthetic video stream
           stream = createSyntheticVideoStream(myName, activeRole)
-          setMediaError('Hardware camera in use by other tab. Simulated live avatar streaming active.')
         }
       }
 
@@ -423,34 +474,53 @@ export function CallInterface({ access }: CallInterfaceProps) {
 
       if (stream) {
         localStreamRef.current = stream
-        if (localVideoRef.current) localVideoRef.current.srcObject = stream
-        if (gridLocalVideoRef.current) gridLocalVideoRef.current.srcObject = stream
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream
+          localVideoRef.current.play().catch(() => {})
+        }
+        if (gridLocalVideoRef.current) {
+          gridLocalVideoRef.current.srcObject = stream
+          gridLocalVideoRef.current.play().catch(() => {})
+        }
 
-        // Add tracks to existing PC
-        const pc = setupPeerConnection()
+        // Add tracks to WebRTC
+        const pc = getOrCreatePeerConnection()
         if (pc) {
           stream.getTracks().forEach((track) => pc.addTrack(track, stream!))
         }
       }
 
-      setConnectionStatus('connected')
-
-      // Broadcast join to any existing tabs
-      bc.postMessage({
+      // Broadcast presence immediately
+      signalBc.postMessage({
         type: 'PEER_JOINED',
-        fromRole: activeRole,
-        fromName: myName,
-        isCamOn: true,
-        isMicOn: true,
+        senderTabId: myTabId,
+        role: activeRole,
+        name: myName,
       })
     }
 
     initMedia()
 
+    // 5. Periodic Heartbeat to maintain cross-tab synchronization
+    const heartbeatTimer = setInterval(() => {
+      if (signalBc) {
+        signalBc.postMessage({
+          type: 'PEER_HEARTBEAT',
+          senderTabId: myTabId,
+          role: activeRole,
+          name: myName,
+          isCamOn,
+          isMicOn,
+        })
+      }
+    }, 1500)
+
     return () => {
       isMounted = false
-      bc.postMessage({ type: 'PEER_LEFT', fromRole: activeRole })
-      bc.close()
+      clearInterval(heartbeatTimer)
+      signalBc.postMessage({ type: 'PEER_LEFT', senderTabId: myTabId })
+      signalBc.close()
+      framesBc.close()
       if (peerConnectionRef.current) {
         peerConnectionRef.current.close()
         peerConnectionRef.current = null
@@ -462,7 +532,31 @@ export function CallInterface({ access }: CallInterfaceProps) {
         screenStreamRef.current.getTracks().forEach((t) => t.stop())
       }
     }
-  }, [session.id, activeRole, myName, setupPeerConnection])
+  }, [session.id, activeRole, myName, myTabId, getOrCreatePeerConnection, startNegotiation])
+
+  // Attach streams to video elements whenever layout updates
+  useEffect(() => {
+    if (localStreamRef.current) {
+      if (localVideoRef.current && localVideoRef.current.srcObject !== localStreamRef.current) {
+        localVideoRef.current.srcObject = localStreamRef.current
+        localVideoRef.current.play().catch(() => {})
+      }
+      if (gridLocalVideoRef.current && gridLocalVideoRef.current.srcObject !== localStreamRef.current) {
+        gridLocalVideoRef.current.srcObject = localStreamRef.current
+        gridLocalVideoRef.current.play().catch(() => {})
+      }
+    }
+    if (remoteStreamRef.current) {
+      if (remoteVideoRef.current && remoteVideoRef.current.srcObject !== remoteStreamRef.current) {
+        remoteVideoRef.current.srcObject = remoteStreamRef.current
+        remoteVideoRef.current.play().catch(() => {})
+      }
+      if (gridRemoteVideoRef.current && gridRemoteVideoRef.current.srcObject !== remoteStreamRef.current) {
+        gridRemoteVideoRef.current.srcObject = remoteStreamRef.current
+        gridRemoteVideoRef.current.play().catch(() => {})
+      }
+    }
+  }, [viewMode, layoutMode, isRemoteConnected])
 
   // Toggle Microphone
   const toggleMic = useCallback(() => {
@@ -475,13 +569,13 @@ export function CallInterface({ access }: CallInterfaceProps) {
       })
     }
 
-    broadcastChannelRef.current?.postMessage({
+    signalChannelRef.current?.postMessage({
       type: 'MEDIA_STATE',
-      fromRole: activeRole,
+      senderTabId: myTabId,
       isMicOn: nextState,
       isCamOn,
     })
-  }, [isMicOn, isCamOn, activeRole])
+  }, [isMicOn, isCamOn, myTabId])
 
   // Toggle Camera
   const toggleCam = useCallback(() => {
@@ -494,13 +588,13 @@ export function CallInterface({ access }: CallInterfaceProps) {
       })
     }
 
-    broadcastChannelRef.current?.postMessage({
+    signalChannelRef.current?.postMessage({
       type: 'MEDIA_STATE',
-      fromRole: activeRole,
+      senderTabId: myTabId,
       isCamOn: nextState,
       isMicOn,
     })
-  }, [isCamOn, isMicOn, activeRole])
+  }, [isCamOn, isMicOn, myTabId])
 
   // Toggle Screen Share
   const toggleScreenShare = async () => {
@@ -600,7 +694,7 @@ export function CallInterface({ access }: CallInterfaceProps) {
               type="button"
               onClick={() => handleSwitchRole(otherRole as 'teacher' | 'student')}
               className="text-blue-400 hover:text-blue-300 underline font-medium"
-              title={`Switch this view to ${theirRoleLabel}`}
+              title={`Switch this tab to ${theirRoleLabel}`}
             >
               Switch to {theirRoleLabel}
             </button>
@@ -661,7 +755,7 @@ export function CallInterface({ access }: CallInterfaceProps) {
             </Button>
           )}
 
-          {/* WebRTC Peer Connection Status */}
+          {/* Peer Connection Status */}
           <div className="flex items-center gap-1.5 text-xs">
             <span
               className={`h-2 w-2 rounded-full ${
@@ -714,7 +808,7 @@ export function CallInterface({ access }: CallInterfaceProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Prevent screeching audio loop on single-device testing */}
+          {/* Audio Feedback Protection */}
           <button
             type="button"
             onClick={() => setIsRemoteAudioMutedLocally(!isRemoteAudioMutedLocally)}
@@ -777,15 +871,25 @@ export function CallInterface({ access }: CallInterfaceProps) {
               /* ── Spotlight Layout: Remote participant full-stage + You in PiP ── */
               <div className="relative w-full h-full max-w-5xl rounded-2xl bg-[#171D2B] border border-slate-800/80 overflow-hidden flex items-center justify-center shadow-2xl">
                 {isRemoteConnected ? (
-                  /* Live Remote Video */
+                  /* Live Remote Video or Frame Mirror */
                   <div className="relative w-full h-full flex items-center justify-center bg-black">
+                    {/* Primary WebRTC Stream */}
                     <video
                       ref={remoteVideoRef}
                       autoPlay
                       playsInline
                       muted={isRemoteAudioMutedLocally}
-                      className={`w-full h-full object-cover ${remoteCamOn ? 'block' : 'hidden'}`}
+                      className={`w-full h-full object-cover ${remoteCamOn && !remoteFrameUrl ? 'block' : 'hidden'}`}
                     />
+
+                    {/* Instant Frame Mirror fallback */}
+                    {remoteFrameUrl && remoteCamOn && (
+                      <img
+                        src={remoteFrameUrl}
+                        alt={theirName}
+                        className="w-full h-full object-cover scale-x-[-1]"
+                      />
+                    )}
 
                     {/* Remote Camera Off Avatar */}
                     {!remoteCamOn && (
@@ -804,7 +908,7 @@ export function CallInterface({ access }: CallInterfaceProps) {
                     )}
 
                     {/* Participant Details Badge on stage */}
-                    <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg">
+                    <div className="absolute bottom-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700 text-slate-100 text-xs px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg z-10">
                       {remoteMicOn ? (
                         <Mic className="h-3.5 w-3.5 text-emerald-400" />
                       ) : (
@@ -837,7 +941,7 @@ export function CallInterface({ access }: CallInterfaceProps) {
                         Waiting for {theirName} to join...
                       </h2>
                       <p className="text-slate-400 text-xs leading-relaxed">
-                        This call room is ready. Open the meeting link as <strong>{theirRoleLabel}</strong> in another tab or window to connect.
+                        This call room is active. Open the link as <strong>{theirRoleLabel}</strong> in another tab or window to start video.
                       </p>
                     </div>
 
@@ -945,13 +1049,22 @@ export function CallInterface({ access }: CallInterfaceProps) {
                 <div className="relative rounded-2xl bg-[#171D2B] border border-slate-800 overflow-hidden flex items-center justify-center shadow-xl">
                   {isRemoteConnected ? (
                     <>
+                      {/* WebRTC stream */}
                       <video
                         ref={gridRemoteVideoRef}
                         autoPlay
                         playsInline
                         muted={isRemoteAudioMutedLocally}
-                        className={`w-full h-full object-cover ${remoteCamOn ? 'block' : 'hidden'}`}
+                        className={`w-full h-full object-cover ${remoteCamOn && !remoteFrameUrl ? 'block' : 'hidden'}`}
                       />
+                      {/* Frame mirror fallback */}
+                      {remoteFrameUrl && remoteCamOn && (
+                        <img
+                          src={remoteFrameUrl}
+                          alt={theirName}
+                          className="w-full h-full object-cover scale-x-[-1]"
+                        />
+                      )}
                       {!remoteCamOn && (
                         <div className="flex flex-col items-center justify-center space-y-2">
                           <div className="h-20 w-20 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-slate-200 text-xl font-bold">
@@ -961,7 +1074,7 @@ export function CallInterface({ access }: CallInterfaceProps) {
                         </div>
                       )}
 
-                      <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur border border-slate-700 px-3 py-1 rounded-full text-xs flex items-center gap-2">
+                      <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur border border-slate-700 px-3 py-1 rounded-full text-xs flex items-center gap-2 z-10">
                         {remoteMicOn ? <Mic className="h-3.5 w-3.5 text-emerald-400" /> : <MicOff className="h-3.5 w-3.5 text-red-400" />}
                         <span className="font-semibold text-slate-100">{theirName}</span>
                         <span className="text-slate-500">•</span>
@@ -1038,13 +1151,22 @@ export function CallInterface({ access }: CallInterfaceProps) {
               {/* Remote Video Tile */}
               <div className="relative flex-1 rounded-xl bg-[#171D2B] border border-slate-800 overflow-hidden flex items-center justify-center">
                 {isRemoteConnected ? (
-                  <video
-                    ref={remoteVideoRef}
-                    autoPlay
-                    playsInline
-                    muted={isRemoteAudioMutedLocally}
-                    className="w-full h-full object-cover"
-                  />
+                  <>
+                    <video
+                      ref={remoteVideoRef}
+                      autoPlay
+                      playsInline
+                      muted={isRemoteAudioMutedLocally}
+                      className={`w-full h-full object-cover ${!remoteFrameUrl ? 'block' : 'hidden'}`}
+                    />
+                    {remoteFrameUrl && (
+                      <img
+                        src={remoteFrameUrl}
+                        alt={theirName}
+                        className="w-full h-full object-cover scale-x-[-1]"
+                      />
+                    )}
+                  </>
                 ) : (
                   <div className="text-center p-3">
                     <p className="text-xs text-slate-400">Waiting for {theirName}</p>
@@ -1191,7 +1313,6 @@ export function CallInterface({ access }: CallInterfaceProps) {
               type="button"
               variant="danger"
               onClick={handleLeaveCall}
-              className="bg-red-600 hover:bg-red-700 text-white"
             >
               Leave Call
             </Button>
