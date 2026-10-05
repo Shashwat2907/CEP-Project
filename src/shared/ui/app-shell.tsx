@@ -8,6 +8,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '
 import { cn } from '@/lib/utils'
 import { PresenceProvider } from '@/features/presence/presence-context'
 
+import { signOutAction, quickSwitchRoleAction } from '@/features/identity/actions'
+
 export interface AppShellProps {
   children: React.ReactNode
   initialRole?: UserRole
@@ -34,6 +36,33 @@ export function AppShell({
   const [role, setRole] = React.useState<UserRole>(initialRole)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
 
+  const handleRoleChange = async (nextRole: UserRole) => {
+    setRole(nextRole)
+    try {
+      if (nextRole === 'teacher') {
+        await quickSwitchRoleAction('sharma@campus.edu')
+        window.location.href = '/teacher/acad'
+      } else if (nextRole === 'admin') {
+        await quickSwitchRoleAction('admin@campus.edu')
+        window.location.href = '/admin'
+      } else {
+        await quickSwitchRoleAction('student@campus.edu')
+        window.location.href = '/'
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  const handleSignOut = async () => {
+    if (onSignOut) {
+      onSignOut()
+      return
+    }
+    await signOutAction()
+    window.location.href = '/sign-in?switch=true'
+  }
+
   return (
     <PresenceProvider initialState="in">
       <div className={cn('min-h-screen flex bg-bg text-ink font-body transition-colors', className)}>
@@ -45,8 +74,8 @@ export function AppShell({
             userEmail={userEmail}
             identifier={identifier}
             department={department}
-            onRoleChange={setRole}
-            onSignOut={onSignOut}
+            onRoleChange={handleRoleChange}
+            onSignOut={handleSignOut}
             activePath={activePath}
           />
         </div>
@@ -64,8 +93,8 @@ export function AppShell({
               userEmail={userEmail}
               identifier={identifier}
               department={department}
-              onRoleChange={setRole}
-              onSignOut={onSignOut}
+              onRoleChange={handleRoleChange}
+              onSignOut={handleSignOut}
               activePath={activePath}
               className="w-full h-full border-r-0"
             />

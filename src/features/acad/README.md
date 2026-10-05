@@ -106,11 +106,14 @@ Edge Function triggers → text extraction → chunking → embeddings in pgvect
 ## 6. Filters and Browse
 
 - Default view (student): pre-filtered to the student's own `year` and `branch` from their profile
-- Available filters: `year`, `branch`, `subject`, `type`
-- Search: full-text search on `title` and subject name
+- Available filters: `year`, `branch`, `subject`, `type`, `saved` (bookmarks)
+- Search: search on `title` and subject name with debounced interactive input
 - Sorting: newest first (default), most downloaded (later)
+- Bookmarks: students can save/unsave resources for instant access via the `saved_resources` table
+- Detail view: `/acad/[id]` provides full resource metadata, AI status, and signed download link
 - Every list view must have **loading, empty and error states**
-- Mobile layout: single-column card list
+- Mobile layout: single-column responsive card list
+
 
 ---
 

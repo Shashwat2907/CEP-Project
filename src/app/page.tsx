@@ -1,17 +1,121 @@
 import { AppShell } from '@/shared/ui/app-shell'
 import { AdminCampusBoundary } from '@/features/presence'
+import { TodayScheduleBlock } from '@/features/calendar/components/today-schedule-block'
+import { getTodayCalendarEntriesAction } from '@/features/calendar/actions'
+import { getCurrentProfile } from '@/shared/auth/session'
 
-export default function Home() {
+export default async function Home() {
+  const [todayEntries, profile] = await Promise.all([
+    getTodayCalendarEntriesAction(),
+    getCurrentProfile(),
+  ])
+
   return (
     <AppShell
-      initialRole="student"
-      userName="Shashwat Choudhary"
-      identifier="23BCE1042"
-      department="Computer Science & Engineering"
-      userEmail="shashwat@college.edu"
+      initialRole={profile?.role_primary ?? 'student'}
+      userName={profile?.full_name ?? 'Aarav Mehta'}
+      identifier={profile?.college_id ?? '23BCE1001'}
+      department={profile?.branch ? `${profile.branch} (Year ${profile.year ?? 2})` : 'Computer Science'}
+      userEmail={profile?.college_email ?? 'student@campus.edu'}
       activePath="/"
     >
       <div className="max-w-[1200px] space-y-10">
+        {/* First block: Today on Campus Schedule (PLAN.MD §5.11: "'Today' is the home page's first block.") */}
+        <TodayScheduleBlock initialEntries={todayEntries} />
+
+        {/* Quick Launch Features Grid */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-base font-bold text-ink flex items-center gap-2">
+              <span>Campus Quick Hub</span>
+              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                Primary Modules
+              </span>
+            </h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <a
+              href="/acad"
+              className="p-4 rounded-xl border border-border bg-surface hover:border-primary/50 hover:shadow-md transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-9 h-9 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20 flex items-center justify-center font-bold mb-3">
+                  📚
+                </div>
+                <h3 className="font-bold text-sm text-ink group-hover:text-primary transition-colors">
+                  Academic Resources
+                </h3>
+                <p className="text-xs text-ink-muted mt-1 leading-relaxed">
+                  Course notes, PYQs, AI flashcard generator & grounded chat assistant.
+                </p>
+              </div>
+              <span className="text-xs text-primary font-semibold mt-3 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                Open Acads →
+              </span>
+            </a>
+
+            <a
+              href="/community"
+              className="p-4 rounded-xl border border-border bg-surface hover:border-primary/50 hover:shadow-md transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-9 h-9 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-bold mb-3">
+                  💬
+                </div>
+                <h3 className="font-bold text-sm text-ink group-hover:text-primary transition-colors">
+                  Campus Communities
+                </h3>
+                <p className="text-xs text-ink-muted mt-1 leading-relaxed">
+                  Classroom rooms, doubt threads, upvote recognition & badge awards.
+                </p>
+              </div>
+              <span className="text-xs text-primary font-semibold mt-3 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                Explore Communities →
+              </span>
+            </a>
+
+            <a
+              href="/complaints"
+              className="p-4 rounded-xl border border-border bg-surface hover:border-primary/50 hover:shadow-md transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-9 h-9 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center justify-center font-bold mb-3">
+                  ⚠️
+                </div>
+                <h3 className="font-bold text-sm text-ink group-hover:text-primary transition-colors">
+                  Campus Complaints
+                </h3>
+                <p className="text-xs text-ink-muted mt-1 leading-relaxed">
+                  Log campus maintenance and facility issues with auto-escalation SLAs.
+                </p>
+              </div>
+              <span className="text-xs text-primary font-semibold mt-3 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                View Complaints →
+              </span>
+            </a>
+
+            <a
+              href="/calendar"
+              className="p-4 rounded-xl border border-border bg-surface hover:border-primary/50 hover:shadow-md transition-all group flex flex-col justify-between"
+            >
+              <div>
+                <div className="w-9 h-9 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center font-bold mb-3">
+                  📅
+                </div>
+                <h3 className="font-bold text-sm text-ink group-hover:text-primary transition-colors">
+                  Academic Calendar
+                </h3>
+                <p className="text-xs text-ink-muted mt-1 leading-relaxed">
+                  Timetables, lab schedules, exam dates, and personal study deadlines.
+                </p>
+              </div>
+              <span className="text-xs text-primary font-semibold mt-3 inline-flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                Check Schedule →
+              </span>
+            </a>
+          </div>
+        </section>
+
         {/* Page header (Page title in content body per DESIGN.MD §6) */}
         <div>
           <h1 className="font-display text-display font-bold text-ink">

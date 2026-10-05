@@ -10,6 +10,12 @@ import {
   updatePresenceConsent,
   togglePresencePause,
   saveCampusZone,
+  appendHeartbeat,
+  getPresenceSessions,
+  getPresenceDaily,
+  adminLookupUserPresence,
+  getTeacherClassAttendance,
+  exportUserPresenceData,
   type PresenceDbClient,
 } from '@/features/presence/actions'
 import {
@@ -522,6 +528,482 @@ interface SavedPresencePayload {
       const res = await saveCampusZone(validZone, mockClient as unknown as PresenceDbClient, 'admin-uuid')
       expect(res.ok).toBe(true)
       expect(savedZone).toBe(true)
+    })
+  })
+
+  // 6. Presence Continuous Monitoring Suite (PLAN.md §5.1, TEAM_TASKS.md)
+  describe('Presence Continuous Monitoring Suite (PLAN.md §5.1)', () => {
+    it('requires active consent before recording heartbeats', async () => {
+      const mockClient = {
+        from: vi.fn((table: string) => {
+          if (table === 'presence_consent') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { consent_given: false, is_paused: false, revoked_at: null },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          return {}
+        }),
+      }
+
+      const res = await appendHeartbeat(
+        { latitude: 12.9735, longitude: 79.1620 },
+        mockClient as unknown as PresenceDbClient,
+        'user-no-consent'
+      )
+
+      expect(res.ok).toBe(false)
+      if (!res.ok) {
+        expect(res.error.code).toBe('NO_CONSENT')
+      }
+    })
+
+    it('rejects heartbeats when consent is paused', async () => {
+      const mockClient = {
+        from: vi.fn((table: string) => {
+          if (table === 'presence_consent') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { consent_given: true, is_paused: true, revoked_at: null },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          return {}
+        }),
+      }
+
+      const res = await appendHeartbeat(
+        { latitude: 12.9735, longitude: 79.1620 },
+        mockClient as unknown as PresenceDbClient,
+        'user-paused'
+      )
+
+      expect(res.ok).toBe(false)
+      if (!res.ok) {
+        expect(res.error.code).toBe('NO_CONSENT')
+      }
+    })
+
+    it('opens a new presence session on first verified inside heartbeat', async () => {
+      let sessionInserted = false
+      let insertedHeartbeat: Record<string, unknown> | null = null
+
+      const mockClient = {
+        from: vi.fn((table: string) => {
+          if (table === 'presence_consent') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { consent_given: true, is_paused: false, revoked_at: null },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'campus_zones') {
+            return {
+              select: () => ({
+                eq: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: 'zone-main',
+                      name: 'Main Campus',
+                      kind: 'campus',
+                      polygon: DEFAULT_CAMPUS_ZONE.polygon,
+                      is_active: true,
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }
+          }
+          if (table === 'presence_sessions') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  eq: () => ({
+                    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                  }),
+                }),
+              }),
+              insert: (row: Record<string, unknown>) => {
+                sessionInserted = true
+                return {
+                  select: () => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: { id: 'sess-new-1', ...row },
+                      error: null,
+                    }),
+                  }),
+                }
+              },
+            }
+          }
+          if (table === 'presence_heartbeats') {
+            return {
+              insert: (hb: Record<string, unknown>) => {
+                insertedHeartbeat = hb
+                return {
+                  select: () => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: { id: 'hb-1', ...hb, created_at: new Date().toISOString() },
+                      error: null,
+                    }),
+                  }),
+                }
+              },
+            }
+          }
+          if (table === 'presence_status') {
+            return {
+              upsert: () => ({
+                eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }
+          }
+          return {}
+        }),
+      }
+
+      const res = await appendHeartbeat(
+        { latitude: 12.9735, longitude: 79.1620, accuracy: 15 },
+        mockClient as unknown as PresenceDbClient,
+        'student-user-1'
+      )
+
+      expect(res.ok).toBe(true)
+      expect(sessionInserted).toBe(true)
+      if (res.ok) {
+        expect(res.data.heartbeat.state).toBe('inside')
+        expect(res.data.sessionId).toBe('sess-new-1')
+      }
+      // Verify privacy guarantee: coordinates are NEVER saved in the heartbeat table
+      expect(insertedHeartbeat).not.toHaveProperty('latitude')
+      expect(insertedHeartbeat).not.toHaveProperty('longitude')
+    })
+
+    it('closes session with verified_out when device reports position outside campus', async () => {
+      let sessionClosedWithReason: string | null = null
+
+      const mockClient = {
+        from: vi.fn((table: string) => {
+          if (table === 'presence_consent') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { consent_given: true, is_paused: false, revoked_at: null },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'campus_zones') {
+            return {
+              select: () => ({
+                eq: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: 'zone-main',
+                      name: 'Main Campus',
+                      kind: 'campus',
+                      polygon: DEFAULT_CAMPUS_ZONE.polygon,
+                      is_active: true,
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }
+          }
+          if (table === 'presence_sessions') {
+            return {
+              update: (fields: Record<string, unknown>) => {
+                sessionClosedWithReason = fields.close_reason as string
+                return {
+                  eq: () => ({
+                    eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+                  }),
+                }
+              },
+            }
+          }
+          if (table === 'presence_heartbeats') {
+            return {
+              insert: (hb: Record<string, unknown>) => ({
+                select: () => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'hb-2', ...hb, created_at: new Date().toISOString() },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'presence_status') {
+            return {
+              upsert: () => ({
+                eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }
+          }
+          return {}
+        }),
+      }
+
+      // 12.9900, 79.2000 is off campus
+      const res = await appendHeartbeat(
+        { latitude: 12.9900, longitude: 79.2000, accuracy: 20 },
+        mockClient as unknown as PresenceDbClient,
+        'student-user-1'
+      )
+
+      expect(res.ok).toBe(true)
+      expect(sessionClosedWithReason).toBe('verified_out')
+      if (res.ok) {
+        expect(res.data.heartbeat.state).toBe('outside')
+        expect(res.data.heartbeat.zoneId).toBeNull()
+      }
+    })
+
+    it('boosts confidence to HIGH when client IP matches campus CIDR range', async () => {
+      const mockClient = {
+        from: vi.fn((table: string) => {
+          if (table === 'presence_consent') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { consent_given: true, is_paused: false, revoked_at: null },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'campus_zones') {
+            return {
+              select: () => ({
+                eq: vi.fn().mockResolvedValue({
+                  data: [
+                    {
+                      id: 'zone-main',
+                      name: 'Main Campus',
+                      kind: 'campus',
+                      polygon: DEFAULT_CAMPUS_ZONE.polygon,
+                      is_active: true,
+                    },
+                  ],
+                  error: null,
+                }),
+              }),
+            }
+          }
+          if (table === 'campus_ip_ranges') {
+            return {
+              select: () => ({
+                eq: vi.fn().mockResolvedValue({
+                  data: [{ cidr: '172.16.0.0/16' }],
+                  error: null,
+                }),
+              }),
+            }
+          }
+          if (table === 'presence_sessions') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  eq: () => ({
+                    maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'sess-1' }, error: null }),
+                  }),
+                }),
+              }),
+              update: () => ({
+                eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }
+          }
+          if (table === 'presence_heartbeats') {
+            return {
+              insert: (hb: Record<string, unknown>) => ({
+                select: () => ({
+                  single: vi.fn().mockResolvedValue({
+                    data: { id: 'hb-3', ...hb, created_at: new Date().toISOString() },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'presence_status') {
+            return {
+              upsert: () => ({
+                eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }
+          }
+          return {}
+        }),
+      }
+
+      // Even with accuracy = 80m (normally medium), campus IP elevates to high
+      const res = await appendHeartbeat(
+        { latitude: 12.9735, longitude: 79.1620, accuracy: 80 },
+        mockClient as unknown as PresenceDbClient,
+        'student-user-1',
+        '172.16.4.12'
+      )
+
+      expect(res.ok).toBe(true)
+      if (res.ok) {
+        expect(res.data.heartbeat.ipOnCampus).toBe(true)
+        expect(res.data.heartbeat.confidence).toBe('high')
+      }
+    })
+
+    it('denies admin lookup without a stated justification reason (CONTRACT.md §5.2)', async () => {
+      const res = await adminLookupUserPresence(
+        { targetUserId: 'student-target', reason: '' },
+        undefined,
+        'admin-user-id'
+      )
+
+      expect(res.ok).toBe(false)
+      if (!res.ok) {
+        expect(res.error.code).toBe('REASON_REQUIRED')
+      }
+    })
+
+    it('logs to audit trail when admin provides justification for presence lookup', async () => {
+      let auditLogged = false
+
+      const mockClient = {
+        from: vi.fn((table: string) => {
+          if (table === 'audit_log') {
+            return {
+              insert: (record: Record<string, unknown>) => {
+                auditLogged = true
+                return {
+                  select: () => ({
+                    single: vi.fn().mockResolvedValue({
+                      data: { id: 'audit-lookup-1', ...record, at: new Date().toISOString() },
+                      error: null,
+                    }),
+                  }),
+                }
+              },
+            }
+          }
+          if (table === 'presence_status') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { user_id: 'student-target', state: 'in', zone_id: 'z1' },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'presence_consent') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { consent_given: true, is_paused: false },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          if (table === 'presence_sessions') {
+            return {
+              select: () => ({
+                eq: () => ({
+                  order: () => ({
+                    limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+                  }),
+                }),
+              }),
+            }
+          }
+          return {}
+        }),
+      }
+
+      const res = await adminLookupUserPresence(
+        { targetUserId: 'student-target', reason: 'Disciplinary hearing verified attendance inquiry' },
+        mockClient as unknown as PresenceDbClient,
+        '00000000-0000-0000-0000-000000000001'
+      )
+
+      expect(res.ok).toBe(true)
+      expect(auditLogged).toBe(true)
+    })
+
+    it('denies teacher attendance access outside of active class time window', async () => {
+      const res = await getTeacherClassAttendance(
+        {
+          classId: 'CS301-A',
+          zoneId: 'hall-4',
+          classStartTime: '2026-10-04T10:00:00Z',
+          classEndTime: '2026-10-04T11:00:00Z',
+          currentTime: '2026-10-04T12:30:00Z', // 1.5 hours after class ended
+        },
+        undefined,
+        'teacher-prof-rao'
+      )
+
+      expect(res.ok).toBe(false)
+      if (!res.ok) {
+        expect(res.error.code).toBe('OUTSIDE_CLASS_WINDOW')
+      }
+    })
+
+    it('permits teacher attendance check inside active class time window', async () => {
+      const res = await getTeacherClassAttendance(
+        {
+          classId: 'CS301-A',
+          zoneId: 'hall-4',
+          classStartTime: '2026-10-04T10:00:00Z',
+          classEndTime: '2026-10-04T11:00:00Z',
+          currentTime: '2026-10-04T10:30:00Z', // inside window
+        },
+        undefined,
+        'teacher-prof-rao'
+      )
+
+      expect(res.ok).toBe(true)
+      if (res.ok) {
+        expect(res.data.windowActive).toBe(true)
+      }
+    })
+
+    it('exports all student presence data for DPDP Act compliance', async () => {
+      const res = await exportUserPresenceData('student-me')
+      expect(res.ok).toBe(true)
+      if (res.ok) {
+        expect(res.data).toHaveProperty('exportedAt')
+        expect(res.data).toHaveProperty('sessions')
+        expect(res.data).toHaveProperty('daily')
+      }
     })
   })
 })

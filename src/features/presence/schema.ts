@@ -1,5 +1,59 @@
 import { z } from 'zod'
 
+// ─── Heartbeat monitoring (feat/presence-monitoring) ──────────────────────
+
+export const HeartbeatInputSchema = z.object({
+  /** Browser-reported latitude — evaluated server-side; never persisted */
+  latitude: z.number().min(-90).max(90),
+  /** Browser-reported longitude — evaluated server-side; never persisted */
+  longitude: z.number().min(-180).max(180),
+  /** Accuracy in metres as reported by browser Geolocation API */
+  accuracy: z.number().nonnegative().optional(),
+  /** Source of the heartbeat signal */
+  source: z.enum(['browser', 'native', 'qr']).default('browser'),
+})
+export type HeartbeatInput = z.input<typeof HeartbeatInputSchema>
+
+export interface PresenceHeartbeat {
+  id: string
+  userId: string
+  sessionId: string | null
+  state: 'inside' | 'outside' | 'unknown'
+  zoneId: string | null
+  zoneName?: string
+  confidence: 'low' | 'medium' | 'high'
+  accuracyMeters: number | null
+  source: 'browser' | 'native' | 'qr'
+  ipOnCampus: boolean
+  createdAt: string
+}
+
+export interface PresenceSession {
+  id: string
+  userId: string
+  zoneId: string | null
+  zoneName?: string
+  startedAt: string
+  endedAt: string | null
+  lastHeartbeatAt: string
+  closeReason: 'verified_out' | 'signal_lost' | 'consent_revoked' | 'admin_closed' | null
+  durationMinutes: number | null
+  createdAt: string
+}
+
+export interface PresenceDaily {
+  id: string
+  userId: string
+  day: string           // ISO date 'YYYY-MM-DD'
+  zoneId: string | null
+  firstIn: string | null
+  lastOut: string | null
+  minutesOnCampus: number
+  sessionCount: number
+}
+
+export type HeartbeatState = 'inside' | 'outside' | 'unknown'
+
 /**
  * Zod Schemas for Campus Presence & Boundary Checking
  * Source of truth: documents/PLAN.md §5.1, documents/CONTRACT.md §5.5
