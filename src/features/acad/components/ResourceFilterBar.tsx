@@ -229,13 +229,14 @@ export function ResourceFilterBar({ subjects, branches }: ResourceFilterBarProps
             background: 'var(--background)',
             color: 'var(--foreground)',
             fontSize: '0.8125rem',
+            colorScheme: 'light dark',
           }}
         >
-          <option value="">All Years</option>
-          <option value="1">Year 1</option>
-          <option value="2">Year 2</option>
-          <option value="3">Year 3</option>
-          <option value="4">Year 4</option>
+          <option value="" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>All Years</option>
+          <option value="1" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>Year 1</option>
+          <option value="2" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>Year 2</option>
+          <option value="3" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>Year 3</option>
+          <option value="4" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>Year 4</option>
         </select>
 
         {/* Branch Filter */}
@@ -250,11 +251,12 @@ export function ResourceFilterBar({ subjects, branches }: ResourceFilterBarProps
             background: 'var(--background)',
             color: 'var(--foreground)',
             fontSize: '0.8125rem',
+            colorScheme: 'light dark',
           }}
         >
-          <option value="">All Branches</option>
+          <option value="" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>All Branches</option>
           {availableBranches.map((b) => (
-            <option key={b} value={b}>
+            <option key={b} value={b} style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
               {b}
             </option>
           ))}
@@ -272,11 +274,12 @@ export function ResourceFilterBar({ subjects, branches }: ResourceFilterBarProps
             background: 'var(--background)',
             color: 'var(--foreground)',
             fontSize: '0.8125rem',
+            colorScheme: 'light dark',
           }}
         >
-          <option value="">All Subjects</option>
+          <option value="" style={{ background: 'var(--background)', color: 'var(--foreground)' }}>All Subjects</option>
           {filteredSubjects.map((s) => (
-            <option key={s.id} value={s.id}>
+            <option key={s.id} value={s.id} style={{ background: 'var(--background)', color: 'var(--foreground)' }}>
               {s.code} — {s.name}
             </option>
           ))}

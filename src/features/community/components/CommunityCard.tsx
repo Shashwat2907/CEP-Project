@@ -124,7 +124,7 @@ export function CommunityCard({ community, onJoined }: CommunityCardProps) {
 
           <Link
             href={`/community/${community.id}`}
-            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-md bg-primary text-white hover:bg-primary-hover transition-colors shadow-xs"
+            className="inline-flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-md bg-ink text-on-ink hover:opacity-90 transition-colors shadow-xs"
           >
             <span>Enter</span>
             <ArrowRight size={12} />

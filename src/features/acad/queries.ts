@@ -26,6 +26,10 @@ import {
   MOCK_CARDS_STORE,
   DEV_MOCK_SAVED_IDS,
 } from './mock-acad-data'
+import { getUploadedFile } from './upload-store'
+import { extractText, isNaturalText } from './lib/text-extractor'
+import { chunkPages, chunkText } from './lib/chunker'
+import { generateFlashcardsWithGemini, generateFallbackCards } from './lib/flashcard-gen'
 
 /**
  * Read-side data fetching for the Academic Resources feature.
@@ -413,9 +417,39 @@ export async function getResourceChunks(resourceId: string): Promise<ResourceChu
     // Offline
   }
 
-  const existingMockChunks = MOCK_CHUNKS.filter((c) => c.resource_id === resourceId)
+  const existingMockChunks = MOCK_CHUNKS.filter((c) => c.resource_id === resourceId && isNaturalText(c.content))
   if (existingMockChunks.length > 0) {
     return existingMockChunks
+  }
+
+  // Check if this resource has an uploaded file in our persistent cache
+  const uploaded = getUploadedFile(resourceId)
+  if (uploaded) {
+    try {
+      const ext = uploaded.fileName.split('.').pop() || 'pdf'
+      const extracted = await extractText(uploaded.buffer, ext, uploaded.fileName)
+      const produced =
+        extracted.pages && extracted.pages.length > 0
+          ? chunkPages(extracted.pages)
+          : chunkText(extracted.text)
+
+      if (produced && produced.length > 0) {
+        const newChunks: ResourceChunk[] = produced.map((c) => ({
+          id: crypto.randomUUID(),
+          resource_id: resourceId,
+          chunk_index: c.chunkIndex,
+          page_number: c.pageNumber,
+          content: c.content,
+          token_count: c.tokenCount,
+        }))
+        const cleanedMock = MOCK_CHUNKS.filter((c) => c.resource_id !== resourceId)
+        MOCK_CHUNKS.length = 0
+        MOCK_CHUNKS.push(...cleanedMock, ...newChunks)
+        return newChunks
+      }
+    } catch (err) {
+      console.warn('[queries] extractText from uploaded file error:', err)
+    }
   }
 
   // Auto-seed initial chunks for newly uploaded / mock resources so AI doubt chat & flashcards always work
@@ -474,8 +508,12 @@ export async function getResourceChunkCount(resourceId: string): Promise<number>
     // Offline
   }
 
-  const chunks = MOCK_CHUNKS.filter((c) => c.resource_id === resourceId)
-  return chunks.length
+  const validChunks = MOCK_CHUNKS.filter((c) => c.resource_id === resourceId && isNaturalText(c.content))
+  if (validChunks.length > 0) {
+    return validChunks.length
+  }
+  const fresh = await getResourceChunks(resourceId)
+  return fresh.length
 }
 
 // ---------------------------------------------------------------------------
@@ -544,9 +582,19 @@ export async function getFlashcardDeck(
   const inMemoryDeck = MOCK_DECKS_STORE.get(resourceId)
   if (inMemoryDeck) {
     const inMemoryCards = MOCK_CARDS_STORE.get(inMemoryDeck.id) || []
-    return {
-      deck: inMemoryDeck,
-      cards: inMemoryCards,
+    // If it was previously auto-seeded with only 2 dummy title cards or contains corrupted cards, upgrade it
+    const isDummy2Card =
+      inMemoryCards.length === 2 &&
+      inMemoryCards[0]?.front.includes('What core topics are covered in')
+    const hasCorruptCards = inMemoryCards.some(
+      (c) => !isNaturalText(c.front) || c.front.includes('how is it used in')
+    )
+
+    if (!isDummy2Card && !hasCorruptCards && inMemoryCards.length > 0) {
+      return {
+        deck: inMemoryDeck,
+        cards: inMemoryCards,
+      }
     }
   }
 
@@ -557,45 +605,36 @@ export async function getFlashcardDeck(
     }
   }
 
-  // For any mock resource, provide an auto-seeded deck if not yet generated
+  // Generate content-grounded deck for this resource
   const res = MOCK_RESOURCES.find((r) => r.id === resourceId)
   if (res) {
-    const autoDeck: FlashcardDeck = {
-      id: crypto.randomUUID(),
-      resource_id: resourceId,
-      owner_id: '00000000-0000-0000-0000-000000000001',
-      title: `${res.title} Deck`,
-      card_count: 2,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+    const chunks = await getResourceChunks(resourceId)
+    const generated = await generateFlashcardsWithGemini(res.title, chunks)
+    if (generated && generated.length > 0) {
+      const autoDeck: FlashcardDeck = {
+        id: crypto.randomUUID(),
+        resource_id: resourceId,
+        owner_id: '00000000-0000-0000-0000-000000000001',
+        title: `${res.title} Flashcards`,
+        card_count: generated.length,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+      const autoCards: FlashcardWithReview[] = generated.map((c, i) => ({
+        id: crypto.randomUUID(),
+        deck_id: autoDeck.id,
+        front: c.front,
+        back: c.back,
+        position: i,
+        source_page: c.source_page,
+        chunk_id: c.chunk_id,
+        created_at: new Date().toISOString(),
+        review: null,
+      }))
+      MOCK_DECKS_STORE.set(resourceId, autoDeck)
+      MOCK_CARDS_STORE.set(autoDeck.id, autoCards)
+      return { deck: autoDeck, cards: autoCards }
     }
-    const autoCards: FlashcardWithReview[] = [
-      {
-        id: crypto.randomUUID(),
-        deck_id: autoDeck.id,
-        front: `What core topics are covered in ${res.title}?`,
-        back: `Core concepts, theorems, equations, and practice problems for ${res.branch} Year ${res.year}.`,
-        position: 0,
-        source_page: 1,
-        chunk_id: null,
-        created_at: new Date().toISOString(),
-        review: null,
-      },
-      {
-        id: crypto.randomUUID(),
-        deck_id: autoDeck.id,
-        front: `What is the primary examination relevance of ${res.title}?`,
-        back: `High-yield problems, architectural diagrams, and algorithmic complexity optimizations.`,
-        position: 1,
-        source_page: 2,
-        chunk_id: null,
-        created_at: new Date().toISOString(),
-        review: null,
-      },
-    ]
-    MOCK_DECKS_STORE.set(resourceId, autoDeck)
-    MOCK_CARDS_STORE.set(autoDeck.id, autoCards)
-    return { deck: autoDeck, cards: autoCards }
   }
 
   return { deck: null, cards: [] }

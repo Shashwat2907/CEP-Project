@@ -15,6 +15,84 @@ import {
 } from 'lucide-react'
 import type { DoubtMessage, DoubtCitation } from '../schema'
 import { askDoubtQuestionAction, clearDoubtThreadAction } from '../actions'
+import { cleanLatexAndFormatting } from '../lib/doubt-gen'
+
+function FormattedChatMessage({ content, isUser }: { content: string; isUser: boolean }) {
+  if (isUser) {
+    return <span>{content}</span>
+  }
+
+  const cleaned = cleanLatexAndFormatting(content)
+  const lines = cleaned.split('\n')
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
+      {lines.map((line, idx) => {
+        const trimmed = line.trim()
+        if (!trimmed) {
+          return <div key={idx} style={{ height: '0.35rem' }} />
+        }
+
+        // Inline markdown parser: **bold**, *italic*, `code`
+        const parts: React.ReactNode[] = []
+        const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g
+        let lastIndex = 0
+        let match: RegExpExecArray | null
+
+        while ((match = regex.exec(line)) !== null) {
+          if (match.index > lastIndex) {
+            parts.push(line.substring(lastIndex, match.index))
+          }
+          const token = match[0]
+          if (token.startsWith('**') && token.endsWith('**')) {
+            parts.push(
+              <strong key={match.index} style={{ fontWeight: 600 }}>
+                {token.slice(2, -2)}
+              </strong>
+            )
+          } else if (token.startsWith('*') && token.endsWith('*')) {
+            parts.push(<em key={match.index}>{token.slice(1, -1)}</em>)
+          } else if (token.startsWith('`') && token.endsWith('`')) {
+            parts.push(
+              <code
+                key={match.index}
+                style={{
+                  padding: '0.1rem 0.35rem',
+                  borderRadius: '0.25rem',
+                  backgroundColor: 'rgba(0,0,0,0.06)',
+                  fontFamily: 'monospace',
+                  fontSize: '0.8125rem',
+                }}
+              >
+                {token.slice(1, -1)}
+              </code>
+            )
+          }
+          lastIndex = regex.lastIndex
+        }
+
+        if (lastIndex < line.length) {
+          parts.push(line.substring(lastIndex))
+        }
+
+        const isBullet = /^[•\-*]\s+/.test(trimmed)
+        const isNumbered = /^\d+\.\s+/.test(trimmed)
+
+        return (
+          <div
+            key={idx}
+            style={{
+              paddingLeft: isBullet ? '0.875rem' : isNumbered ? '0.5rem' : '0',
+              lineHeight: 1.55,
+            }}
+          >
+            {parts}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 interface DoubtChatModalProps {
   isOpen: boolean
@@ -393,7 +471,7 @@ export function DoubtChatModal({
                       boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
                     }}
                   >
-                    {msg.content}
+                    <FormattedChatMessage content={msg.content} isUser={isUser} />
                   </div>
 
                   {/* Citations & Confidence Status for Assistant */}

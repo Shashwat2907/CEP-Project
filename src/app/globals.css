@@ -13,6 +13,9 @@
   --color-ink-muted: var(--ink-muted);
   --color-highlight: var(--highlight);
   --color-on-ink: var(--on-ink);
+  --color-primary: var(--ink);
+  --color-primary-foreground: var(--on-ink);
+  --color-primary-hover: var(--ink);
   --color-in-campus: var(--in-campus);
   --color-out-campus: var(--out-campus);
   --color-danger: var(--danger);

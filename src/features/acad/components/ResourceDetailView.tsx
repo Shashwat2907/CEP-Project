@@ -83,7 +83,7 @@ export function ResourceDetailView({
           <Link
             href="/"
             style={{
-              color: 'var(--muted-foreground)',
+              color: 'var(--ink-muted)',
               textDecoration: 'none',
               fontWeight: 500,
             }}
@@ -97,8 +97,9 @@ export function ResourceDetailView({
               display: 'inline-flex',
               alignItems: 'center',
               gap: '0.375rem',
-              color: 'var(--muted-foreground)',
+              color: 'var(--ink-muted)',
               textDecoration: 'none',
+              fontWeight: 500,
             }}
           >
             <ArrowLeft size={14} />
@@ -110,13 +111,14 @@ export function ResourceDetailView({
       {/* Main card */}
       <article
         style={{
-          background: 'var(--card)',
+          background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: '0.75rem',
+          borderRadius: 'var(--r-md, 10px)',
           padding: '1.75rem',
           display: 'flex',
           flexDirection: 'column',
           gap: '1.25rem',
+          color: 'var(--ink)',
         }}
       >
         {/* Title and bookmark row */}
@@ -127,10 +129,11 @@ export function ResourceDetailView({
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: 600,
-                  padding: '0.2rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  background: 'var(--primary-subtle, rgba(59, 130, 246, 0.1))',
-                  color: 'var(--primary)',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: 'var(--r-sm, 6px)',
+                  background: 'var(--surface-sunken)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink)',
                 }}
               >
                 {TYPE_LABELS[resource.type] ?? resource.type}
@@ -139,16 +142,17 @@ export function ResourceDetailView({
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: 500,
-                  padding: '0.2rem 0.5rem',
-                  borderRadius: '0.25rem',
-                  background: 'var(--muted, #f3f4f6)',
-                  color: 'var(--muted-foreground)',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: 'var(--r-sm, 6px)',
+                  background: 'var(--surface-sunken)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--ink-muted)',
                 }}
               >
                 {resource.file_ext.toUpperCase()}
               </span>
             </div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, lineHeight: 1.25 }}>
+            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, lineHeight: 1.25, color: 'var(--ink)' }}>
               {resource.title}
             </h1>
           </div>
@@ -166,8 +170,8 @@ export function ResourceDetailView({
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: '1rem',
             padding: '1rem',
-            borderRadius: '0.5rem',
-            background: 'var(--background)',
+            borderRadius: 'var(--r-sm, 6px)',
+            background: 'var(--surface-sunken)',
             border: '1px solid var(--border)',
             fontSize: '0.875rem',
           }}
@@ -175,11 +179,11 @@ export function ResourceDetailView({
           {/* Subject */}
           {resource.subject && (
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-              <FileText size={16} color="var(--primary)" style={{ marginTop: '0.125rem' }} />
+              <FileText size={16} color="var(--ink)" style={{ marginTop: '0.125rem' }} />
               <div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Subject</div>
-                <div style={{ fontWeight: 600 }}>{resource.subject.code}</div>
-                <div style={{ color: 'var(--muted-foreground)', fontSize: '0.8125rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', fontWeight: 500 }}>Subject</div>
+                <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{resource.subject.code}</div>
+                <div style={{ color: 'var(--ink-muted)', fontSize: '0.8125rem' }}>
                   {resource.subject.name}
                 </div>
               </div>
@@ -188,10 +192,10 @@ export function ResourceDetailView({
 
           {/* Academic Info */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-            <GraduationCap size={16} color="var(--primary)" style={{ marginTop: '0.125rem' }} />
+            <GraduationCap size={16} color="var(--ink)" style={{ marginTop: '0.125rem' }} />
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Program</div>
-              <div style={{ fontWeight: 500 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', fontWeight: 500 }}>Program</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>
                 Year {resource.year} · {resource.branch}
               </div>
             </div>
@@ -199,10 +203,10 @@ export function ResourceDetailView({
 
           {/* Uploader */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-            <User size={16} color="var(--primary)" style={{ marginTop: '0.125rem' }} />
+            <User size={16} color="var(--ink)" style={{ marginTop: '0.125rem' }} />
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Uploaded by</div>
-              <div style={{ fontWeight: 500 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', fontWeight: 500 }}>Uploaded by</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>
                 {resource.uploader?.full_name ?? 'Student Contributor'}
               </div>
             </div>
@@ -210,10 +214,10 @@ export function ResourceDetailView({
 
           {/* Date */}
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-            <Calendar size={16} color="var(--primary)" style={{ marginTop: '0.125rem' }} />
+            <Calendar size={16} color="var(--ink)" style={{ marginTop: '0.125rem' }} />
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>Uploaded date</div>
-              <div style={{ fontWeight: 500 }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', fontWeight: 500 }}>Uploaded date</div>
+              <div style={{ fontWeight: 600, color: 'var(--ink)' }}>
                 {resource.created_at ? new Date(resource.created_at).toLocaleDateString() : 'Recent'}
               </div>
             </div>
@@ -228,9 +232,9 @@ export function ResourceDetailView({
             justifyContent: 'space-between',
             gap: '0.625rem',
             padding: '0.75rem 1rem',
-            borderRadius: '0.5rem',
+            borderRadius: 'var(--r-sm, 6px)',
             border: '1px solid var(--border)',
-            background: 'var(--card)',
+            background: 'var(--surface)',
             fontSize: '0.8125rem',
           }}
         >
@@ -247,8 +251,7 @@ export function ResourceDetailView({
           />
         </div>
 
-
-        {/* Primary Download Button */}
+        {/* Primary Download Button (DESIGN.MD §8: Primary button has ink fill with on-ink text) */}
         <div>
           <a
             href={signedUrl && signedUrl !== '#' ? signedUrl : `/api/acad/download?id=${encodeURIComponent(resource.id)}`}
@@ -262,25 +265,26 @@ export function ResourceDetailView({
               gap: '0.5rem',
               width: '100%',
               padding: '0.75rem 1.25rem',
-              borderRadius: '0.5rem',
-              background: 'var(--primary)',
-              color: 'var(--primary-foreground, #fff)',
+              borderRadius: 'var(--r-sm, 6px)',
+              background: 'var(--ink)',
+              color: 'var(--on-ink, #ffffff)',
               fontWeight: 600,
               fontSize: '0.9375rem',
               textDecoration: 'none',
               cursor: 'pointer',
+              border: 'none',
               transition: 'opacity 0.15s ease',
             }}
           >
             <Download size={18} />
             <span>Download {resource.file_ext.toUpperCase()} File</span>
           </a>
-          <p style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)', textAlign: 'center', marginTop: '0.5rem' }}>
+          <p style={{ fontSize: '0.75rem', color: 'var(--ink-muted)', textAlign: 'center', marginTop: '0.5rem' }}>
             Secure download link valid for 60 minutes.
           </p>
         </div>
 
-        {/* Future AI Actions Preview */}
+        {/* AI Actions Row */}
         <div
           style={{
             display: 'grid',

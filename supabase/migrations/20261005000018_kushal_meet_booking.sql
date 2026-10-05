@@ -43,13 +43,20 @@ CREATE TABLE IF NOT EXISTS session_requests (
 -- 2. Exclusion Constraint: Prevent Double Booking
 -- No two accepted sessions can overlap for the same teacher_id
 -- ----------------------------------------------------------------------------
-ALTER TABLE session_requests
-    ADD CONSTRAINT no_overlapping_accepted_sessions
-    EXCLUDE USING gist (
-        teacher_id WITH =,
-        tstzrange(starts_at, ends_at) WITH &&
-    )
-    WHERE (status IN ('accepted', 'offline_selected', 'online_selected'));
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'no_overlapping_accepted_sessions'
+  ) THEN
+    ALTER TABLE session_requests
+        ADD CONSTRAINT no_overlapping_accepted_sessions
+        EXCLUDE USING gist (
+            teacher_id WITH =,
+            tstzrange(starts_at, ends_at) WITH &&
+        )
+        WHERE (status IN ('accepted', 'offline_selected', 'online_selected'));
+  END IF;
+END $$;
 
 -- ----------------------------------------------------------------------------
 -- 3. Indexes

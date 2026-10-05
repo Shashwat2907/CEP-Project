@@ -106,7 +106,7 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
               href="/community?tab=all"
               className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'all'
-                  ? 'bg-primary text-white font-semibold shadow-xs'
+                  ? 'bg-ink text-on-ink font-semibold shadow-xs'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
@@ -116,7 +116,7 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
               href="/community?tab=official"
               className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'official'
-                  ? 'bg-primary text-white font-semibold shadow-xs'
+                  ? 'bg-ink text-on-ink font-semibold shadow-xs'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
@@ -126,7 +126,7 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
               href="/community?tab=unofficial"
               className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'unofficial'
-                  ? 'bg-primary text-white font-semibold shadow-xs'
+                  ? 'bg-ink text-on-ink font-semibold shadow-xs'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >
@@ -136,7 +136,7 @@ export default async function CommunityPage({ searchParams }: CommunityPageProps
               href="/community?tab=my"
               className={`px-3 py-1.5 rounded-md font-medium transition-colors whitespace-nowrap ${
                 activeTab === 'my'
-                  ? 'bg-primary text-white font-semibold shadow-xs'
+                  ? 'bg-ink text-on-ink font-semibold shadow-xs'
                   : 'text-ink-muted hover:text-ink'
               }`}
             >

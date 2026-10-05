@@ -29,7 +29,7 @@ import {
   getOrCreateDoubtThread,
   searchSimilarChunks,
 } from './queries'
-import { extractText } from './lib/text-extractor'
+import { extractText, isNaturalText } from './lib/text-extractor'
 import { chunkPages, chunkText } from './lib/chunker'
 import { generateBatchEmbeddings, generateEmbedding } from './lib/gemini'
 import { calculateSm2 } from './lib/sm2'
@@ -1306,25 +1306,28 @@ export async function askDoubtQuestionAction(
   let matchedChunks: MatchedChunk[] = []
   try {
     const embedding = await generateEmbedding(question)
-    matchedChunks = await searchSimilarChunks(embedding, {
+    const rawSimilar = await searchSimilarChunks(embedding, {
       resourceId: resource_id,
       subjectId:  subject_id,
       count: 5,
     })
+    matchedChunks = rawSimilar.filter((c) => isNaturalText(c.content))
   } catch (embedErr) {
     console.warn('[acad/actions] Embedding generation failed, falling back to direct chunks:', embedErr)
   }
 
   if (matchedChunks.length === 0 && resource_id) {
     const chunks = await getResourceChunks(resource_id)
-    matchedChunks = chunks.map((c, i) => ({
-      id: c.id,
-      resource_id: c.resource_id,
-      chunk_index: c.chunk_index,
-      page_number: c.page_number ?? null,
-      content: c.content,
-      similarity: 0.85 - i * 0.1,
-    }))
+    matchedChunks = chunks
+      .filter((c) => isNaturalText(c.content))
+      .map((c, i) => ({
+        id: c.id,
+        resource_id: c.resource_id,
+        chunk_index: c.chunk_index,
+        page_number: c.page_number ?? null,
+        content: c.content,
+        similarity: 0.85 - i * 0.1,
+      }))
   }
 
   // 5. Generate grounded answer

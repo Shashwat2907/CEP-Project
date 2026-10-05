@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { MOCK_RESOURCES } from '@/features/acad/mock-acad-data'
-import { UPLOADED_FILES_MAP } from '@/features/acad/upload-store'
+import { getUploadedFile } from '@/features/acad/upload-store'
 import { isSupabaseOnline } from '@/lib/supabase/status'
 import { createClient } from '@/lib/supabase/server'
 
@@ -96,8 +96,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Missing resource ID' }, { status: 400 })
   }
 
-  // 1. Check in-memory store for newly uploaded files in this session
-  const cachedUpload = UPLOADED_FILES_MAP.get(resourceId)
+  // 1. Check in-memory / persistent disk store for newly uploaded files
+  const cachedUpload = getUploadedFile(resourceId)
   if (cachedUpload) {
     return new Response(new Uint8Array(cachedUpload.buffer), {
       headers: {

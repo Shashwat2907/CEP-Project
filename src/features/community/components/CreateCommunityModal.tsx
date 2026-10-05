@@ -56,7 +56,7 @@ export function CreateCommunityModal() {
     <>
       <button
         onClick={handleOpen}
-        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-primary text-white hover:bg-primary-hover shadow-sm transition-all"
+        className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-lg bg-ink text-on-ink hover:opacity-90 shadow-sm transition-all cursor-pointer"
       >
         <Plus size={15} />
         <span>Create Community</span>
@@ -170,7 +170,7 @@ export function CreateCommunityModal() {
                 <button
                   type="submit"
                   disabled={!name.trim() || isPending}
-                  className="px-4 py-1.5 text-xs font-semibold bg-primary hover:bg-primary-hover text-white rounded-lg disabled:opacity-40 shadow-sm transition-all"
+                  className="px-4 py-1.5 text-xs font-semibold bg-ink text-on-ink hover:opacity-90 rounded-lg disabled:opacity-40 shadow-sm transition-all cursor-pointer"
                 >
                   {isPending ? 'Creating...' : 'Create Community'}
                 </button>

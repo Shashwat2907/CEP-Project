@@ -67,11 +67,25 @@ create table if not exists public.presence_sessions (
   ended_at          timestamptz,
   last_heartbeat_at timestamptz not null default now(),
   close_reason      text check (close_reason in ('verified_out', 'signal_lost', 'consent_revoked', 'admin_closed')),
-  duration_minutes  numeric generated always as (
-    extract(epoch from (coalesce(ended_at, now()) - started_at)) / 60
-  ) stored,
+  duration_minutes  numeric,
   created_at        timestamptz not null default now()
 );
+
+-- Trigger to calculate duration_minutes when session ends
+create or replace function public.calculate_presence_session_duration()
+returns trigger as $$
+begin
+  if new.ended_at is not null then
+    new.duration_minutes := round((extract(epoch from (new.ended_at - new.started_at)) / 60)::numeric, 2);
+  end if;
+  return new;
+end;
+$$ language plpgsql;
+
+drop trigger if exists trg_presence_session_duration on public.presence_sessions;
+create trigger trg_presence_session_duration
+before insert or update on public.presence_sessions
+for each row execute function public.calculate_presence_session_duration();
 
 create index if not exists presence_sessions_user_active_idx
   on public.presence_sessions (user_id, ended_at)
@@ -81,9 +95,16 @@ create index if not exists presence_sessions_user_started_idx
   on public.presence_sessions (user_id, started_at desc);
 
 -- Add FK from heartbeats → sessions now that sessions table exists
-alter table public.presence_heartbeats
-  add constraint presence_heartbeats_session_id_fk
-  foreign key (session_id) references public.presence_sessions(id) on delete set null;
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'presence_heartbeats_session_id_fk'
+  ) then
+    alter table public.presence_heartbeats
+      add constraint presence_heartbeats_session_id_fk
+      foreign key (session_id) references public.presence_sessions(id) on delete set null;
+  end if;
+end $$;
 
 -- ─── 5. Presence Daily Summary Table ─────────────────────────────────────
 create table if not exists public.presence_daily (
@@ -147,65 +168,88 @@ create policy "daily: own rows or admin"
   );
 
 -- ─── 7. pg_cron Jobs ──────────────────────────────────────────────────────
--- Requires pg_cron extension enabled in Supabase project settings.
--- All three jobs are idempotent: safe to run multiple times.
+-- Optional: Only schedules if pg_cron extension is installed and enabled
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
+    BEGIN
+      EXECUTE $cron$
+        SELECT cron.unschedule('presence-session-timeout') WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'presence-session-timeout');
+        SELECT cron.schedule(
+          'presence-session-timeout',
+          '* * * * *',
+          $$
+            update public.presence_sessions
+            set ended_at = last_heartbeat_at, close_reason = 'signal_lost'
+            where ended_at is null
+              and last_heartbeat_at < now() - (
+                (select value::int from public.presence_monitoring_config
+                  where key = 'heartbeat_timeout_seconds')
+                * interval '1 second'
+              );
+          $$
+        );
+      $cron$;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Could not schedule presence-session-timeout: %', SQLERRM;
+    END;
 
--- 7a. Session timeout sweep (every minute)
-select cron.schedule(
-  'presence-session-timeout',
-  '* * * * *',
-  $$
-    update public.presence_sessions
-    set ended_at = last_heartbeat_at, close_reason = 'signal_lost'
-    where ended_at is null
-      and last_heartbeat_at < now() - (
-        (select value::int from public.presence_monitoring_config
-          where key = 'heartbeat_timeout_seconds')
-        * interval '1 second'
-      );
-  $$
-);
+    BEGIN
+      EXECUTE $cron$
+        SELECT cron.unschedule('presence-daily-rollup') WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'presence-daily-rollup');
+        SELECT cron.schedule(
+          'presence-daily-rollup',
+          '30 19 * * *',
+          $$
+            insert into public.presence_daily
+              (user_id, day, zone_id, first_in, last_out, minutes_on_campus, session_count, updated_at)
+            select
+              user_id,
+              (started_at at time zone 'Asia/Kolkata')::date as day,
+              mode() within group (order by zone_id)          as zone_id,
+              min(started_at)       as first_in,
+              max(ended_at)         as last_out,
+              sum(duration_minutes) as minutes_on_campus,
+              count(*)              as session_count,
+              now()
+            from public.presence_sessions
+            where ended_at is not null
+              and (started_at at time zone 'Asia/Kolkata')::date < current_date
+            group by user_id, (started_at at time zone 'Asia/Kolkata')::date
+            on conflict (user_id, day) do update set
+              zone_id           = excluded.zone_id,
+              first_in          = excluded.first_in,
+              last_out          = excluded.last_out,
+              minutes_on_campus = excluded.minutes_on_campus,
+              session_count     = excluded.session_count,
+              updated_at        = now();
+          $$
+        );
+      $cron$;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Could not schedule presence-daily-rollup: %', SQLERRM;
+    END;
 
--- 7b. Nightly daily rollup at 01:00 IST (19:30 UTC)
-select cron.schedule(
-  'presence-daily-rollup',
-  '30 19 * * *',
-  $$
-    insert into public.presence_daily
-      (user_id, day, zone_id, first_in, last_out, minutes_on_campus, session_count, updated_at)
-    select
-      user_id,
-      (started_at at time zone 'Asia/Kolkata')::date as day,
-      mode() within group (order by zone_id)          as zone_id,
-      min(started_at)       as first_in,
-      max(ended_at)         as last_out,
-      sum(duration_minutes) as minutes_on_campus,
-      count(*)              as session_count,
-      now()
-    from public.presence_sessions
-    where ended_at is not null
-      and (started_at at time zone 'Asia/Kolkata')::date < current_date
-    group by user_id, (started_at at time zone 'Asia/Kolkata')::date
-    on conflict (user_id, day) do update set
-      zone_id           = excluded.zone_id,
-      first_in          = excluded.first_in,
-      last_out          = excluded.last_out,
-      minutes_on_campus = excluded.minutes_on_campus,
-      session_count     = excluded.session_count,
-      updated_at        = now();
-  $$
-);
-
--- 7c. Heartbeat cleanup at 02:00 IST (20:30 UTC)
-select cron.schedule(
-  'presence-heartbeat-cleanup',
-  '30 20 * * *',
-  $$
-    delete from public.presence_heartbeats
-    where created_at < now() - (
-      (select value::int from public.presence_monitoring_config
-        where key = 'heartbeat_retention_days')
-      * interval '1 day'
-    );
-  $$
-);
+    BEGIN
+      EXECUTE $cron$
+        SELECT cron.unschedule('presence-heartbeat-cleanup') WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'presence-heartbeat-cleanup');
+        SELECT cron.schedule(
+          'presence-heartbeat-cleanup',
+          '30 20 * * *',
+          $$
+            delete from public.presence_heartbeats
+            where created_at < now() - (
+              (select value::int from public.presence_monitoring_config
+                where key = 'heartbeat_retention_days')
+              * interval '1 day'
+            );
+          $$
+        );
+      $cron$;
+    EXCEPTION WHEN OTHERS THEN
+      RAISE NOTICE 'Could not schedule presence-heartbeat-cleanup: %', SQLERRM;
+    END;
+  ELSE
+    RAISE NOTICE 'pg_cron extension not installed; skipping presence background cron schedules.';
+  END IF;
+END $$;

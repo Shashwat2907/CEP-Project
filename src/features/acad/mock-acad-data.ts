@@ -489,14 +489,26 @@ export const MOCK_FLASHCARDS_DBMS: FlashcardWithReview[] = [
 ]
 
 // In-memory store for decks keyed by resource_id (persists within server runtime)
-export const MOCK_DECKS_STORE = new Map<string, FlashcardDeck>([
-  ['00000000-0000-0000-0010-000000000001', MOCK_FLASHCARD_DECK],
-  ['00000000-0000-0000-0010-000000000002', MOCK_FLASHCARD_DECK_DBMS],
-])
+const gStore = globalThis as unknown as {
+  __MOCK_DECKS_STORE?: Map<string, FlashcardDeck>
+  __MOCK_CARDS_STORE?: Map<string, FlashcardWithReview[]>
+}
 
-// In-memory store for cards keyed by deck_id
-export const MOCK_CARDS_STORE = new Map<string, FlashcardWithReview[]>([
-  ['00000000-0000-0000-0030-000000000001', MOCK_FLASHCARDS],
-  ['00000000-0000-0000-0030-000000000002', MOCK_FLASHCARDS_DBMS],
-])
+if (!gStore.__MOCK_DECKS_STORE) {
+  gStore.__MOCK_DECKS_STORE = new Map<string, FlashcardDeck>([
+    ['00000000-0000-0000-0010-000000000001', MOCK_FLASHCARD_DECK],
+    ['00000000-0000-0000-0010-000000000002', MOCK_FLASHCARD_DECK_DBMS],
+  ])
+}
+
+if (!gStore.__MOCK_CARDS_STORE) {
+  gStore.__MOCK_CARDS_STORE = new Map<string, FlashcardWithReview[]>([
+    ['00000000-0000-0000-0030-000000000001', MOCK_FLASHCARDS],
+    ['00000000-0000-0000-0030-000000000002', MOCK_FLASHCARDS_DBMS],
+  ])
+}
+
+export const MOCK_DECKS_STORE = gStore.__MOCK_DECKS_STORE
+export const MOCK_CARDS_STORE = gStore.__MOCK_CARDS_STORE
+
 

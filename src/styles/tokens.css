@@ -47,6 +47,31 @@
 
   /* Floating layer shadow */
   --shadow-float: 0 8px 24px rgba(22, 33, 62, 0.12);
+
+  /* Compatibility aliases strictly mapped to DESIGN.MD tokens */
+  --background:              var(--bg);
+  --foreground:              var(--ink);
+  --card:                    var(--surface);
+  --card-foreground:         var(--ink);
+  --popover:                 var(--surface);
+  --popover-foreground:      var(--ink);
+  --primary:                 var(--ink);
+  --primary-foreground:      var(--on-ink);
+  --secondary:               var(--surface-sunken);
+  --secondary-foreground:    var(--ink);
+  --muted:                   var(--surface-sunken);
+  --muted-foreground:        var(--ink-muted);
+  --accent:                  var(--highlight);
+  --accent-foreground:       var(--ink);
+  --destructive:             var(--danger);
+  --destructive-foreground:  var(--on-ink);
+  --input:                   var(--border);
+  --ring:                    var(--ink);
+  --surface-paper:           var(--surface);
+  --text-primary:            var(--ink);
+  --text-secondary:          var(--ink-muted);
+  --border-subtle:           var(--border);
+  --primary-subtle:          rgba(22, 33, 62, 0.08);
 }
 
 .dark {
@@ -64,6 +89,31 @@
   --warning:         #F2A93B;
   --success:         #3DC58C;
   --shadow-float: 0 8px 24px rgba(0, 0, 0, 0.40);
+
+  /* Compatibility aliases strictly mapped to DESIGN.MD tokens */
+  --background:              var(--bg);
+  --foreground:              var(--ink);
+  --card:                    var(--surface);
+  --card-foreground:         var(--ink);
+  --popover:                 var(--surface);
+  --popover-foreground:      var(--ink);
+  --primary:                 var(--ink);
+  --primary-foreground:      var(--on-ink);
+  --secondary:               var(--surface-sunken);
+  --secondary-foreground:    var(--ink);
+  --muted:                   var(--surface-sunken);
+  --muted-foreground:        var(--ink-muted);
+  --accent:                  var(--highlight);
+  --accent-foreground:       var(--ink);
+  --destructive:             var(--danger);
+  --destructive-foreground:  var(--on-ink);
+  --input:                   var(--border);
+  --ring:                    var(--ink);
+  --surface-paper:           var(--surface);
+  --text-primary:            var(--ink);
+  --text-secondary:          var(--ink-muted);
+  --border-subtle:           var(--border);
+  --primary-subtle:          rgba(238, 241, 248, 0.12);
 }
 
 /* ─── 2. SPACING ──────────────────────────────────────────────── */

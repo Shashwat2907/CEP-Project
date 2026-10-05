@@ -572,7 +572,7 @@ export function ChatRoom({
             <button
               onClick={handleSend}
               disabled={!inputText.trim() || isPending}
-              className="h-10 px-4 rounded-lg bg-primary text-white font-medium text-xs flex items-center justify-center gap-1.5 hover:bg-primary-hover disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 shadow-sm"
+              className="h-10 px-4 rounded-lg bg-ink text-on-ink font-medium text-xs flex items-center justify-center gap-1.5 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0 shadow-sm cursor-pointer"
             >
               <Send size={14} />
               <span className="hidden sm:inline">Send</span>
@@ -585,7 +585,7 @@ export function ChatRoom({
               <button
                 onClick={() => startTransition(async () => { await onJoin() })}
                 disabled={isPending}
-                className="px-3 py-1 font-semibold rounded-md bg-primary text-white hover:bg-primary-hover transition-colors"
+                className="px-3 py-1 font-semibold rounded-md bg-ink text-on-ink hover:opacity-90 transition-colors cursor-pointer"
               >
                 Join to Participate
               </button>

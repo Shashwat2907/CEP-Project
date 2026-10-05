@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { initiateUpload } from '../actions'
 import type { Subject, ResourceType } from '../schema'
+import { Upload, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react'
 
 interface UploadResourceFormProps {
   subjects: Subject[]
@@ -12,14 +13,14 @@ interface UploadResourceFormProps {
 }
 
 const RESOURCE_TYPES: { value: ResourceType; label: string }[] = [
-  { value: 'notes',  label: 'Notes' },
-  { value: 'pyq',    label: 'Past Year Questions' },
+  { value: 'notes', label: 'Notes' },
+  { value: 'pyq', label: 'Past Year Questions' },
   { value: 'slides', label: 'Slides / Presentations' },
-  { value: 'other',  label: 'Other' },
+  { value: 'other', label: 'Other' },
 ]
 
 const ALLOWED_MIME: Record<string, string> = {
-  pdf:  'application/pdf',
+  pdf: 'application/pdf',
   pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
 }
@@ -31,9 +32,10 @@ export function UploadResourceForm({
 }: UploadResourceFormProps) {
   const router = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
-  const [error, setError]       = useState<string | null>(null)
-  const [success, setSuccess]   = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
   const busy = isPending || uploading
@@ -77,10 +79,15 @@ export function UploadResourceForm({
         const res = await fetch(uploadUrl, {
           method: 'PUT',
           body: file,
-          headers: { 'Content-Type': ALLOWED_MIME[ext] ?? 'application/octet-stream' },
+          headers: {
+            'Content-Type': ALLOWED_MIME[ext] ?? 'application/octet-stream',
+            'X-File-Name': encodeURIComponent(file.name),
+            'X-Resource-Title': encodeURIComponent((fd.get('title') as string) || file.name),
+          },
         })
         if (!res.ok) throw new Error('Storage upload failed')
         setSuccess(true)
+        setSelectedFileName(null)
         form.reset()
         router.refresh()
       } catch {
@@ -91,17 +98,40 @@ export function UploadResourceForm({
     })
   }
 
+  const selectStyle: React.CSSProperties = {
+    colorScheme: 'light dark',
+    backgroundColor: 'var(--surface-sunken)',
+    color: 'var(--text-primary)',
+  }
+
+  const optionStyle: React.CSSProperties = {
+    backgroundColor: 'var(--surface-paper)',
+    color: 'var(--text-primary)',
+  }
+
   return (
     <form
       onSubmit={handleSubmit}
       aria-label="Upload resource form"
-      style={{ display: 'flex', flexDirection: 'column', gap: '1rem', maxWidth: '32rem' }}
+      className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-paper)] p-6 shadow-sm space-y-5 max-w-xl transition-all"
     >
-      <h2 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Upload Resource</h2>
+      <div className="flex items-center gap-2.5 pb-3 border-b border-[var(--border-subtle)]">
+        <div className="w-8 h-8 rounded-xl bg-[var(--primary)]/10 text-[var(--primary)] flex items-center justify-center">
+          <Upload className="w-4 h-4" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-[var(--text-primary)]">Upload Resource</h2>
+          <p className="text-xs text-[var(--text-secondary)]">
+            Share notes, slides, or past papers with students and faculty
+          </p>
+        </div>
+      </div>
 
       {/* Title */}
-      <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Title</span>
+      <div>
+        <label htmlFor="resource-title" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">
+          Document Title
+        </label>
         <input
           id="resource-title"
           name="title"
@@ -109,128 +139,185 @@ export function UploadResourceForm({
           required
           minLength={3}
           maxLength={200}
-          placeholder="e.g. Data Structures Unit 3 Notes"
+          placeholder="e.g. CST Module 4: Memory Management & Paging Notes"
           disabled={busy}
-          style={{ padding: '0.5rem 0.75rem', borderRadius: '0.375rem', border: '1px solid var(--border)' }}
+          style={selectStyle}
+          className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] hover:border-[var(--border)] focus:border-[var(--primary)] focus:bg-[var(--surface-paper)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 transition-all disabled:opacity-50"
         />
-      </label>
+      </div>
 
       {/* Subject */}
-      <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Subject</span>
+      <div>
+        <label htmlFor="resource-subject" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">
+          Subject Course
+        </label>
         <select
           id="resource-subject"
           name="subject_id"
           required
           disabled={busy}
-          style={{ padding: '0.5rem 0.75rem', borderRadius: '0.375rem', border: '1px solid var(--border)' }}
+          style={selectStyle}
+          className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] hover:border-[var(--border)] focus:border-[var(--primary)] focus:bg-[var(--surface-paper)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 text-sm text-[var(--text-primary)] transition-all cursor-pointer disabled:opacity-50"
         >
-          <option value="">Select subject…</option>
+          <option value="" style={optionStyle}>
+            Select subject…
+          </option>
           {subjects.map((s) => (
-            <option key={s.id} value={s.id}>
+            <option key={s.id} value={s.id} style={optionStyle}>
               {s.code} — {s.name} (Year {s.year}, {s.branch})
             </option>
           ))}
         </select>
-      </label>
+      </div>
 
       {/* Year + Branch */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Year</span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div>
+          <label htmlFor="resource-year" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">
+            Academic Year
+          </label>
           <select
             id="resource-year"
             name="year"
             required
             defaultValue={defaultYear ?? ''}
             disabled={busy}
-            style={{ padding: '0.5rem 0.75rem', borderRadius: '0.375rem', border: '1px solid var(--border)' }}
+            style={selectStyle}
+            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] hover:border-[var(--border)] focus:border-[var(--primary)] focus:bg-[var(--surface-paper)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 text-sm text-[var(--text-primary)] transition-all cursor-pointer disabled:opacity-50"
           >
-            <option value="">Year…</option>
+            <option value="" style={optionStyle}>
+              Select Year…
+            </option>
             {[1, 2, 3, 4].map((y) => (
-              <option key={y} value={y}>Year {y}</option>
+              <option key={y} value={y} style={optionStyle}>
+                Year {y}
+              </option>
             ))}
           </select>
-        </label>
+        </div>
 
-        <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Branch</span>
+        <div>
+          <label htmlFor="resource-branch" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">
+            Branch / Department
+          </label>
           <input
             id="resource-branch"
             name="branch"
             type="text"
             required
             defaultValue={defaultBranch ?? ''}
-            placeholder="e.g. CS"
+            placeholder="e.g. Computer Science"
             disabled={busy}
-            style={{ padding: '0.5rem 0.75rem', borderRadius: '0.375rem', border: '1px solid var(--border)' }}
+            style={selectStyle}
+            className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] hover:border-[var(--border)] focus:border-[var(--primary)] focus:bg-[var(--surface-paper)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-secondary)]/50 transition-all disabled:opacity-50"
           />
-        </label>
+        </div>
       </div>
 
       {/* Type */}
-      <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>Resource type</span>
+      <div>
+        <label htmlFor="resource-type" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">
+          Resource Type
+        </label>
         <select
           id="resource-type"
           name="type"
           required
           disabled={busy}
-          style={{ padding: '0.5rem 0.75rem', borderRadius: '0.375rem', border: '1px solid var(--border)' }}
+          style={selectStyle}
+          className="w-full px-3.5 py-2.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] hover:border-[var(--border)] focus:border-[var(--primary)] focus:bg-[var(--surface-paper)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 text-sm text-[var(--text-primary)] transition-all cursor-pointer disabled:opacity-50"
         >
-          <option value="">Select type…</option>
+          <option value="" style={optionStyle}>
+            Select type…
+          </option>
           {RESOURCE_TYPES.map((t) => (
-            <option key={t.value} value={t.value}>{t.label}</option>
+            <option key={t.value} value={t.value} style={optionStyle}>
+              {t.label}
+            </option>
           ))}
         </select>
-      </label>
+      </div>
 
-      {/* File */}
-      <label style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-        <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>File (PDF, PPTX or DOCX)</span>
-        <input
-          id="resource-file"
-          ref={fileRef}
-          type="file"
-          accept=".pdf,.pptx,.docx"
-          required
-          disabled={busy}
-        />
-        <span style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>
-          Max 50 MB. PDF, PPTX and DOCX only.
-        </span>
-      </label>
+      {/* File Upload */}
+      <div>
+        <label htmlFor="resource-file" className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider block mb-1.5">
+          File (PDF, PPTX, or DOCX)
+        </label>
+        <div className="relative">
+          <input
+            id="resource-file"
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.pptx,.docx"
+            required
+            disabled={busy}
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              setSelectedFileName(f ? f.name : null)
+            }}
+            style={selectStyle}
+            className="w-full px-3.5 py-2 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-xs text-[var(--text-secondary)] file:mr-3.5 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[var(--primary)] file:text-[var(--on-ink)] hover:file:opacity-90 cursor-pointer disabled:opacity-50 transition-all"
+          />
+        </div>
+        <div className="flex items-center justify-between text-[11px] text-[var(--text-secondary)] mt-1.5 px-0.5">
+          <span>Max 50 MB. High-yield text documents are prioritized for AI flashcards.</span>
+          {selectedFileName && (
+            <span className="font-semibold text-[var(--primary)] truncate max-w-[200px] flex items-center gap-1">
+              <FileText className="w-3 h-3 shrink-0" />
+              {selectedFileName}
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Validation / error message */}
       {error && (
-        <p role="alert" style={{ color: 'var(--destructive)', fontSize: '0.875rem' }}>
-          {error}
-        </p>
+        <div
+          role="alert"
+          className="flex items-center gap-2 p-3 rounded-xl border border-red-500/20 bg-red-500/10 text-red-600 dark:text-red-400 text-xs font-medium"
+        >
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+        </div>
       )}
 
       {/* Success message */}
       {success && (
-        <p role="status" style={{ color: 'var(--success, green)', fontSize: '0.875rem' }}>
-          Upload submitted! {defaultYear ? 'It will appear once a teacher approves it.' : ''}
-        </p>
+        <div
+          role="status"
+          className="flex items-center gap-2 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-medium"
+        >
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>
+            Upload successful! {defaultYear ? 'Document submitted for faculty review.' : 'Available in repository & AI flashcards.'}
+          </span>
+        </div>
       )}
 
       <button
         id="resource-upload-btn"
         type="submit"
         disabled={busy}
-        style={{
-          padding: '0.625rem 1.25rem',
-          borderRadius: '0.375rem',
-          background: 'var(--primary)',
-          color: 'var(--primary-foreground)',
-          fontWeight: 600,
-          cursor: busy ? 'not-allowed' : 'pointer',
-          opacity: busy ? 0.6 : 1,
-        }}
+        className="w-full py-2.5 px-4 rounded-xl bg-[var(--primary)] hover:opacity-90 active:scale-98 text-[var(--on-ink)] font-bold text-xs tracking-wide shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
       >
-        {uploading ? 'Uploading…' : isPending ? 'Preparing…' : 'Upload'}
+        {uploading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Uploading & Extracting Content…</span>
+          </>
+        ) : isPending ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Preparing Upload…</span>
+          </>
+        ) : (
+          <>
+            <Upload className="w-4 h-4" />
+            <span>Upload Document</span>
+          </>
+        )}
       </button>
     </form>
   )
 }
+

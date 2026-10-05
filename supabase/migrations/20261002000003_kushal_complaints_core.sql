@@ -42,14 +42,17 @@ CREATE INDEX IF NOT EXISTS idx_domain_assignees_domain ON public.domain_assignee
 CREATE INDEX IF NOT EXISTS idx_domain_assignees_assignee ON public.domain_assignees(assignee_id);
 
 -- 3. COMPLAINTS (The core grievance tickets)
-CREATE TYPE public.complaint_status AS ENUM (
-  'submitted',
-  'in_progress',
-  'escalated',
-  'resolved',
-  'reopened',
-  'closed'
-);
+DO $$ BEGIN
+  CREATE TYPE public.complaint_status AS ENUM (
+    'submitted',
+    'in_progress',
+    'escalated',
+    'resolved',
+    'reopened',
+    'closed'
+  );
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.complaints (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),

@@ -22,18 +22,21 @@ on conflict (id) do update set
 
 -- 2. Storage RLS Policies
 -- Allow authenticated users to upload resources
+drop policy if exists "Authenticated users can upload resources" on storage.objects;
 create policy "Authenticated users can upload resources"
   on storage.objects for insert
   to authenticated
   with check (bucket_id = 'resources');
 
 -- Allow authenticated users to view/download resources
+drop policy if exists "Authenticated users can view resources" on storage.objects;
 create policy "Authenticated users can view resources"
   on storage.objects for select
   to authenticated
   using (bucket_id = 'resources');
 
 -- Allow resource uploaders and teachers to update/delete their objects
+drop policy if exists "Users can delete their own uploaded resources" on storage.objects;
 create policy "Users can delete their own uploaded resources"
   on storage.objects for delete
   to authenticated

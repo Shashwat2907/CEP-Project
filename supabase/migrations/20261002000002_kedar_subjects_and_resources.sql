@@ -38,9 +38,20 @@ INSERT INTO public.app_config (key, value, note) VALUES
 ON CONFLICT (key) DO NOTHING;
 
 -- 3. RESOURCES
-CREATE TYPE IF NOT EXISTS public.resource_type AS ENUM ('notes', 'pyq', 'slides', 'other');
-CREATE TYPE IF NOT EXISTS public.resource_status AS ENUM ('pending', 'approved', 'rejected');
-CREATE TYPE IF NOT EXISTS public.processing_status AS ENUM ('not_started', 'processing', 'ready', 'failed');
+DO $$ BEGIN
+  CREATE TYPE public.resource_type AS ENUM ('notes', 'pyq', 'slides', 'other');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE public.resource_status AS ENUM ('pending', 'approved', 'rejected');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE public.processing_status AS ENUM ('not_started', 'processing', 'ready', 'failed');
+EXCEPTION WHEN duplicate_object THEN null;
+END $$;
 
 CREATE TABLE IF NOT EXISTS public.resources (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),

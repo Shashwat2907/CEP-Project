@@ -52,13 +52,14 @@ export function FlashcardDeckButton({
             justifyContent: 'center',
             gap: '0.5rem',
             padding: '0.75rem 1rem',
-            borderRadius: '0.5rem',
-            background: 'var(--primary)',
-            color: 'var(--primary-foreground, #fff)',
+            borderRadius: 'var(--r-sm, 6px)',
+            background: 'var(--surface-sunken)',
+            border: '1px solid var(--border)',
+            color: 'var(--ink)',
             fontWeight: 600,
             fontSize: '0.875rem',
             textDecoration: 'none',
-            transition: 'transform 0.15s ease, opacity 0.15s ease',
+            transition: 'background 0.15s ease, border-color 0.15s ease',
           }}
         >
           <Layers size={16} />
@@ -67,9 +68,10 @@ export function FlashcardDeckButton({
             <span
               style={{
                 fontSize: '0.75rem',
-                padding: '0.125rem 0.375rem',
+                padding: '0.125rem 0.5rem',
                 borderRadius: '999px',
-                background: 'rgba(255,255,255,0.25)',
+                background: 'var(--highlight)',
+                color: 'var(--ink)',
                 fontWeight: 700,
               }}
             >
@@ -93,10 +95,10 @@ export function FlashcardDeckButton({
           justifyContent: 'center',
           gap: '0.5rem',
           padding: '0.75rem 1rem',
-          borderRadius: '0.5rem',
-          border: '1px solid var(--primary)',
-          background: 'var(--primary-subtle, rgba(59, 130, 246, 0.08))',
-          color: 'var(--primary)',
+          borderRadius: 'var(--r-sm, 6px)',
+          border: '1px solid var(--border)',
+          background: 'var(--surface-sunken)',
+          color: 'var(--ink)',
           fontWeight: 600,
           fontSize: '0.875rem',
           cursor: isPending || processingStatus === 'processing' ? 'not-allowed' : 'pointer',

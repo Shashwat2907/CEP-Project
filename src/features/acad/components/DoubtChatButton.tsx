@@ -40,19 +40,19 @@ export function DoubtChatButton({
           alignItems: 'center',
           justifyContent: 'center',
           padding: '0.875rem 1rem',
-          borderRadius: '0.5rem',
-          border: isReady ? '1px solid var(--primary)' : '1px dashed var(--border)',
-          backgroundColor: isReady ? 'rgba(var(--primary-rgb, 59, 130, 246), 0.08)' : 'var(--muted)',
-          color: isReady ? 'var(--primary)' : 'var(--muted-foreground)',
+          borderRadius: 'var(--r-sm, 6px)',
+          border: isReady ? '1px solid var(--border)' : '1px dashed var(--border)',
+          backgroundColor: 'var(--surface-sunken)',
+          color: isReady ? 'var(--ink)' : 'var(--ink-muted)',
           cursor: isReady ? 'pointer' : 'not-allowed',
           transition: 'all 0.2s ease',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem', color: isReady ? 'var(--ink)' : 'var(--ink-muted)' }}>
           <Bot size={18} />
           <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Doubt AI Chat</span>
         </div>
-        <div style={{ fontSize: '0.75rem', opacity: 0.85 }}>
+        <div style={{ fontSize: '0.75rem', color: 'var(--ink-muted)' }}>
           {isReady ? 'Ask questions with page citations' : 'Available once document processing is complete'}
         </div>
       </button>
