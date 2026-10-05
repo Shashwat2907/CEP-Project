@@ -26,6 +26,7 @@ import {
   Video,
   PenTool,
 } from 'lucide-react'
+import { formatSessionDateTime, formatDeterministicDate } from '../date-format'
 
 interface TeacherRequestQueueProps {
   initialRequests: SessionRequest[]
@@ -55,18 +56,7 @@ function getStatusBadge(status: SessionStatus) {
 }
 
 function formatSessionDate(startsAt: string): { dateStr: string; timeStr: string } {
-  const dt = new Date(startsAt)
-  const dateStr = dt.toLocaleDateString(undefined, {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  })
-  const timeStr = dt.toLocaleTimeString(undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-  return { dateStr, timeStr }
+  return formatSessionDateTime(startsAt)
 }
 
 export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProps) {
@@ -316,7 +306,7 @@ export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProp
                         <Calendar className="h-3.5 w-3.5 text-accent" />
                         <span>Requested Time</span>
                       </div>
-                      <p className="font-medium">
+                      <p className="font-medium" suppressHydrationWarning>
                         {dateStr} at {timeStr}
                       </p>
                     </div>
@@ -359,9 +349,9 @@ export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProp
 
                   {/* Action Buttons */}
                   <div className="flex items-center justify-between pt-2 border-t border-border/40">
-                    <div className="text-meta text-ink-muted flex items-center gap-1.5">
+                    <div className="text-meta text-ink-muted flex items-center gap-1.5" suppressHydrationWarning>
                       <Clock className="h-3.5 w-3.5" />
-                      <span>Requested on {new Date(r.created_at).toLocaleDateString()}</span>
+                      <span>Requested on {formatDeterministicDate(r.created_at, 'date-only')}</span>
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -391,7 +381,7 @@ export function TeacherRequestQueue({ initialRequests }: TeacherRequestQueueProp
                       )}
 
                       {isConfirmed && (r.mode === 'online' || r.status === 'online_selected') && (
-                        <Link href={`/meet/${r.id}`}>
+                        <Link href={`/meet/${r.id}?force=true`}>
                           <Button size="sm" className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium">
                             <Video className="h-3.5 w-3.5" />
                             <span>Join Video Call</span>

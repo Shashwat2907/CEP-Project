@@ -7,8 +7,10 @@
 import type {
   TeacherSummary,
   AvailabilityRule,
+  AvailabilityException,
   GeneratedSlot,
   SessionRequest,
+  WhiteboardRecord,
 } from './schema'
 
 export const MOCK_TEACHERS: TeacherSummary[] = [
@@ -114,3 +116,5 @@ export const MOCK_SESSION_REQUESTS: SessionRequest[] = [
 
 export const mockSessionRequestsStore: SessionRequest[] = [...MOCK_SESSION_REQUESTS]
 export const mockAvailabilityRulesStore: AvailabilityRule[] = [...MOCK_AVAILABILITY_RULES]
+export const MOCK_AVAILABILITY_EXCEPTIONS: AvailabilityException[] = []
+export const MOCK_WHITEBOARDS = new Map<string, WhiteboardRecord>()

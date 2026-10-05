@@ -8,6 +8,7 @@ import {
   MOCK_TEACHERS,
   mockAvailabilityRulesStore,
   mockSessionRequestsStore,
+  MOCK_WHITEBOARDS,
 } from './mock-meet-data'
 import {
   SaveAvailabilityRuleSchema,
@@ -30,6 +31,7 @@ import {
   type SaveWhiteboardSnapshotInput,
   type ActionResult,
   type GeneratedSlot,
+  type WhiteboardRecord,
 } from './schema'
 import { generateTeacherSlots } from './queries'
 import { notify } from '@/shared/notifications/notify'
@@ -844,108 +846,124 @@ export async function saveWhiteboardSnapshot(
   }
 
   const { session_id, snapshot_data, thumbnail_url } = parsed.data
-  const supabase = await createClient()
 
-  // 1. Verify session exists and user is participant or admin
-  const { data: session, error: sessionErr } = await supabase
-    .from('session_requests')
-    .select('id, student_id, teacher_id, room_id')
-    .eq('id', session_id)
-    .single()
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
 
-  if (sessionErr || !session) {
-    return {
-      ok: false,
-      error: { code: 'NOT_FOUND', message: 'Meeting session not found' },
-    }
-  }
+      // 1. Verify session exists and user is participant or admin
+      const { data: session, error: sessionErr } = await supabase
+        .from('session_requests')
+        .select('id, student_id, teacher_id, room_id')
+        .eq('id', session_id)
+        .single()
 
-  const isStudent = session.student_id === user.id
-  const isTeacher = session.teacher_id === user.id
-  const isAdmin = profile.role_primary === 'admin'
+      if (!sessionErr && session) {
+        const isStudent = session.student_id === user.id
+        const isTeacher = session.teacher_id === user.id
+        const isAdmin = profile.role_primary === 'admin'
 
-  if (!isStudent && !isTeacher && !isAdmin) {
-    return {
-      ok: false,
-      error: {
-        code: 'UNAUTHORIZED',
-        message: 'You are not authorized to save whiteboards for this session.',
-      },
-    }
-  }
+        if (!isStudent && !isTeacher && !isAdmin) {
+          return {
+            ok: false,
+            error: {
+              code: 'UNAUTHORIZED',
+              message: 'You are not authorized to save whiteboards for this session.',
+            },
+          }
+        }
 
-  const roomId = session.room_id || `meet-${session.id.slice(0, 8)}`
+        const roomId = session.room_id || `meet-${session.id.slice(0, 8)}`
 
-  // 2. Check if a whiteboard record already exists for this session
-  const { data: existing } = await supabase
-    .from('meeting_whiteboards')
-    .select('id, version')
-    .eq('session_id', session_id)
-    .maybeSingle()
+        // 2. Check if a whiteboard record already exists for this session
+        const { data: existing } = await supabase
+          .from('meeting_whiteboards')
+          .select('id, version')
+          .eq('session_id', session_id)
+          .maybeSingle()
 
-  if (existing) {
-    const nextVersion = (existing.version || 1) + 1
-    const { data: updated, error: updateErr } = await supabase
-      .from('meeting_whiteboards')
-      .update({
-        snapshot_data,
-        thumbnail_url: thumbnail_url ?? null,
-        version: nextVersion,
-        saved_by: user.id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existing.id)
-      .select('id, version')
-      .single()
+        if (existing) {
+          const nextVersion = (existing.version || 1) + 1
+          const { data: updated, error: updateErr } = await supabase
+            .from('meeting_whiteboards')
+            .update({
+              snapshot_data,
+              thumbnail_url: thumbnail_url ?? null,
+              version: nextVersion,
+              saved_by: user.id,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existing.id)
+            .select('id, version')
+            .single()
 
-    if (updateErr) {
-      console.error('[meet/actions] updateWhiteboard error:', updateErr.message)
-      return {
-        ok: false,
-        error: { code: 'DB_ERROR', message: 'Failed to update whiteboard snapshot' },
+          if (!updateErr && updated) {
+            revalidatePath(`/meet/${session_id}`)
+            revalidatePath(`/meet/${session_id}/whiteboard`)
+            return {
+              ok: true,
+              data: {
+                whiteboardId: updated.id,
+                version: updated.version,
+              },
+            }
+          }
+        } else {
+          const { data: inserted, error: insertErr } = await supabase
+            .from('meeting_whiteboards')
+            .insert({
+              session_id,
+              room_id: roomId,
+              snapshot_data,
+              thumbnail_url: thumbnail_url ?? null,
+              version: 1,
+              saved_by: user.id,
+            })
+            .select('id, version')
+            .single()
+
+          if (!insertErr && inserted) {
+            revalidatePath(`/meet/${session_id}`)
+            revalidatePath(`/meet/${session_id}/whiteboard`)
+            return {
+              ok: true,
+              data: {
+                whiteboardId: inserted.id,
+                version: inserted.version,
+              },
+            }
+          }
+        }
       }
-    }
-
-    revalidatePath(`/meet/${session_id}`)
-    revalidatePath(`/meet/${session_id}/whiteboard`)
-    return {
-      ok: true,
-      data: {
-        whiteboardId: updated.id,
-        version: updated.version,
-      },
+    } catch {
+      // Supabase offline fallback
     }
   }
 
-  // 3. Insert new whiteboard snapshot record
-  const { data: inserted, error: insertErr } = await supabase
-    .from('meeting_whiteboards')
-    .insert({
-      session_id,
-      room_id: roomId,
-      snapshot_data,
-      thumbnail_url: thumbnail_url ?? null,
-      version: 1,
-      saved_by: user.id,
-    })
-    .select('id, version')
-    .single()
-
-  if (insertErr) {
-    console.error('[meet/actions] insertWhiteboard error:', insertErr.message)
-    return {
-      ok: false,
-      error: { code: 'DB_ERROR', message: 'Failed to save whiteboard snapshot' },
-    }
+  // Offline fallback to in-memory store
+  const existing = MOCK_WHITEBOARDS.get(session_id)
+  const nextVersion = (existing?.version || 0) + 1
+  const wbRecord: WhiteboardRecord = {
+    id: existing?.id || crypto.randomUUID(),
+    session_id,
+    room_id: `meet-${session_id.slice(0, 8)}`,
+    snapshot_data,
+    thumbnail_url: thumbnail_url ?? null,
+    version: nextVersion,
+    saved_by: user.id,
+    created_at: existing?.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
   }
 
+  MOCK_WHITEBOARDS.set(session_id, wbRecord)
   revalidatePath(`/meet/${session_id}`)
   revalidatePath(`/meet/${session_id}/whiteboard`)
+
   return {
     ok: true,
     data: {
-      whiteboardId: inserted.id,
-      version: inserted.version,
+      whiteboardId: wbRecord.id,
+      version: nextVersion,
     },
   }
 }

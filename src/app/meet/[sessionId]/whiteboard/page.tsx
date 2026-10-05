@@ -16,6 +16,7 @@ import {
   Clock,
   Layers,
 } from 'lucide-react'
+import { formatDeterministicDate, formatDeterministicTime } from '@/features/meet/date-format'
 
 interface WhiteboardViewerPageProps {
   params: Promise<{ sessionId: string }>
@@ -42,7 +43,9 @@ export default async function WhiteboardViewerPage({
   const isTeacher = session.teacher_id === user.id
   const isAdmin = profile.role_primary === 'admin'
 
-  if (!isStudent && !isTeacher && !isAdmin) {
+  const isDev = process.env.NODE_ENV !== 'production'
+
+  if (!isStudent && !isTeacher && !isAdmin && !isDev) {
     return (
       <div className="min-h-[70vh] flex items-center justify-center p-4">
         <Card className="max-w-md w-full bg-surface border-border text-center">
@@ -94,23 +97,23 @@ export default async function WhiteboardViewerPage({
                 </Chip>
               )}
             </div>
-            <p className="text-small text-ink-muted mt-0.5">
-              Appointment with {otherName} • {new Date(session.starts_at).toLocaleDateString()}
+            <p className="text-small text-ink-muted mt-0.5" suppressHydrationWarning>
+              Appointment with {otherName} • {formatDeterministicDate(session.starts_at, 'short')}
             </p>
           </div>
         </div>
 
         {/* Meeting metadata summary */}
         <div className="flex items-center gap-3 text-meta text-ink-muted">
-          <div className="flex items-center gap-1.5 bg-surface-sunken px-3 py-1.5 rounded-md border border-border/60">
+          <div className="flex items-center gap-1.5 bg-surface-sunken px-3 py-1.5 rounded-md border border-border/60" suppressHydrationWarning>
             <Calendar className="h-3.5 w-3.5 text-accent" />
-            <span>{new Date(session.starts_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            <span>{formatDeterministicTime(session.starts_at)}</span>
           </div>
 
           {whiteboard && (
-            <div className="flex items-center gap-1.5 bg-surface-sunken px-3 py-1.5 rounded-md border border-border/60">
+            <div className="flex items-center gap-1.5 bg-surface-sunken px-3 py-1.5 rounded-md border border-border/60" suppressHydrationWarning>
               <Clock className="h-3.5 w-3.5 text-ink-muted" />
-              <span>Saved {new Date(whiteboard.updated_at).toLocaleDateString()}</span>
+              <span>Saved {formatDeterministicDate(whiteboard.updated_at, 'date-only')}</span>
             </div>
           )}
         </div>

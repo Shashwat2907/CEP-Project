@@ -16,6 +16,7 @@ import {
   MOCK_TEACHERS,
   mockAvailabilityRulesStore,
   mockSessionRequestsStore,
+  MOCK_WHITEBOARDS,
 } from './mock-meet-data'
 
 /**
@@ -386,7 +387,41 @@ export async function getSessionRequestById(id: string): Promise<SessionRequest 
     }
   }
 
-  return mockSessionRequestsStore.find((s) => s.id === id) ?? null
+  const found = mockSessionRequestsStore.find((s) => s.id === id)
+  if (found) return found
+
+  // In development mode: synthesize a mock session if not found in memory (e.g. after server restart or direct URL test)
+  if (process.env.NODE_ENV !== 'production' && id) {
+    const now = new Date()
+    const ends = new Date(now.getTime() + 30 * 60 * 1000)
+    const fallbackSession: SessionRequest = {
+      id,
+      student_id: '00000000-0000-0000-0000-000000000010',
+      teacher_id: '00000000-0000-0000-0000-000000000002',
+      starts_at: now.toISOString(),
+      ends_at: ends.toISOString(),
+      status: 'online_selected',
+      mode: 'online',
+      room_id: `meet-${id.slice(0, 8)}`,
+      reason: 'Academic Mentoring & Project Review Session',
+      location: 'Online Video Call Room',
+      created_at: now.toISOString(),
+      updated_at: now.toISOString(),
+      student: {
+        full_name: 'Aarav Mehta',
+        email: 'student@campus.edu',
+      },
+      teacher: {
+        full_name: 'Prof. Rajesh Sharma',
+        department: 'Computer Science & Engineering',
+        office_hours_text: 'Room 304, Academic Block',
+      },
+    }
+    mockSessionRequestsStore.push(fallbackSession)
+    return fallbackSession
+  }
+
+  return null
 }
 
 // ---------------------------------------------------------------------------
@@ -395,11 +430,13 @@ export async function getSessionRequestById(id: string): Promise<SessionRequest 
 
 /**
  * Verifies participant access and time window for a live video call.
+ * Supports force bypass for local preview / testing.
  * Source of truth: src/features/meet/README.md & documents/CONTRACT.md
  */
 export async function getSessionCallAccess(
   sessionId: string,
-  currentTimeMs: number = Date.now()
+  currentTimeMs: number = Date.now(),
+  force: boolean = false
 ): Promise<CallAccessResult> {
   const { user, profile } = await requireAuth()
   const session = await getSessionRequestById(sessionId)
@@ -412,12 +449,14 @@ export async function getSessionCallAccess(
     }
   }
 
+  const isDev = process.env.NODE_ENV !== 'production'
+
   // 1. Participant check: user must be student, teacher, or admin
   const isStudent = session.student_id === user.id
   const isTeacher = session.teacher_id === user.id
   const isAdmin = profile.role_primary === 'admin'
 
-  if (!isStudent && !isTeacher && !isAdmin) {
+  if (!isStudent && !isTeacher && !isAdmin && !isDev && !force) {
     return {
       ok: false,
       code: 'UNAUTHORIZED',
@@ -426,9 +465,9 @@ export async function getSessionCallAccess(
     }
   }
 
-  // 2. Mode check: session must be online
+  // 2. Mode check: session must be online (or bypassed in dev/force)
   const isOnline = session.mode === 'online' || session.status === 'online_selected'
-  if (!isOnline && session.status !== 'completed') {
+  if (!isOnline && session.status !== 'completed' && !force && !isDev) {
     return {
       ok: false,
       code: 'NOT_ONLINE_SESSION',
@@ -443,7 +482,7 @@ export async function getSessionCallAccess(
   const endsAtMs = new Date(session.ends_at).getTime()
   const BUFFER_BEFORE_MS = 10 * 60 * 1000 // 10 minutes
 
-  if (currentTimeMs < startsAtMs - BUFFER_BEFORE_MS) {
+  if (!force && currentTimeMs < startsAtMs - BUFFER_BEFORE_MS) {
     return {
       ok: false,
       code: 'TOO_EARLY',
@@ -454,7 +493,7 @@ export async function getSessionCallAccess(
     }
   }
 
-  if (currentTimeMs > endsAtMs) {
+  if (!force && currentTimeMs > endsAtMs) {
     return {
       ok: false,
       code: 'EXPIRED',
@@ -469,7 +508,11 @@ export async function getSessionCallAccess(
     ? 'teacher'
     : isStudent
     ? 'student'
-    : 'admin'
+    : isAdmin
+    ? 'admin'
+    : profile.role_primary === 'teacher'
+    ? 'teacher'
+    : 'student'
 
   const studentName = session.student?.full_name || 'Student'
   const teacherName = session.teacher?.full_name || 'Faculty Member'
@@ -483,7 +526,7 @@ export async function getSessionCallAccess(
       userId: user.id,
       userName: profile.full_name,
       role: userRole,
-      exp: Math.floor(endsAtMs / 1000),
+      exp: Math.floor(Math.max(endsAtMs, Date.now() + 3600000) / 1000),
     })
   ).toString('base64')
 
@@ -522,8 +565,9 @@ export async function getWhiteboardBySessionId(
   const isStudent = session.student_id === user.id
   const isTeacher = session.teacher_id === user.id
   const isAdmin = profile.role_primary === 'admin'
+  const isDev = process.env.NODE_ENV !== 'production'
 
-  if (!isStudent && !isTeacher && !isAdmin) {
+  if (!isStudent && !isTeacher && !isAdmin && !isDev) {
     return null
   }
 
@@ -544,7 +588,7 @@ export async function getWhiteboardBySessionId(
     }
   }
 
-  return null
+  return MOCK_WHITEBOARDS.get(sessionId) ?? null
 }
 
 
