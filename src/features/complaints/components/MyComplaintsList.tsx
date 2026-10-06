@@ -75,7 +75,7 @@ export function MyComplaintsList({ complaints }: MyComplaintsListProps) {
       {complaints.map((c) => {
         const isResolved = c.status === 'resolved'
         const isClosed = c.status === 'closed'
-        const dueTime = c.due_at ? new Date(c.due_at).toLocaleDateString(undefined, {
+        const dueTime = c.due_at ? new Date(c.due_at).toLocaleDateString('en-US', {
           month: 'short',
           day: 'numeric',
           hour: '2-digit',
@@ -152,7 +152,7 @@ export function MyComplaintsList({ complaints }: MyComplaintsListProps) {
               )}
 
               <div className="mt-3 flex items-center justify-between pt-2 border-t border-border/50 text-meta text-ink-muted">
-                <span>Submitted {new Date(c.created_at).toLocaleDateString()}</span>
+                <span>Submitted {new Date(c.created_at).toLocaleDateString('en-US')}</span>
                 <Link
                   href={`/complaints/${c.id}`}
                   className="inline-flex items-center gap-1 text-ink hover:underline font-medium"

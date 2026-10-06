@@ -77,10 +77,15 @@ export function MobileNav({
           { label: 'Resources', href: '/teacher/acad', icon: BookOpen },
           { label: 'Calendar', href: '/calendar', icon: CalendarDays },
         ]
-      : [
+      : role === 'admin'
+      ? [
           { label: 'Overview', href: '/admin', icon: Shield },
           { label: 'Roster Import', href: '/admin/roster', icon: Users },
           { label: 'Calendar', href: '/calendar', icon: CalendarDays },
+        ]
+      : [
+          { label: 'Presence & Attendance', href: '/overseer/presence', icon: Users },
+          { label: 'Campus Complaints', href: '/overseer/complaints', icon: AlertCircle },
         ]
 
   const userInitials = userName

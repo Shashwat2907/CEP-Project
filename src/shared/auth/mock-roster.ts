@@ -13,7 +13,7 @@ export interface MockRosterEntry {
   year: number | null
   division: string | null
   batch: string | null
-  role: 'student' | 'teacher' | 'admin'
+  role: 'student' | 'teacher' | 'admin' | 'overseer'
   status: 'active' | 'invited' | 'inactive'
 }
 
@@ -29,6 +29,19 @@ export const MOCK_ROSTER: MockRosterEntry[] = [
     division: null,
     batch: null,
     role: 'admin',
+    status: 'active',
+  },
+  // Overseer
+  {
+    id: '00000000-0000-0000-0000-000000000004',
+    college_email: 'overseer@campus.edu',
+    college_id: 'OVR001',
+    full_name: 'Campus Overseer',
+    branch: 'Operations & Discipline',
+    year: null,
+    division: null,
+    batch: null,
+    role: 'overseer',
     status: 'active',
   },
   // Teachers

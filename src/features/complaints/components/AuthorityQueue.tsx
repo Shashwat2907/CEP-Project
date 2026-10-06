@@ -101,7 +101,7 @@ export function AuthorityQueue({ complaints }: AuthorityQueueProps) {
             const isEscalated = c.status === 'escalated'
             const isReopened = c.status === 'reopened'
             const isResolved = c.status === 'resolved' || c.status === 'closed'
-            const dueTime = c.due_at ? new Date(c.due_at).toLocaleDateString(undefined, {
+            const dueTime = c.due_at ? new Date(c.due_at).toLocaleDateString('en-US', {
               month: 'short',
               day: 'numeric',
               hour: '2-digit',
@@ -158,7 +158,7 @@ export function AuthorityQueue({ complaints }: AuthorityQueueProps) {
                       <User className="h-3.5 w-3.5" />
                       <span>{c.anonymous ? 'Anonymous Student' : c.author?.full_name ?? 'Student'}</span>
                       <span>•</span>
-                      <span>{new Date(c.created_at).toLocaleDateString()}</span>
+                      <span>{new Date(c.created_at).toLocaleDateString('en-US')}</span>
                     </div>
 
                     {!isResolved && (

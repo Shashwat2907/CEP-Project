@@ -29,15 +29,19 @@ export async function isSupabaseOnline(): Promise<boolean> {
     try {
       const controller = new AbortController()
       const timer = setTimeout(() => controller.abort(), 2000)
-      const res = await fetch(`${url}/auth/v1/health`, {
+      // Check if profiles table exists to verify migrations are applied
+      const res = await fetch(`${url}/rest/v1/profiles?limit=1`, {
+        method: 'HEAD',
         headers: {
           apikey: key,
+          Authorization: `Bearer ${key}`
         },
         signal: controller.signal,
       }).catch(() => null)
       clearTimeout(timer)
 
-      const online = Boolean(res && res.status >= 200 && res.status < 500)
+      // 200 OK means table exists. 404 means route not found (PGRST205 means table missing, which returns 404)
+      const online = Boolean(res && res.status >= 200 && res.status < 400)
       cache = {
         online,
         expiresAt: Date.now() + (online ? 60000 : 5000),

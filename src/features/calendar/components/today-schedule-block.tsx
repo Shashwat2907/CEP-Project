@@ -186,7 +186,7 @@ export function TodayScheduleBlock({
                     </span>
                   </div>
 
-                  <h3 className="font-display text-small sm:text-base font-bold text-ink dark:text-white truncate leading-snug">
+                  <h3 className="font-display text-small sm:text-base font-bold text-ink dark:text-white leading-snug">
                     {item.title}
                   </h3>
 
@@ -198,11 +198,11 @@ export function TodayScheduleBlock({
                 </div>
 
                 {/* Location & Link */}
-                <div className="flex items-center gap-3 shrink-0 text-meta">
+                <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 text-meta w-full sm:w-auto">
                   {item.location && (
                     <span className="inline-flex items-center gap-1 text-ink-muted dark:text-slate-300 font-mono text-[11px]">
                       <MapPin size={12} className="shrink-0" />
-                      <span className="truncate max-w-[150px]">{item.location}</span>
+                      <span className="truncate max-w-[200px] sm:max-w-[150px]">{item.location}</span>
                     </span>
                   )}
 

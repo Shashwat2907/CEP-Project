@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils'
 import { Avatar } from './avatar'
 import { ThemeToggle } from './theme-toggle'
 
-export type UserRole = 'student' | 'teacher' | 'admin'
+export type UserRole = 'student' | 'teacher' | 'admin' | 'overseer'
 
 export interface NavItem {
   label: string
@@ -65,6 +65,11 @@ export const ADMIN_NAV_ITEMS: NavItem[] = [
   { label: 'Audit Log', href: '/admin/audit', icon: FileText },
 ]
 
+export const OVERSEER_NAV_ITEMS: NavItem[] = [
+  { label: 'Presence & Attendance', href: '/overseer/presence', icon: Users },
+  { label: 'Campus Complaints', href: '/overseer/complaints', icon: AlertCircle },
+]
+
 export interface SidebarProps {
   role?: UserRole
   userName?: string
@@ -97,6 +102,8 @@ export function Sidebar({
       ? TEACHER_NAV_ITEMS
       : role === 'admin'
       ? ADMIN_NAV_ITEMS
+      : role === 'overseer'
+      ? OVERSEER_NAV_ITEMS
       : STUDENT_NAV_ITEMS
 
   const userInitials = userName
@@ -106,7 +113,7 @@ export function Sidebar({
     .slice(0, 2)
 
   const homeHref =
-    role === 'admin' ? '/admin' : role === 'teacher' ? '/teacher/acad' : '/'
+    role === 'admin' ? '/admin' : role === 'teacher' ? '/teacher/acad' : role === 'overseer' ? '/overseer/presence' : '/'
 
   return (
     <aside

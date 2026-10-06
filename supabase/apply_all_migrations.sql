@@ -1486,7 +1486,7 @@ create policy "daily: own rows or admin" on public.presence_daily for select
 
 -- ─── 7. pg_cron Jobs ──────────────────────────────────────────────────────
 -- Optional: Only schedules if pg_cron extension is installed and enabled
-DO $$
+DO $block$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
     BEGIN
@@ -1569,7 +1569,7 @@ BEGIN
   ELSE
     RAISE NOTICE 'pg_cron extension not installed; skipping presence background cron schedules.';
   END IF;
-END $$;
+END $block$;
 
 
 -- >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

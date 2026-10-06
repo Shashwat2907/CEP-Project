@@ -18,6 +18,7 @@ export interface AppShellProps {
   department?: string
   userEmail?: string
   activePath?: string
+  isOffline?: boolean
   onSignOut?: () => void
   className?: string
 }
@@ -30,6 +31,7 @@ export function AppShell({
   department = 'Computer Science & Engineering',
   userEmail = 'shashwat@college.edu',
   activePath,
+  isOffline = false,
   onSignOut,
   className,
 }: AppShellProps) {
@@ -43,6 +45,8 @@ export function AppShell({
         ? 'sharma@campus.edu'
         : nextRole === 'admin'
         ? 'admin@campus.edu'
+        : nextRole === 'overseer'
+        ? 'overseer@campus.edu'
         : 'student@campus.edu'
 
     // Synchronously set cookie in browser so subsequent reload/navigation guarantees the role
@@ -60,6 +64,8 @@ export function AppShell({
       window.location.href = '/teacher/acad'
     } else if (nextRole === 'admin') {
       window.location.href = '/admin'
+    } else if (nextRole === 'overseer') {
+      window.location.href = '/overseer'
     } else {
       window.location.href = '/'
     }
@@ -85,7 +91,6 @@ export function AppShell({
             userEmail={userEmail}
             identifier={identifier}
             department={department}
-            onRoleChange={handleRoleChange}
             onSignOut={handleSignOut}
             activePath={activePath}
           />
@@ -104,7 +109,6 @@ export function AppShell({
               userEmail={userEmail}
               identifier={identifier}
               department={department}
-              onRoleChange={handleRoleChange}
               onSignOut={handleSignOut}
               activePath={activePath}
               className="w-full h-full border-r-0"
@@ -120,7 +124,7 @@ export function AppShell({
             userName={userName}
             department={department}
             role={role}
-            onRoleChange={handleRoleChange}
+            isOffline={isOffline}
             onMobileMenuOpen={() => setIsMobileMenuOpen(true)}
           />
 
@@ -138,7 +142,6 @@ export function AppShell({
           userName={userName}
           identifier={identifier}
           department={department}
-          onRoleChange={handleRoleChange}
           onSignOut={onSignOut}
           activePath={activePath}
         />

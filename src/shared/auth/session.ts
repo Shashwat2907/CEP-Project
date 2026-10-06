@@ -26,7 +26,20 @@ export async function getSession() {
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  // 1. Dev mock session fallback (local role and user switching)
+  // 1. Real Supabase Auth session
+  if (await isSupabaseOnline()) {
+    try {
+      const supabase = await createClient()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+      if (user) return user
+    } catch {
+      // Offline / Supabase unreachable
+    }
+  }
+
+  // 2. Dev mock session fallback (local role and user switching)
   if (process.env.DEV_PRINT_OTP_TO_CONSOLE === 'true' || process.env.NODE_ENV !== 'production') {
     try {
       const cookieStore = await cookies()
@@ -62,19 +75,6 @@ export async function getCurrentUser(): Promise<User | null> {
       }
     } catch {
       // Cookies not accessible
-    }
-  }
-
-  // 2. Real Supabase Auth session
-  if (await isSupabaseOnline()) {
-    try {
-      const supabase = await createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (user) return user
-    } catch {
-      // Offline / Supabase unreachable
     }
   }
 
@@ -123,7 +123,7 @@ export async function getCurrentProfile(): Promise<UserProfile | null> {
         year: roster.year ?? undefined,
         division: roster.division ?? undefined,
         batch: roster.batch ?? undefined,
-        role_primary: roster.role as 'student' | 'teacher' | 'admin',
+        role_primary: roster.role as 'student' | 'teacher' | 'admin' | 'overseer',
         status: roster.status === 'inactive' ? 'inactive' : 'active',
         photo_url: null,
         created_at: '2026-10-02T00:00:00Z',

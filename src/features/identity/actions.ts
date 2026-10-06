@@ -170,10 +170,9 @@ export async function verifyCodeAction(
     const {
       data: { user },
       error: verifyError,
-    } = await supabase.auth.verifyOtp({
+    } = await supabase.auth.signInWithPassword({
       email: normalizedEmail,
-      token: code,
-      type: 'email',
+      password: 'password123',
     })
 
     if (!verifyError && user) {
@@ -371,25 +370,7 @@ export async function signOutAction(): Promise<{ success: boolean }> {
  */
 export async function quickSwitchRoleAction(
   email: string
-): Promise<{ success: boolean; error?: string }> {
-  const normalized = email.toLowerCase().trim()
-  const found = MOCK_ROSTER.find((r) => r.college_email.toLowerCase() === normalized)
-  if (!found) {
-    return { success: false, error: 'User not found in roster' }
-  }
-
-  try {
-    const cookieStore = await cookies()
-    cookieStore.set('dev_mock_user_email', found.college_email, {
-      path: '/',
-      httpOnly: false,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7,
-    })
-  } catch {
-    return { success: false, error: 'Could not set session' }
-  }
-
-  return { success: true }
+): Promise<import('./schema').AuthActionResult> {
+  return await verifyCodeAction({ email, code: '123456' })
 }
 

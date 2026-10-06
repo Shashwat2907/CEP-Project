@@ -32,6 +32,7 @@ export const UserRoleTypeSchema = z.enum([
   'teacher',
   'admin',
   'authority',
+  'overseer',
 ])
 export type UserRoleType = z.infer<typeof UserRoleTypeSchema>
 
@@ -44,7 +45,7 @@ export const UserProfileSchema = z.object({
   college_id: z.string(),
   full_name: z.string(),
   photo_url: z.string().nullable().optional(),
-  role_primary: z.enum(['student', 'teacher', 'admin']),
+  role_primary: z.enum(['student', 'teacher', 'admin', 'overseer']),
   branch: z.string().nullable().optional(),
   year: z.number().int().nullable().optional(),
   division: z.string().nullable().optional(),

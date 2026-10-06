@@ -168,15 +168,14 @@ export function StatusCluster({
           type="button"
           onClick={() => setIsIdCardOpen(true)}
           className={cn(
-            'inline-flex items-center gap-2 px-2.5 py-1.5 bg-surface border border-border rounded-sm text-ink hover:bg-surface-sunken hover:border-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink',
-            hideIdOnMobile && 'hidden sm:inline-flex'
+            'inline-flex items-center gap-2 px-2.5 py-1.5 bg-surface border border-border rounded-sm text-ink hover:bg-surface-sunken hover:border-ink transition-colors cursor-pointer select-none focus-visible:outline-2 focus-visible:outline-ink'
           )}
           title="Open Verifiable Digital ID Card"
           aria-label={`Open Digital ID Card for ${userName} (${identifier})`}
         >
           <CreditCard size={18} strokeWidth={1.75} className="text-ink shrink-0" />
           <span className="hidden sm:inline text-small font-medium">Digital ID</span>
-          <span className="font-mono text-meta font-medium px-1.5 py-0.5 rounded-sm bg-surface-sunken border border-border">
+          <span className={cn("font-mono text-meta font-medium px-1.5 py-0.5 rounded-sm bg-surface-sunken border border-border", hideIdOnMobile && 'hidden sm:inline')}>
             {identifier}
           </span>
         </button>

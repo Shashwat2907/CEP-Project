@@ -226,7 +226,7 @@ export function CallInterface({ access }: CallInterfaceProps) {
   const isCriticalTime = remainingSec <= 60 // 1 minute left
 
   return (
-    <div className="flex flex-col h-screen w-full bg-[#0B101A] text-slate-100 overflow-hidden select-none">
+    <div className="fixed inset-0 z-[100] flex flex-col bg-[#0B101A] text-slate-100 overflow-hidden select-none">
       {/* ── Top Bar ── */}
       <header className="h-16 px-4 sm:px-6 bg-[#16213E]/80 backdrop-blur-md border-b border-slate-800 flex items-center justify-between shrink-0 z-20">
         <div className="flex items-center gap-3">

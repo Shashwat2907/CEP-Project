@@ -54,7 +54,7 @@ export function TabsList({
     <div
       role="tablist"
       className={cn(
-        'inline-flex items-center gap-1 rounded-sm bg-surface-sunken p-1 border border-border text-ink-muted',
+        'inline-flex items-center gap-1 rounded-sm bg-surface-sunken p-1 border border-border text-ink-muted w-full sm:w-auto overflow-x-auto no-scrollbar',
         className
       )}
     >

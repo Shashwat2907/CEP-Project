@@ -42,7 +42,10 @@ export function isNaturalText(text: string): boolean {
     'class', 'java', 'python', 'object', 'oriented', 'analysis', 'method', 'reaction', 'table',
     'degree', 'solution', 'indicators', 'acid', 'base', 'metal', 'ion', 'value', 'type', 'types',
     'definition', 'definitions', 'properties', 'applications', 'principle', 'principles', 'solve',
-    'theory', 'derivation', 'deriving', 'step', 'steps', 'example', 'examples', 'problem', 'problems'
+    'theory', 'derivation', 'deriving', 'step', 'steps', 'example', 'examples', 'problem', 'problems',
+    'include', 'stdio', 'int', 'main', 'printf', 'return', 'void', 'char', 'float', 'double', 'if', 'else',
+    'while', 'for', 'switch', 'case', 'break', 'continue', 'struct', 'typedef', 'define', 'include', 'math',
+    'string', 'cout', 'cin', 'namespace', 'std', 'vector', 'public', 'private', 'class', 'boolean', 'import'
   ])
 
   for (const raw of words) {
@@ -70,7 +73,7 @@ export function isNaturalText(text: string): boolean {
     }
 
     // Mixed alphanumeric inside a word (e.g. HJY7, Jv58, Y5F8, scP6i1) -> binary/hash/noise
-    if (/[A-Za-z]/.test(word) && /\d/.test(word)) {
+    if (/[A-Za-z]/.test(word) && /\d/.test(word) && !/^[A-Za-z_]+\d+$/.test(word)) {
       weirdWords++
       continue
     }
@@ -79,10 +82,8 @@ export function isNaturalText(text: string): boolean {
       weirdWords++
       continue
     }
-    // Abnormal mixed casing like cHLvi, CKbj, w'2W
-    if (/[a-z][A-Z]/.test(word) && !/^[a-z]+[A-Z][a-z]+$/.test(word)) {
-      weirdWords++
-      continue
+    if (/[a-z][A-Z]/.test(word) && !/^[a-z]+[A-Z][a-z]+$/.test(word) && !/^[a-z]+([A-Z][a-z]+)+$/.test(word)) {
+      // Relaxed CamelCase rejection
     }
 
     validWords++
@@ -94,8 +95,8 @@ export function isNaturalText(text: string): boolean {
   // At least 65% of words must be valid linguistic words
   if (validWords / total < 0.65) return false
 
-  // In real texts of more than 8 words, at least 12% should be recognizable English / academic vocabulary
-  if (words.length >= 8 && recognizedCommonWords / words.length < 0.12) {
+  // In real texts of more than 8 words, at least 8% should be recognizable English / academic vocabulary (relaxed for code)
+  if (words.length >= 8 && recognizedCommonWords / words.length < 0.08) {
     return false
   }
 

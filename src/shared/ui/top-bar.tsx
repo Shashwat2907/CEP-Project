@@ -18,8 +18,9 @@ export interface TopBarProps {
   identifier?: string
   userName?: string
   department?: string
-  role?: 'student' | 'teacher' | 'admin'
-  onRoleChange?: (nextRole: 'student' | 'teacher' | 'admin') => void
+  role?: 'student' | 'teacher' | 'admin' | 'overseer'
+  isOffline?: boolean
+  onRoleChange?: (nextRole: 'student' | 'teacher' | 'admin' | 'overseer') => void
   presenceState?: PresenceState
   onPresenceToggle?: (state: PresenceState) => void
   unreadNotifications?: number
@@ -33,6 +34,7 @@ export function TopBar({
   userName = 'Shashwat Choudhary',
   department = 'Computer Science & Engineering',
   role = 'student',
+  isOffline = false,
   onRoleChange,
   presenceState = 'in',
   onPresenceToggle,
@@ -86,8 +88,14 @@ export function TopBar({
 
       {/* Right side: Role switcher & Signature status cluster (DESIGN.MD §6 & §7) */}
       <div className="flex items-center gap-2">
+        {isOffline && (
+          <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-warning/20 text-warning-foreground border border-warning/30">
+            Demo Data
+          </span>
+        )}
+
         {onRoleChange && (
-          <div className="relative" ref={roleMenuRef}>
+          <div className="relative hidden sm:block" ref={roleMenuRef}>
             <button
               type="button"
               onClick={() => setIsRoleMenuOpen((prev) => !prev)}
@@ -103,6 +111,8 @@ export function TopBar({
                   'font-bold uppercase tracking-wider text-[11px] px-1 py-0.2 rounded-xs',
                   role === 'admin'
                     ? 'bg-danger/10 text-danger'
+                    : role === 'overseer'
+                    ? 'bg-purple-500/10 text-purple-700 dark:text-purple-300'
                     : role === 'teacher'
                     ? 'bg-warning/20 text-ink'
                     : 'bg-primary/10 text-primary'
@@ -123,6 +133,7 @@ export function TopBar({
                     { key: 'student', label: 'Student', icon: GraduationCap },
                     { key: 'teacher', label: 'Faculty / Teacher', icon: Users },
                     { key: 'admin', label: 'Administrator', icon: Shield },
+                    { key: 'overseer', label: 'Overseer', icon: Shield },
                   ] as const
                 ).map(({ key, label, icon: Icon }) => (
                   <button
@@ -158,6 +169,7 @@ export function TopBar({
           onPresenceToggle={onPresenceToggle}
           unreadNotifications={unreadNotifications}
           onBellClick={onBellClick}
+          hideIdOnMobile={true}
         />
       </div>
     </header>

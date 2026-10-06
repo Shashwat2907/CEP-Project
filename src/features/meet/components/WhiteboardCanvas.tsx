@@ -80,6 +80,7 @@ export function WhiteboardCanvas({
   } | null>(null)
 
   const canvasRef = useRef<SVGSVGElement | null>(null)
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
   const supabase = createClient()
 
   // ── 1. Realtime Broadcast Synchronization ──
@@ -89,6 +90,7 @@ export function WhiteboardCanvas({
     const channel = supabase.channel(`meet-wb-${sessionId}`, {
       config: { broadcast: { self: false } },
     })
+    channelRef.current = channel
 
     channel
       .on('broadcast', { event: 'new-stroke' }, ({ payload }) => {
@@ -113,21 +115,21 @@ export function WhiteboardCanvas({
 
     return () => {
       supabase.removeChannel(channel)
+      channelRef.current = null
     }
   }, [sessionId, readOnly, supabase])
 
   // Broadcast helper
   const broadcastEvent = useCallback(
     (event: string, payload: Record<string, unknown>) => {
-      if (readOnly) return
-      const channel = supabase.channel(`meet-wb-${sessionId}`)
-      channel.send({
+      if (readOnly || !channelRef.current) return
+      channelRef.current.send({
         type: 'broadcast',
         event,
         payload,
-      })
+      }).catch(console.error)
     },
-    [sessionId, readOnly, supabase]
+    [readOnly]
   )
 
   // ── 2. Drawing Coordinates Helper ──
